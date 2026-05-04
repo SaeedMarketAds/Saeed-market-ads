@@ -1,0 +1,6 @@
+{
+  "model": "gemini-2.5-flash",
+  "project_name": "Saeed DataBot",
+  "version": "1.0",
+  "base_path": "/storage/emulated/0/SAEED_MARKET_SITE/"
+}
