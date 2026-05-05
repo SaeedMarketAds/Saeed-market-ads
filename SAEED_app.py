@@ -10,7 +10,7 @@ st.subheader("مرحباً بكم في مستقبل التسويق الرقمي"
 
 # عرض الصورة التعريفية
 try:
-    st.image("saeed_avatar.jpg", caption="سعيد المسوري - مطور النظام", width=300)
+    st.image("saeed_avatar.jpg", caption="سعيد ماركت (SaeedMarketAds) - مطور النظام", width=300)
 except:
     st.info("... جاري تحميل الهوية البصرية")
 
@@ -35,23 +35,7 @@ else:
 
 # عرض مشغل الصوت لملف التفاعل
 if os.path.exists(saeed_voice_path):
-    st.write("صوت التفاعل:")
+    st.write("صوت التفاعل / الإجابة:")
     st.audio(saeed_voice_path, format="audio/mp3")
 else:
-    st.info("قم بسؤال البوت ليتم توليد الصوت الخاص به.")
-
-st.write("---")
-
-# قسم الخدمات
-st.write("### خدماتنا المتقدمة")
-col1, col2 = st.columns(2)
-with col1:
-    st.success("✅ تسويق ذكي عبر AI")
-    st.success("✅ أتمتة إعلانات SHEIN")
-with col2:
-    st.success("✅ بناء هويات رقمية")
-    st.success("✅ استشارات برمجية")
-
-# تذييل الصفحة
-st.write("---")
-st.info("حقوق التطوير محفوظة © 2026 | SaeedMarketAds")
+    st.info("جاري تحميل ملف التفاعل (تأكد من وجود الملف saeed_voice.mp3 في المستودع).")
