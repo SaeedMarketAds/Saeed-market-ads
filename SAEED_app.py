@@ -1,6 +1,6 @@
 import streamlit as st
 from google import genai
-import gtts  # مكتبة تحويل النص إلى صوت (تأكد من إضافتها في requirements.txt)
+import gtts  # مكتبة تحويل النص إلى صوت
 import os
 
 # 1. تهيئة إعدادات الصفحة وعرض الهوية البصرية للبوت
@@ -32,14 +32,13 @@ for message in st.session_state.messages:
         if "audio" in message:
             st.audio(message["audio"])
 
-# ميزة المايكروفون (ليسمعك البوت إذا أردت التسجيل بصوتك بدلاً من الكتابة)
+# ميزة المايكروفون
 audio_value = st.audio_input("اضغط على المايك وتحدث مع البوت بصوتك 🎙️")
 user_input = st.chat_input("أو اكتب رسالتك للبوت هنا...")
 
-# إذا تحدث المستخدم بالصوت (هنا تحتاج كود تحويل الصوت لنص، لكن لتسهيل الأمر حالياً سنعتمد على النص والرد الصوتي)
+# إذا تحدث المستخدم بالصوت
 if audio_value:
     st.info("تم استقبال تسجيلك الصوتي بنجاح! جاري المعالجة...")
-    # يمكنك لاحقاً ربط مكتبة تحويل الصوت إلى نص هنا
 
 # 4. استقبال رسائل المستخدم النصية والرد عليها بالصوت والنص
 if user_input:
@@ -67,7 +66,7 @@ if user_input:
             bot_reply = response.text
             message_placeholder.markdown(bot_reply)
             
-            # توليد رد صوتي للبوت لكي ينطق الكلام (يتكلم معك)
+            # توليد رد صوتي للبوت لكي ينطق الكلام
             tts = gtts.gTTS(text=bot_reply, lang='ar')
             audio_file = "bot_reply.mp3"
             tts.save(audio_file)
