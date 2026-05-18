@@ -1,25 +1,23 @@
+
 import streamlit as st
 from google import genai
 import gtts
 import os
 
-# 1. تهيئة إعدادات الصفحة وعرض الهوية البصرية للبوت
 st.set_page_config(page_title="Saeed DataBot", page_icon="🚀")
 
 st.image("saeed_avatar.jpg", use_column_width=True)
-st.title("إمبراطورية سعيد ماركت | الروبوت الذكي")
-st.write("مرحباً بك! أنا مساعدك الذكي للتسويق الرقمي وإدارة الإعلانات.")
+st.title("Saeed Market Ads | AI Bot")
+st.write("Welcome to Saeed Market Ads Smart Assistant.")
 
 st.audio("saeed_voice.mp3")
 
-# 2. إدخال مفتاح الـ API الخاص بجوجل بشكل آمن من السيكرتس
 try:
     YOUR_API_KEY = st.secrets["GEMINI_API_KEY"]
     client = genai.Client(api_key=YOUR_API_KEY)
 except Exception as e:
-    st.error("تأكد من إعداد مفتاح GEMINI_API_KEY في Streamlit Secrets بالشكل الصحيح.")
+    st.error("API Key missing in Streamlit Secrets.")
 
-# 3. إنشاء ذاكرة للمحادثة لكي يتذكر البوت الكلام السابق
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -29,13 +27,12 @@ for message in st.session_state.messages:
         if "audio" in message:
             st.audio(message["audio"])
 
-audio_value = st.audio_input("اضغط على المايك وتحدث مع البوت بصوتك 🎙️")
-user_input = st.chat_input("أو اكتب رسالتك للبوت هنا...")
+audio_value = st.audio_input("🎙️ Speak to the Bot")
+user_input = st.chat_input("Or type your message here...")
 
 if audio_value:
-    st.info("تم استقبال تسجيلك الصوتي بنجاح! جاري المعالجة...")
+    st.info("Audio received! Processing...")
 
-# 4. استقبال رسائل المستخدم النصية والرد عليها بالصوت والنص
 if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
@@ -46,7 +43,7 @@ if user_input:
         try:
             prompt_instructions = (
                 f"أنت بوت ذكي وصوتي لبراند 'saeedmarketads' المتخصص في التسويق الإلكتروني وإعلانات المتاجر مثل AliExpress و Noon و SHEIN. "
-                f"تحدث بذكاء، وود، وااحترافية باللغة العربية واجعل إجابتك مختصرة ومناسبة للقراءة الصوتية. رسالة المستخدم هي: {user_input}"
+                f"تحدث بذكاء، وود، واحترافية باللغة العربية واجعل إجابتك مختصرة ومناسبة للقراءة الصوتية من خلال ميكروفون الهاتف. رسالة المستخدم هي: {user_input}"
             )
             
             response = client.models.generate_content(
@@ -65,4 +62,4 @@ if user_input:
             st.session_state.messages.append({"role": "assistant", "content": bot_reply, "audio": audio_file})
             
         except Exception as e:
-            message_placeholder.markdown("عذراً، واجهت مشكلة في الرد السريع.")
+            message_placeholder.markdown("Error in generation.")
