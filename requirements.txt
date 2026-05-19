@@ -1,3 +1,4 @@
 streamlit
-google-genai
-gTTS
+google-generativeai
+requests
+streamlit-mic-recorder
