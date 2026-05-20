@@ -2,37 +2,33 @@ import streamlit as st
 from streamlit_mic_recorder import mic_recorder
 import google.generativeai as genai
 import requests
-from gtts import gTTS  # استيراد مكتبة النطق الصوتي المحدثة
+from gtts import gTTS  
 import os
 
-# 1. إعداد مفاتيحك السرية بأمان تام من إعدادات Streamlit
+# --- إعدادات الصفحة الرسمية للمنظومة ---
+st.set_page_config(page_title="Saeed DataBot 2026", layout="wide")
+
+# --- 1. إعداد مفاتيحك السرية والاتصال بـ Gemini API ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     TELEGRAM_BOT_TOKEN = st.secrets["TELEGRAM_BOT_TOKEN"]
     TELEGRAM_CHAT_ID = st.secrets["TELEGRAM_CHAT_ID"] 
 except Exception as e:
     st.error("تنبيه: تأكد من ضبط مفاتيح (Secrets) في منصة Streamlit (GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)")
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
 
-# إعدادات الصفحة لتكون مريح    model = genai.GenerativeModel(
-
-st.set_page_config(page_title="Saeed DataBot 2026", layout="wide")
-
-# تهيئة مخزن الحالة (Session State) لضمان ثبات النص والصوت ومنع الاختفاء تماماً
+# --- 2. تهيئة مخزن الحالة (Session State) لضمان ثبات النص والصوت ---
 if "bot_response" not in st.session_state:
     st.session_state.bot_response = ""
 if "generated_audio" not in st.session_state:
     st.session_state.generated_audio = None
 
-# العنوان الرئيسي للمنظومة
+# --- الواجهة الرئيسية للمنظومة ---
 st.title("Saeed MarketAds - المنظومة الذكية المرئية المحدثة 🎙️🤖")
 st.write("مرحباً بك يا أستاذ سعيد في واجهة الجيل الجديد لـ Saeed DataBot لعام 2026.")
 
-# إضافة الخط الفاصل البرمجي بشكل صحيح
 st.markdown("---")
 
-# 2. تقسيم الواجهة لضمان عدم ضياع أو اختفاء النصوص خلف الأفاتار
+# تقسيم الواجهة: الأفاتار والهوية على اليمين/اليسار والحوار في الجانب الآخر
 col_avatar, col_chat = st.columns([1, 1.2])
 
 with col_avatar:
@@ -59,21 +55,20 @@ with col_chat:
         key='saeed_voice_recorder'
     )
     
-    # حاوية ثابتة مخصصة لعرض الحوار والنصوص لكي تبقى على الشاشة دائماً أمام الناس
+    # حاوية ثابتة مخصصة لعرض الحوار والنصوص لكي تبقى على الشاشة دائماً
     conversation_box = st.empty()
 
-# 3. معالجة وتوليد المنشور والنطق الصوتي عند اكتمال تسجيل الصوت
+# --- 3. معالجة وتوليد المنشور والنطق الصوتي عند اكتمال التسجيل ---
 if audio:
     with col_chat:
         st.audio(audio['bytes'], format='audio/wav')
         
-        # نفتح الحاوية الثابتة لعرض النتائج بداخلها فوراً وبثبات
         with conversation_box.container():
-            st.info("⏳ جاري تحليل النبضات الصوتية وتوليد المخرج الإعلاني الخارق وتحويله لصوت...")
+            st.info("⏳ جاري تحليل النبضات الصوتية وتوليد المخرج الإعلاني الخارق وتحويله لصوت عبر نموذج Gemini...")
             
             try:
-                # التوافقية البرمجية مع Gemini 1.5 Flash
-                model = genai.GenerativeModel('models/gemini-1.5-flash')
+                # استخدام نموذج Gemini الحديث والمعتمد في مشروعك
+                model = genai.GenerativeModel(model_name="gemini-2.5-flash")
                 
                 audio_data = {
                     "mime_type": "audio/wav",
@@ -99,11 +94,11 @@ if audio:
                 # تخزين النص المستخرج في الـ session_state لمنع الاختفاء
                 st.session_state.bot_response = response.text
                 
-                # --- التعديل الذكي: توليد النطق الصوتي بالفم من النص المكتوب تلقائياً ---
+                # توليد النطق الصوتي من النص المكتوب تلقائياً
                 tts = gTTS(text=st.session_state.bot_response, lang='ar', slow=False)
                 tts.save("bot_speech.mp3")
                 
-                # قراءة ملف الصوت وحفظ بايتات الصوت في الجلسة للبقاء الدائم
+                # حفظ بايتات الصوت في الجلسة للبقاء الدائم
                 with open("bot_speech.mp3", "rb") as f:
                     st.session_state.generated_audio = f.read()
 
@@ -112,31 +107,31 @@ if audio:
             except Exception as e:
                 st.error(f"حدث خطأ أثناء معالجة الذكاء الاصطناعي للصوت: {e}")
 
-# 4. عرض التحديثات من الجلسة (النص أولاً ثم الصوت أسفله لضمان الثبات الكامل)
+# --- 4. عرض التحديثات من الجلسة بعبارات ثابتة ومستقرة ---
 if st.session_state.bot_response:
     with col_chat:
         with conversation_box.container():
-            # أ) عرض النص التسويقي أولاً بكفاءة
             st.subheader("📝 النص التسويقي المولد:")
             with st.chat_message("assistant"):
                 st.markdown(st.session_state.bot_response)
             
             st.markdown("---")
             
-            # ب) عرض مشغل النطق الصوتي أسفل النص مباشرة لتتحدث المنظومة بالفم
             if st.session_state.generated_audio:
                 st.subheader("🔊 النطق الصوتي للبوت (Saeed DataBot):")
                 st.audio(st.session_state.generated_audio, format="audio/mp3")
 
-    # 5. زر النشر المباشر والتلقائي إلى التليجرام
+    # --- 5. زر النشر المباشر والتلقائي إلى التليجرام ---
     st.write("---")
     st.write("🚀 **خطوة الإطلاق والبث المباشر:**")
     
-    # دالة إرسال التليجرام
     def send_to_telegram(text):
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
-        return requests.post(url, json=payload).json()
+        try:
+            return requests.post(url, json=payload).json()
+        except Exception as telegram_error:
+            return {"ok": False, "description": str(telegram_error)}
         
     if st.button("نشر هذا التصميم فوراً إلى صفحة وقناة العمل عبر الـ API"):
         if st.session_state.bot_response:
