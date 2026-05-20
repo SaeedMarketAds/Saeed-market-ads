@@ -18,7 +18,7 @@ st.set_page_config(page_title="Saeed DataBot 2026", layout="wide")
 st.title("Saeed MarketAds - المنظومة الذكية المرئية المحدثة 🎙️🤖")
 st.write("مرحباً بك يا أستاذ سعيد في الواجهة الجيل الجديد لـ Saeed DataBot لعام 2026.")
 
-# إضافة الخط الفاصل البرمجي بشكل صحيح هنا
+# إضافة الخط الفاصل البرمجي بشكل صحيح
 st.markdown("---")
 
 # 2. تقسيم الواجهة لضمان عدم ضياع أو اختفاء النصوص خلف الأفاتار
@@ -26,16 +26,14 @@ col_avatar, col_chat = st.columns([1, 1.2])
 
 with col_avatar:
     st.subheader("🤖 الكيان: Saeed DataBot")
-    # هنا يتم عرض صورة الأفاتار الشخصية الخاصة بك وتثبيتها في الجانب
     try:
-        st.image("avatar.png", caption="الأفاتار الرسمي المطور لسعيد الشخصية", use_container_width=True)
+        st.image("saeed.jpg", caption="الأفاتار الرسمي المطور لسعيد الشخصية", use_container_width=True)
     except:
-        st.info("💡 لرفع صورتك الشخصية كأفاتار، تأكد من تسميتها avatar.png ووضعها بجانب ملف الكود في حساب GitHub.")
+        st.info("💡 لم يتم العثور على ملف saeed.jpg، يرجى التأكد من وجوده في المستودع بنظام حروف صغيرة.")
     
     st.write("🎵 **الهوية الصوتية الرسمية للمطور**")
-    # شريط الصوت الثابت
     try:
-        st.audio("voice.mp3")
+        st.audio("saeed_voice.mp3")
     except:
         st.caption("الصوت الرسمي جاهز للعمل.")
 
@@ -62,7 +60,8 @@ if audio:
             st.info("⏳ جاري تحليل النبضات الصوتية وتوليد المخرج الإعلاني الخارق...")
             
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # التعديل الحاسم هنا لحل مشكلة الـ 404 وتوافقية الـ API
+                model = genai.GenerativeModel('models/gemini-1.5-flash')
                 
                 audio_data = {
                     "mime_type": "audio/wav",
