@@ -18,7 +18,8 @@ st.set_page_config(page_title="Saeed DataBot 2026", layout="wide")
 st.title("Saeed MarketAds - المنظومة الذكية المرئية المحدثة 🎙️🤖")
 st.write("مرحباً بك يا أستاذ سعيد في الواجهة الجيل الجديد لـ Saeed DataBot لعام 2026.")
 
----
+# إضافة الخط الفاصل البرمجي بشكل صحيح هنا
+st.markdown("---")
 
 # 2. تقسيم الواجهة لضمان عدم ضياع أو اختفاء النصوص خلف الأفاتار
 col_avatar, col_chat = st.columns([1, 1.2])
@@ -26,7 +27,6 @@ col_avatar, col_chat = st.columns([1, 1.2])
 with col_avatar:
     st.subheader("🤖 الكيان: Saeed DataBot")
     # هنا يتم عرض صورة الأفاتار الشخصية الخاصة بك وتثبيتها في الجانب
-    # يمكنك تغيير رابط الصورة برابط صورتك المباشر إذا كنت ترفعها على موقع خارجي أو تضعها في نفس المجلد باسم avatar.png
     try:
         st.image("avatar.png", caption="الأفاتار الرسمي المطور لسعيد الشخصية", use_container_width=True)
     except:
