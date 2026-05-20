@@ -16,7 +16,7 @@ st.set_page_config(page_title="Saeed DataBot 2026", layout="wide")
 
 # العنوان الرئيسي للمنظومة
 st.title("Saeed MarketAds - المنظومة الذكية المرئية المحدثة 🎙️🤖")
-st.write("مرحباً بك يا أستاذ سعيد في الواجهة الجيل الجديد لـ Saeed DataBot لعام 2026.")
+st.write("مرحباً بك يا أستاذ سعيد في واجهة الجيل الجديد لـ Saeed DataBot لعام 2026.")
 
 # إضافة الخط الفاصل البرمجي بشكل صحيح
 st.markdown("---")
@@ -49,18 +49,19 @@ with col_chat:
     )
     
     # حاوية ثابتة مخصصة لعرض الحوار والنصوص لكي تبقى على الشاشة دائماً أمام الناس
-    conversation_box = st.container()
+    conversation_box = st.empty()
 
 # 3. معالجة وتوليد المنشور عند اكتمال تسجيل الصوت
 if audio:
     with col_chat:
         st.audio(audio['bytes'], format='audio/wav')
         
-        with conversation_box:
+        # نفتح الحاوية الثابتة لعرض النتائج بداخلها فوراً وبثبات
+        with conversation_box.container():
             st.info("⏳ جاري تحليل النبضات الصوتية وتوليد المخرج الإعلاني الخارق...")
             
             try:
-                # التعديل الحاسم هنا لحل مشكلة الـ 404 وتوافقية الـ API
+                # التعديل الحاسم لحل مشكلة الـ 404 وتوافقية الـ API
                 model = genai.GenerativeModel('models/gemini-1.5-flash')
                 
                 audio_data = {
@@ -68,7 +69,7 @@ if audio:
                     "data": audio['bytes']
                 }
                 
-                # التوجيه الثقافي والتقني الدقيق لمنع ظهور الأسماء القديمة غير المرغوبة
+                # التوجيه الثقافي والتقني الدقيق
                 system_prompt = (
                     "أنت الكيان البرمجي الخارق (Saeed DataBot)، الذكاء الاصطناعي المبتكر لمنصة (saeedmarketads).\n\n"
                     "محددات هويتك لعام 2026:\n"
@@ -84,21 +85,28 @@ if audio:
                 
                 response = model.generate_content([system_prompt, audio_data])
                 
-                # مسح رسالة التحميل وعرض النص النهائي بشكل مرئي بليغ وثابت
+                # مسح رسالة الانتظار وعرض النص النهائي بثبات في نفس المكان
                 st.success("✨ تم صياغة المخرج البرمجي بنجاح!")
                 
-                # عرض النص داخل قالب محادثة احترافي ليبقى ثابتاً ولا يضيع تحت الأفاتار
+                # عرض النص داخل قالب محادثة احترافي وثابت
                 with st.chat_message("assistant"):
                     st.markdown(response.text)
                 
-                # حفظ النص في الجلسة لمنع اختفائه عند الضغط على أزرار أخرى
+                # حفظ النص في الجلسة لمنع اختفائه عند الضغط على زر التليجرام
                 st.session_state['current_designed_post'] = response.text
 
             except Exception as e:
                 st.error(f"حدث خطأ أثناء معالجة الذكاء الاصطناعي للصوت: {e}")
 
-# 4. زر النشر المباشر والتلقائي إلى التليجرام
+# استرجاع النص وحفظه على الشاشة حتى لو تفاعل المستخدم مع عناصر أخرى
 if 'current_designed_post' in st.session_state:
+    with col_chat:
+        with conversation_box.container():
+            st.success("✨ المخرج البرمجي الحالي المتوفر في الجلسة:")
+            with st.chat_message("assistant"):
+                st.markdown(st.session_state['current_designed_post'])
+
+    # 4. زر النشر المباشر والتلقائي إلى التليجرام
     st.write("---")
     st.write("🚀 **خطوة الإطلاق والبث المباشر:**")
     
