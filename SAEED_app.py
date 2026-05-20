@@ -12,8 +12,11 @@ try:
     TELEGRAM_CHAT_ID = st.secrets["TELEGRAM_CHAT_ID"] 
 except Exception as e:
     st.error("تنبيه: تأكد من ضبط مفاتيح (Secrets) في منصة Streamlit (GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)")
+    model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
 
-# إعدادات الصفحة لتكون مريحة واحترافية
+# إعدادات الصفحة لتكون مريح    model = genai.GenerativeModel(
+
 st.set_page_config(page_title="Saeed DataBot 2026", layout="wide")
 
 # تهيئة مخزن الحالة (Session State) لضمان ثبات النص والصوت ومنع الاختفاء تماماً
