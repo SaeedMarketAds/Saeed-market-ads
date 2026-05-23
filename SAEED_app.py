@@ -128,3 +128,22 @@ if st.session_state.bot_response:
             st.markdown(st.session_state.bot_response)
         
         st.markdown("---")
+        
+        # ثانياً: تشغيل النطق الصوتي الحي مباشرة أسفل النص ليتحدث البوت
+        if st.session_state.generated_audio:
+            st.subheader("🔊 النطق الصوتي للبوت (Saeed DataBot):")
+            st.audio(st.session_state.generated_audio, format="audio/mp3", autoplay=True)
+
+# --- 5. زر إعادة البث والتحكم المباشر ---
+st.write("---")
+st.write("🚀 **خطوة الإطلاق والبث المباشر (تأكيد الإرسال يدوياً إن أردت):**")
+if st.button("نشر هذا التصميم مجدداً إلى صفحة وقناة العمل عبر الـ API"):
+    if st.session_state.bot_response:
+        with st.spinner("جاري بث المنشور عبر القنوات الرقمية..."):
+            res = send_to_telegram(st.session_state.bot_response)
+            if res.get("ok"):
+                st.success("🎉 تم بث منشورك الاحترافي بنجاح مذهل عبر البوت إلى تلغرام!")
+            else:
+                st.error(f"تفاصيل الخطأ في الإرسال: {res}")
+    else:
+        st.warning("⚠️ لا يوجد نص متاح حالياً لإرساله، يرجى التحدث في المايك أولاً.")
