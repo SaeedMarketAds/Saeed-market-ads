@@ -120,14 +120,19 @@ if st.session_state.bot_response:
             st.markdown(st.session_state.bot_response)
         
         st.markdown("---")
-        
-        # ثانياً: تشغيل الرد بصوتك أنت فقط (تم حذف gTTS)
-        st.subheader("🔊 الرد بصوت سعيد المسوري:")
-        # تأكد من وجود ملف saeed_voice.mp3 في المجلد
-        if os.path.exists("saeed_voice.mp3"):
-            st.audio("saeed_voice.mp3", format="audio/mp3", autoplay=True)
+        .mp3 لعمل الرد الصوتي.")
+    st.write("---")
+    st.write("🚀 **خطوة الإطلاق والبث المباشر (تأكيد الإرسال يدوياً إن أردت)**")
+    if st.button("نشر هذا التصميم مجدداً إلى صفحة وقناة العمل عبر الـ API"):
+        if st.session_state.bot_response:
+            with st.spinner("...جاري بث المنشور عبر القنوات الرقمية"):
+                res = send_to_telegram(st.session_state.bot_response)
+                if res.get("ok"):
+                    st.success("تم بنجاح مذهل عبر البوت إلى تلغرام 🚀")
+                else:
+                    st.error(f"حدث خطأ: تفاصيل الخطأ في الإرسال {res}")
         else:
-            st.warning("⚠️ لم يتم العثور على ملف saeed_voice.mp3 لعمل الرد الصوتي.")
+            st.warning("غير متاح حالياً للإرسال، يرجى التحدث في المايك أولاً ⚠️")
 
 # --- 5. زر إعادة البث والتحكم المباشر ---
 st.write("---")
