@@ -1,9 +1,5 @@
-google-generativeai>=0.8.0
-
+دgoogle-generativeai>=0.8.0
 streamlit
-
 streamlit-mic-recorder
-
 requests
-
-playsound==1.2.2
+gTTS
