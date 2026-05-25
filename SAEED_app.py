@@ -129,9 +129,11 @@ if st.session_state.bot_response:
                 with st.spinner("...جاري بث المنشور عبر القنوات الرقمية"):
                     res = send_to_telegram(st.session_state.bot_response)
                     if res.get("ok"):
-                        st.success("تم بث منشورك الاحترافي بنجاح عبر البوت إلى تلغرام 🚀")
-                    else:
-                        st.error(f"حدث خطأ: تفاصيل الخطأ في الإرسال {res}")
+                  if res.get("ok"):
+                    st.success("تم بنجاح عبر البوت إلى تلغرام")
+                else:
+                    st.error(f"حدث خطأ: تفاصيل الخطأ في الإرسال {res}")
             else:
-                st.warning("⚠️ لا يوجد نص متاح للإرسال، يرجى التحدث في المايك أولاً")
+                st.warning("يرجى التحدث في المايك أولاً ⚠️")
+
 
