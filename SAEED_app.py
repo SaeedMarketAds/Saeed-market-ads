@@ -122,6 +122,9 @@ if st.session_state.bot_response:
         st.markdown("---")
         .mp3 لعمل الرد الصوتي.")
     st.write("---")
+        st.markdown("---")
+        .mp3 لعمل الرد الصوتي.")
+    st.write("---")
     st.write("🚀 **خطوة الإطلاق والبث المباشر (تأكيد الإرسال يدوياً إن أردت)**")
     if st.button("نشر هذا التصميم مجدداً إلى صفحة وقناة العمل عبر الـ API"):
         if st.session_state.bot_response:
