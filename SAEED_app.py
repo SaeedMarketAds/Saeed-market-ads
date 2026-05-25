@@ -119,34 +119,19 @@ if st.session_state.bot_response:
         with st.chat_message("assistant"):
             st.markdown(st.session_state.bot_response)
         
+            st.markdown("---")
+        st.write("لعمل الرد الصوتي .mp3")
         st.markdown("---")
-        .mp3 لعمل الرد الصوتي.")
-    st.write("---")
-        st.markdown("---")
-        .mp3 لعمل الرد الصوتي.")
-    st.write("---")
-    st.write("🚀 **خطوة الإطلاق والبث المباشر (تأكيد الإرسال يدوياً إن أردت)**")
-    if st.button("نشر هذا التصميم مجدداً إلى صفحة وقناة العمل عبر الـ API"):
-        if st.session_state.bot_response:
-            with st.spinner("...جاري بث المنشور عبر القنوات الرقمية"):
-                res = send_to_telegram(st.session_state.bot_response)
-                if res.get("ok"):
-                    st.success("تم بنجاح مذهل عبر البوت إلى تلغرام 🚀")
-                else:
-                    st.error(f"حدث خطأ: تفاصيل الخطأ في الإرسال {res}")
-        else:
-            st.warning("غير متاح حالياً للإرسال، يرجى التحدث في المايك أولاً ⚠️")
-
-# --- 5. زر إعادة البث والتحكم المباشر ---
-st.write("---")
-st.write("🚀 **خطوة الإطلاق والبث المباشر (تأكيد الإرسال يدوياً إن أردت):**")
-if st.button("نشر هذا التصميم مجدداً إلى صفحة وقناة العمل عبر الـ API"):
-    if st.session_state.bot_response:
-        with st.spinner("جاري بث المنشور عبر القنوات الرقمية..."):
-            res = send_to_telegram(st.session_state.bot_response)
-            if res.get("ok"):
-                st.success("🎉 تم بث منشورك الاحترافي بنجاح مذهل عبر البوت إلى تلغرام!")
+        
+        st.write("🚀 **خطوة الإطلاق والبث المباشر (تأكيد الإرسال يدوياً إن أردت)**")
+        if st.button("نشر هذا التصميم مجدداً إلى صفحة وقناة العمل عبر الـ API"):
+            if st.session_state.bot_response:
+                with st.spinner("...جاري بث المنشور عبر القنوات الرقمية"):
+                    res = send_to_telegram(st.session_state.bot_response)
+                    if res.get("ok"):
+                        st.success("تم بث منشورك الاحترافي بنجاح عبر البوت إلى تلغرام 🚀")
+                    else:
+                        st.error(f"حدث خطأ: تفاصيل الخطأ في الإرسال {res}")
             else:
-                st.error(f"تفاصيل الخطأ في الإرسال: {res}")
-    else:
-        st.warning("⚠️ لا يوجد نص متاح حالياً لإرساله، يرجى التحدث في المايك أولاً.")
+                st.warning("⚠️ لا يوجد نص متاح للإرسال، يرجى التحدث في المايك أولاً")
+
