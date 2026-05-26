@@ -1,5 +1,3 @@
-دgoogle-generativeai>=0.8.0
-streamlit
-streamlit-mic-recorder
-requests
-gTTS
+دstreamlit
+google-generativeai
+python-dotenv
