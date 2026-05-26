@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 st.set_page_config(page_title="Saeed DataBot", page_icon="🤖")
 
 # تحميل المفتاح السري
-load_dotenv()
-API_KEY = os.getenv("GOOGLE_API_KEY")
+# الطريقة الأفضل والأكثر اختصاراً
+API_KEY = st.secrets.get("GOOGLE_API_KEY")
 
 # واجهة التطبيق
 st.title("🚀 Saeed DataBot")
