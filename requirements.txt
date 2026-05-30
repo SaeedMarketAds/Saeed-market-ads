@@ -1,3 +1,3 @@
-د​streamlit
-​google-generativeai
-​st-audiorec
+دstreamlit
+google-generativeai
+st-audiorec
