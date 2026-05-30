@@ -1,18 +1,17 @@
 import streamlit as st
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
 
 # إعداد الصفحة
 st.set_page_config(page_title="Saeed DataBot", page_icon="🤖")
 
-# تحميل المفتاح السري
-# الطريقة الأفضل والأكثر اختصاراً
+# تحميل المفتاح السري من Streamlit Secrets
 API_KEY = st.secrets.get("GOOGLE_API_KEY")
 
 # واجهة التطبيق
 st.title("🚀 Saeed DataBot")
-st.image("saeed.jpg", width=200) # عرض صورتك الموجودة في المجلد
+if os.path.exists("saeed.jpg"):
+    st.image("saeed.jpg", width=200)
 st.subheader("مساعدك الذكي للتفاعل مع السوق")
 
 user_input = st.text_input("اطرح سؤالك هنا:")
@@ -20,11 +19,12 @@ user_input = st.text_input("اطرح سؤالك هنا:")
 if st.button("تفاعل مع البوت"):
     if user_input:
         if not API_KEY:
-            st.error("خطأ: مفتاح الـ API غير موجود. تأكد من ملف .env")
+            st.error("خطأ: مفتاح الـ API غير موجود. تأكد من إضافته في إعدادات Streamlit Secrets.")
         else:
             try:
                 genai.configure(api_key=API_KEY)
-                model = genai.GenerativeModel('gemini-pro')
+                # استخدام النموذج المحدث والمستقر
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 
                 with st.spinner('جاري التحليل...'):
                     response = model.generate_content(user_input)
@@ -32,13 +32,14 @@ if st.button("تفاعل مع البوت"):
                 st.success("الرد:")
                 st.write(response.text)
                 
-                # إضافة خيار لسماع الرد إذا أردت لاحقاً
-                st.audio("welcome_voice.mp3") 
+                # التحقق من وجود ملف الصوت قبل تشغيله
+                if os.path.exists("welcome_voice.mp3"):
+                    st.audio("welcome_voice.mp3") 
                 
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
+                st.error(f"حدث خطأ تقني: {e}")
     else:
         st.warning("الرجاء كتابة سؤال!")
 
 # تذييل الصفحة
-st.sidebar.info("مشروع SaeedMarketAds - النسخة 1.0")
+st.sidebar.info("مشروع saeedmarketads - النسخة 1.0")
