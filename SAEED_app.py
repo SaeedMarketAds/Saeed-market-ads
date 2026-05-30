@@ -33,7 +33,7 @@ if st.button("تفاعل مع البوت"):
                 # تحديث اسم النموذج هنا
                 # ملاحظة: تأكد من أن هذا الاسم مدعوم في إصدار مكتبة Google لديك
                 model = genai.GenerativeModel(
-                    model_name='gemini-1.5-flash', 
+                    model_name='gemini-3.5-flash', 
                     system_instruction="أنت Saeed DataBot، مساعد ذكي يقدم خدمات ومعلومات واسعة عن السوق بلطف."
                 )
                 
