@@ -17,8 +17,10 @@ st.subheader("مساعدك الذكي للتفاعل مع السوق")
 
 user_input = st.text_input("اطرح سؤالك هنا")
 
-# إعداد الميكروفون
-audio_bytes = st_audiorec()
+# 
+# بدلاً من st_audiorec() استخدم التالي:
+audio_bytes = st.audio_input("سجل صوتك هنا")
+
 if audio_bytes:
     st.audio(audio_bytes)
 
