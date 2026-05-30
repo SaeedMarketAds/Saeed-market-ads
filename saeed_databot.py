@@ -28,19 +28,7 @@ def get_products():
     data = c.fetchall()
     conn.close()
     return data
-# ... (باقي الأكواد أعلاه)
 
-def get_products():
-    if not os.path.exists(DB_NAME):
-        return []
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT * FROM products")
-    data = c.fetchall()
-    conn.close()
-    return data
-
-# ضع دالة الحذف هنا في آخر الملف:
 def delete_product(product_id):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
