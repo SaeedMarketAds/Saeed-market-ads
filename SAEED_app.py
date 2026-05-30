@@ -1,21 +1,21 @@
-import streamlit as st
 import google.generativeai as genai
 import os
-from st_audiorec import st_audiorec
+from st_audiorec import st_audiorec 
+import streamlit as st
 
 # إعداد الصفحة
-st.set_page_config(page_title="Saeed DataBot", page_icon="🚀")
+st.set_page_config(page_title="Saeed DataBot", page_icon="🛍️")
 
 # تحميل المفتاح السري من Streamlit Secrets
 API_KEY = st.secrets.get("GOOGLE_API_KEY")
 
 # واجهة التطبيق
-st.title("🚀 Saeed DataBot")
+st.title("🛍️ Saeed DataBot")
 if os.path.exists("saeed.jpg"):
     st.image("saeed.jpg", width=200)
 st.subheader("مساعدك الذكي للتفاعل مع السوق")
 
-user_input = st.text_input("اطرح سؤالك هنا:")
+user_input = st.text_input("اطرح سؤالك هنا")
 
 # إعداد الميكروفون
 audio_bytes = st_audiorec()
@@ -25,29 +25,29 @@ if audio_bytes:
 if st.button("تفاعل مع البوت"):
     if user_input:
         if not API_KEY:
-            st.error("مفتاح API غير موجود. تأكد من إضافته في إعدادات Streamlit.")
+            st.error("Streamlit: تأكد من إضافة API Key في إعدادات التطبيق (Secrets)")
         else:
             try:
                 genai.configure(api_key=API_KEY)
                 
-                # إعداد النموذج مع التعليمات الجديدة
+                # تحديث اسم النموذج هنا
+                # ملاحظة: تأكد من أن هذا الاسم مدعوم في إصدار مكتبة Google لديك
                 model = genai.GenerativeModel(
-                    model_name='gemini-1.5-flash',
-                    system_instruction="أنت Saeed DataBot، مساعد ذكي متخصص للتفاعل مع السوق والتسويق بالعمولة، تم تطويرك بواسطة سعيد المسوري. مهمتك هي مساعدة العملاء في استفساراتهم المتعلقة بمجال التسويق بالعمولة والخدمات الذكية بكل احترافية، لطف، ومعرفة واسعة."
+                    model_name='gemini-1.5-flash', 
+                    system_instruction="أنت Saeed DataBot، مساعد ذكي يقدم خدمات ومعلومات واسعة عن السوق بلطف."
                 )
                 
-                with st.spinner('جاري التحليل...'):
+                with st.spinner("جاري التفكير..."):
                     response = model.generate_content(user_input)
                 
                 st.success("الرد:")
                 st.write(response.text)
                 
-                # التحقق من وجود ملف الصوت
                 if os.path.exists("welcome_voice.mp3"):
                     st.audio("welcome_voice.mp3")
                     
             except Exception as e:
-                st.error(f"حدث خطأ تقني: {e}")
+                st.error(f"حدث خطأ في الاتصال بالنموذج: {e}")
     else:
         st.warning("الرجاء كتابة سؤال!")
 
