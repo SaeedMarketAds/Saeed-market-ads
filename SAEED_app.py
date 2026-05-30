@@ -1,6 +1,9 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
+from PIL import Imageimport streamlit as st
+import google.generativeai as genai
+import os  # أضف هذا السطر
+
 
 # إعداد مفتاح API
 api_key = st.secrets["GOOGLE_API_KEY"]
@@ -11,15 +14,28 @@ model = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
 # إعداد الواجهة
 st.set_page_config(page_title="سعيد ماركت", layout="wide")
-st.title("سعيد ماركت")
-
-# الشريط الجانبي للتبديل بين الأوضاع
+# ... (الكود السابق كما هو)
+# السطر 16: # الشريط الجانبي للتبديل بين الأوضاع
 with st.sidebar:
     st.header("إعدادات سعيد")
     mode = st.radio("اختر الوضع:", ["سعيد ماركت", "سعيد داتابوت"])
     
+    # التحقق من وجود الملف قبل عرضه لتجنب الانهيار
     if mode == "سعيد ماركت":
-        st.image("SAEED.jpg", caption="سعيد ماركت")
+        if os.path.exists("SAEED.jpg"):
+            st.image("SAEED.jpg", caption="سعيد ماركت")
+        else:
+            st.warning("صورة SAEED.jpg غير موجودة")
+    else:
+        if os.path.exists("ROBOT.jpg"):
+            st.image("ROBOT.jpg", caption="سعيد داتابوت")
+        else:
+            st.warning("صورة ROBOT.jpg غير موجودة")
+
+# السطر 27: # تهيئة الجلسة (تابع بقية الكود من هنا)
+if 'chat_session' not in st.session_state:
+# ...
+
     else:
         st.image("ROBOT.jpg", caption="سعيد داتابوت")
 
