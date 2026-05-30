@@ -7,7 +7,7 @@ api_key = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=api_key)
 
 # إعداد النموذج - استخدم 3.5-flash
-model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+model = genai.GenerativeModel(model_name="gemini-3.5-flash")
 
 # إعداد الواجهة
 st.set_page_config(page_title="سعيد ماركت", layout="wide")
