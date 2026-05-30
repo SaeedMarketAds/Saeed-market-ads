@@ -1,57 +1,19 @@
-import google.generativeai as genai
-import os
-from st_audiorec import st_audiorec 
 import streamlit as st
+import saeed_databot as bot      # وظائف البوت
+import saeed_market as market    # وظائف المتجر (تأكد أن هذا هو اسم الملف)
 
-# إعداد الصفحة
-st.set_page_config(page_title="Saeed DataBot", page_icon="🛍️")
+st.title("نظام سعيد المتكامل 🚀")
 
-# تحميل المفتاح السري من Streamlit Secrets
-API_KEY = st.secrets.get("GOOGLE_API_KEY")
+# القائمة للتنقل بين المشروعين
+menu = ["المساعد الذكي (Bot)", "متجر المنتجات (Market)"]
+choice = st.sidebar.selectbox("اختر الخدمة:", menu)
 
-# واجهة التطبيق
-st.title("🛍️ Saeed DataBot")
-if os.path.exists("saeed.jpg"):
-    st.image("saeed.jpg", width=200)
-st.subheader("مساعدك الذكي للتفاعل مع السوق")
+if choice == "المساعد الذكي (Bot)":
+    st.subheader("تحدث مع سعيد DataBot")
+    # هنا تضع كود البوت الذي كنت تعمل عليه
+    # ...
 
-user_input = st.text_input("اطرح سؤالك هنا")
-
-# 
-# بدلاً من st_audiorec() استخدم التالي:
-audio_bytes = st.audio_input("سجل صوتك هنا")
-
-if audio_bytes:
-    st.audio(audio_bytes)
-
-if st.button("تفاعل مع البوت"):
-    if user_input:
-        if not API_KEY:
-            st.error("Streamlit: تأكد من إضافة API Key في إعدادات التطبيق (Secrets)")
-        else:
-            try:
-                genai.configure(api_key=API_KEY)
-                
-                # تحديث اسم النموذج هنا
-                # ملاحظة: تأكد من أن هذا الاسم مدعوم في إصدار مكتبة Google لديك
-                model = genai.GenerativeModel(
-                    model_name='gemini-3.5-flash', 
-                    system_instruction="أنت Saeed DataBot، مساعد ذكي يقدم خدمات ومعلومات واسعة عن السوق بلطف."
-                )
-                
-                with st.spinner("جاري التفكير..."):
-                    response = model.generate_content(user_input)
-                
-                st.success("الرد:")
-                st.write(response.text)
-                
-                if os.path.exists("welcome_voice.mp3"):
-                    st.audio("welcome_voice.mp3")
-                    
-            except Exception as e:
-                st.error(f"حدث خطأ في الاتصال بالنموذج: {e}")
-    else:
-        st.warning("الرجاء كتابة سؤال!")
-
-# تذييل الصفحة
-st.sidebar.info("مشروع saeedmarketads - 1.0")
+elif choice == "متجر المنتجات (Market)":
+    st.subheader("لوحة تحكم المتجر")
+    # هنا تستدعي وظائف ملف saeed_market.py
+    # مثل market.show_products() أو market.add_product_form()
