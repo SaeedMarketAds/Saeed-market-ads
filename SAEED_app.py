@@ -9,7 +9,9 @@ genai.configure(api_key=api_key)
 
 # إعداد النموذج
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", # تأكد من اسم النموذج الصحيح
+    mصحيح# غيّر السطر الموجود في الكود الخاص بك إلى هذا:
+model_name="models/gemini-3.5-flash"
+صحيح
     generation_config={"temperature": 0.7}
 )
 
