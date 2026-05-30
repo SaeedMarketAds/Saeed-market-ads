@@ -1,4 +1,4 @@
-ط
+
 import streamlit as st
 import saeed_databot as db
 
