@@ -1,23 +1,29 @@
 import sqlite3
+import os
+
+DB_NAME = 'saeed_market.db'
 
 def init_db():
-    conn = sqlite3.connect('saeed_market.db')
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS products 
-                 (id INTEGER PRIMARY KEY, name TEXT, price REAL, description TEXT)''')
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, price REAL, description TEXT)''')
     conn.commit()
     conn.close()
 
 def add_product(name, price, description):
-    conn = sqlite3.connect('saeed_market.db')
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
+    # تأكد من أن الأسعار والأوصاف تمرر بشكل صحيح
     c.execute("INSERT INTO products (name, price, description) VALUES (?, ?, ?)", 
-              (name, price, description))
+              (name, float(price), description))
     conn.commit()
     conn.close()
 
 def get_products():
-    conn = sqlite3.connect('saeed_market.db')
+    if not os.path.exists(DB_NAME):
+        return []
+    conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("SELECT * FROM products")
     data = c.fetchall()
