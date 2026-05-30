@@ -1,7 +1,22 @@
 import streamlit as st
 import google.generativeai as genai
 
-# 1. إعداد الـ API
+# 1. إعدادimport streamlit as st
+import google.generativeai as genai
+
+# استدعاء المفتاح من إعدادات Streamlit
+api_key = st.secrets["GOOGLE_API_KEY"]
+
+# تهيئة الـ API
+genai.configure(api_key=api_key)
+
+# بقية الكود تبدأ من هنا...
+# (إعداد النموذج Temperature وغيره)
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    generation_config={"temperature": 0.7}
+)
+ الـ API
 genai.configure(api_key="YOUR_API_KEY_HERE")
 
 # إعداد النموذج مع ضبط الإبداع (Temperature)
