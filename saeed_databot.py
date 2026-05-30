@@ -35,3 +35,5 @@ def delete_product(product_id):
     c.execute("DELETE FROM products WHERE id = ?", (product_id,))
     conn.commit()
     conn.close()
+if prompt := st.chat_input("اكتب رسالتك هنا..."):
+    # الكود الخاص بالرد على الرسالة
