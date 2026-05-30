@@ -1,39 +1,25 @@
-import streamlit as st
-import pandas as pd
-import os
+import sqlite3
 
-st.title("📦 لوحة تحكم سعيد ماركت")
-st.subheader("إضافة منتج جديد")
+def init_db():
+    conn = sqlite3.connect('saeed_market.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS products 
+                 (id INTEGER PRIMARY KEY, name TEXT, price REAL, description TEXT)''')
+    conn.commit()
+    conn.close()
 
-# إنشاء نموذج إدخال
-with st.form("product_form", clear_on_submit=True):
-    product_name = st.text_input("اسم المنتج")
-    product_price = st.number_input("السعر", min_value=0.0)
-    product_desc = st.text_area("وصف المنتج")
-    submitted = st.form_submit_button("نشر المنتج")
+def add_product(name, price, description):
+    conn = sqlite3.connect('saeed_market.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO products (name, price, description) VALUES (?, ?, ?)", 
+              (name, price, description))
+    conn.commit()
+    conn.close()
 
-    if submitted:
-        if product_name and product_price:
-            # حفظ البيانات (يمكنك لاحقاً ربطها بقاعدة بيانات)
-            new_data = pd.DataFrame([[product_name, product_price, product_desc]], 
-                                    columns=["الاسم", "السعر", "الوصف"])
-            
-            # إضافة البيانات لملف CSV
-            file_path = "products.csv"
-            if os.path.exists(file_path):
-                new_data.to_csv(file_path, mode='a', header=False, index=False, encoding='utf-8-sig')
-            else:
-                new_data.to_csv(file_path, index=False, encoding='utf-8-sig')
-            
-            st.success(f"تم إضافة المنتج '{product_name}' بنجاح!")
-        else:
-            st.error("يرجى ملء البيانات الأساسية.")
-
-# عرض المنتجات الموجودة
-st.divider()
-st.subheader("قائمة المنتجات الحالية")
-if os.path.exists("products.csv"):
-    df = pd.read_csv("products.csv")
-    st.table(df)
-else:
-    st.info("لا توجد منتجات حالياً.")
+def get_products():
+    conn = sqlite3.connect('saeed_market.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM products")
+    data = c.fetchall()
+    conn.close()
+    return data
