@@ -21,7 +21,7 @@ genai.configure(api_key="YOUR_API_KEY_HERE")
 
 # إعداد النموذج مع ضبط الإبداع (Temperature)
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", # يفضل استخدام الإصدارات الأحدث مثل flash أو pro
+    model_name="gemini-3.5-flash", # يفضل استخدام الإصدارات الأحدث مثل flash أو pro
     generation_config={"temperature": 0.7}
 )
 
