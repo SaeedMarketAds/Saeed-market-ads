@@ -1,38 +1,40 @@
 import streamlit as st
 import os
+import saeed_databot  # استدعاء ملف الدوال الذي أنشأته
+
+# 1. تهيئة قاعدة البيانات عند بدء التشغيل
+saeed_databot.init_db()
 
 # إعداد الصفحة
 st.set_page_config(page_title="SaeedMarketAds", page_icon="📦")
 
-# المسارات
-base_path = "." # تم التعديل ليتناسب مع المجلد الرئيسي
-img_official = os.path.join(base_path, "saeed.jpg")
-img_avatar = os.path.join(base_path, "ROBOT.jpg") # تأكد من اسم ملف الروبوت
-welcome_audio = os.path.join(base_path, "welcome_voice.mp3")
+# ... (هنا ضع كود الصور والترحيب الخاص بك كما كان في البداية) ...
 
-# تذكر حالة الصورة
-if 'current_img' not in st.session_state:
-    st.session_state.current_img = img_official
+# 2. إضافة نموذج إدخال المنتجات (من لوحة التحكم)
+st.title("📦 لوحة تحكم SaeedMarketAds")
 
-# الواجهة الرئيسية
-st.title("📦 نظام SaeedMarketAds الذكي")
-
-# عرض الصورة
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.image(st.session_state.current_img, use_container_width=True)
-
-# زر التبديل
-if st.button("🔄 تبديل الهوية والترحيب"):
-    if st.session_state.current_img == img_official:
-        st.session_state.current_img = img_avatar
-    else:
-        st.session_state.current_img = img_official
+with st.form("product_form", clear_on_submit=True):
+    name = st.text_input("اسم المنتج")
+    price = st.number_input("السعر", min_value=0.0)
+    description = st.text_area("وصف المنتج")
+    submitted = st.form_submit_button("نشر المنتج")
     
-    # تشغيل الصوت
-    if os.path.exists(welcome_audio):
-        st.audio(welcome_audio, format="audio/mp3", autoplay=True)
-    st.rerun()
+    if submitted:
+        if name:
+            saeed_databot.add_product(name, price, description) # استدعاء دالة الإضافة
+            st.success("تم إضافة المنتج بنجاح!")
+            st.rerun()
+        else:
+            st.error("يرجى إدخال اسم المنتج")
 
-st.markdown("---")
-st.success("أهلاً بك يا سعيد، النظام يعمل والصفحات جاهزة للإضافة في مجلد pages/")
+# 3. عرض المنتجات
+st.subheader("📋 المنتجات الحالية")
+products = saeed_databot.get_products() # استدعاء دالة القراءة
+
+if not products:
+    st.info("لا توجد منتجات حالياً")
+else:
+    for p in products:
+        st.write(f"**المنتج:** {p[1]} | **السعر:** {p[2]} ريال")
+        st.write(f"**الوصف:** {p[3]}")
+        st.markdown("---")
