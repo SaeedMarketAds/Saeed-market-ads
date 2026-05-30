@@ -7,12 +7,9 @@ api_key = st.secrets["GOOGLE_API_KEY"]
 # إعداد API
 genai.configure(api_key=api_key)
 
-# إعداد النموذج
+# إعداد النموذج - استخدم 1.5 لأن 3.5 غير موجود تقنياً
 model = genai.GenerativeModel(
-    mصحيح# غيّر السطر الموجود في الكود الخاص بك إلى هذا:
-model_name="gemini-3.5-flash"
-
-صحيح
+    model_name="gemini-1.5-flash",
     generation_config={"temperature": 0.7}
 )
 
