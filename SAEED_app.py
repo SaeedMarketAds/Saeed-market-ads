@@ -1,30 +1,36 @@
 import streamlit as st
 import google.generativeai as genai
+from PIL import Image
 
 # إعداد مفتاح API
 api_key = st.secrets["GOOGLE_API_KEY"]
-
-# إعداد API
 genai.configure(api_key=api_key)
 
-# إعداد النموذج - استخدم 1.5 لأن 3.5 غير موجود تقنياً
-model = genai.GenerativeModel(
-    model_name="gemini-3.5-flash",
-    generation_config={"temperature": 0.7}
-)
+# إعداد النموذج - استخدم 3.5-flash
+model = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
-# إذا لم تكن موجودة إنشاء الجلسة
+# إعداد الواجهة
+st.set_page_config(page_title="سعيد ماركت", layout="wide")
+st.title("سعيد ماركت")
+
+# الشريط الجانبي للتبديل بين الأوضاع
+with st.sidebar:
+    st.header("إعدادات سعيد")
+    mode = st.radio("اختر الوضع:", ["سعيد ماركت", "سعيد داتابوت"])
+    
+    if mode == "سعيد ماركت":
+        st.image("SAEED.jpg", caption="سعيد ماركت")
+    else:
+        st.image("ROBOT.jpg", caption="سعيد داتابوت")
+
+# تهيئة الجلسة
 if 'chat_session' not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-# إعداد سجل الرسائل
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 
-# عرض واجهة التطبيق
-st.title("سعيد ماركت")
-
-# عرض الرسائل السابقة
+# عرض الرسائل
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -35,13 +41,15 @@ if prompt := st.chat_input("ما الذي تحتاجه؟"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # رد الذكاء الاصطناعي
     with st.chat_message("assistant"):
         with st.spinner("سعيد يجيب..."):
             try:
-                response = st.session_state.chat_session.send_message(prompt)
+                # إرسال سياق إضافي بناءً على الوضع المختار
+                context = f"أنت تعمل الآن في وضع: {mode}. "
+                response = st.session_state.chat_session.send_message(context + prompt)
                 full_response = response.text
                 st.markdown(full_response)
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
+                st.error(f"حدث خطأ تقني: {e}")
+                st.info("تأكد من استخدام اسم نموذج صحيح مثل: gemini-1.5-flash")
