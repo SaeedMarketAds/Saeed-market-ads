@@ -1,34 +1,57 @@
-
+import google.generativeai as genai
+import os
+from st_audiorec import st_audiorec 
 import streamlit as st
-import saeed_databot as db
 
-db.init_db()
-st.title("نظام سعيد المتكامل 🚀")
+# إعداد الصفحة
+st.set_page_config(page_title="Saeed DataBot", page_icon="🛍️")
 
-menu = ["المساعد الذكي (Bot)", "متجر المنتجات (Market)"]
-choice = st.sidebar.selectbox("اختر الخدمة:", menu)
+# تحميل المفتاح السري من Streamlit Secrets
+API_KEY = st.secrets.get("GOOGLE_API_KEY")
 
-if choice == "المساعد الذكي (Bot)":
-    st.subheader("تحدث مع سعيد DataBot")
-    st.info("جاهز للاستخدام...")
+# واجهة التطبيق
+st.title("🛍️ Saeed DataBot")
+if os.path.exists("saeed.jpg"):
+    st.image("saeed.jpg", width=200)
+st.subheader("مساعدك الذكي للتفاعل مع السوق")
 
-elif choice == "متجر المنتجات (Market)":
-    st.subheader("لوحة تحكم المتجر 📦")
-    with st.form("add_product_form"):
-        name = st.text_input("اسم المنتج")
-        price = st.number_input("السعر", min_value=0.0)
-        desc = st.text_area("وصف المنتج")
-        submit = st.form_submit_button("نشر المنتج")
-        if submit:
-            db.add_product(name, price, desc)
-            st.success("تمت الإضافة!")
-            st.rerun()
+user_input = st.text_input("اطرح سؤالك هنا")
 
-    st.write("### المنتجات المتاحة:")
-    products = db.get_products()
-    for p in products:
-        col1, col2 = st.columns([0.8, 0.2])
-        col1.write(f"✅ **{p[1]}** | السعر: {p[2]}")
-        if col2.button("حذف", key=f"del_{p[0]}"):
-            db.delete_product(p[0])
-            st.rerun()
+# 
+# بدلاً من st_audiorec() استخدم التالي:
+audio_bytes = st.audio_input("سجل صوتك هنا")
+
+if audio_bytes:
+    st.audio(audio_bytes)
+
+if st.button("تفاعل مع البوت"):
+    if user_input:
+        if not API_KEY:
+            st.error("Streamlit: تأكد من إضافة API Key في إعدادات التطبيق (Secrets)")
+        else:
+            try:
+                genai.configure(api_key=API_KEY)
+                
+                # تحديث اسم النموذج هنا
+                # ملاحظة: تأكد من أن هذا الاسم مدعوم في إصدار مكتبة Google لديك
+                model = genai.GenerativeModel(
+                    model_name='gemini-3.5-flash', 
+                    system_instruction="أنت Saeed DataBot، مساعد ذكي يقدم خدمات ومعلومات واسعة عن السوق بلطف."
+                )
+                
+                with st.spinner("جاري التفكير..."):
+                    response = model.generate_content(user_input)
+                
+                st.success("الرد:")
+                st.write(response.text)
+                
+                if os.path.exists("welcome_voice.mp3"):
+                    st.audio("welcome_voice.mp3")
+                    
+            except Exception as e:
+                st.error(f"حدث خطأ في الاتصال بالنموذج: {e}")
+    else:
+        st.warning("الرجاء كتابة سؤال!")
+
+# تذييل الصفحة
+st.sidebar.info("مشروع saeedmarketads - 1.0")
