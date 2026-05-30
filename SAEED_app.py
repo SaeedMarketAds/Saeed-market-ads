@@ -1,23 +1,23 @@
 import streamlit as st
 import google.generativeai as genai
 
-# إعداد مفتاح الـ API
+# إعداد مفتاح API
 api_key = st.secrets["GOOGLE_API_KEY"]
 
-# إعداد الـ API
+# إعداد API
 genai.configure(api_key=api_key)
 
 # إعداد النموذج
 model = genai.GenerativeModel(
-    model_name="gemini-3.5-flash",
+    model_name="gemini-1.5-flash", # تأكد من اسم النموذج الصحيح
     generation_config={"temperature": 0.7}
 )
 
-# 2. إنشاء الجلسة (chat_session) إذا لم تكن موجودة
+# إذا لم تكن موجودة إنشاء الجلسة
 if 'chat_session' not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-# 3. إعداد سجل الرسائل
+# إعداد سجل الرسائل
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 
