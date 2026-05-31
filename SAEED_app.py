@@ -17,8 +17,6 @@ st.subheader("مساعدك الذكي للتفاعل مع السوق")
 
 user_input = st.text_input("اطرح سؤالك هنا")
 
-# 
-# بدلاً من st_audiorec() استخدم التالي:
 audio_bytes = st.audio_input("سجل صوتك هنا")
 
 if audio_bytes:
@@ -32,9 +30,9 @@ if st.button("تفاعل مع البوت"):
             try:
                 genai.configure(api_key=API_KEY)
                 
-                # تحديث اسم النموذج هنا
-                # ملاحظة: تأكد من أن هذا الاسم مدعوم في إصدار مكتبة                model = genai.GenerativeModel(
-                    model_name='gemini-1.5-flash', 
+                # استخدام النموذج المعتمد لديك مع التعليمات الاحترافية
+                model = genai.GenerativeModel(
+                    model_name='gemini-3.5-flash', 
                     system_instruction="""
                     أنت Saeed DataBot، المساعد الذكي الخاص بـ Saeed MarketAds. 
                     مهمتك هي تقديم دعم تسويقي احترافي، ودود، وسريع للعملاء.
@@ -45,11 +43,6 @@ if st.button("تفاعل مع البوت"):
                     3. إذا طلب المستخدم المساعدة في الشراء، وجهه بالطريقة الصحيحة لاستخدام الروابط الخاصة بك.
                     4. حافظ دائماً على هويتك كمساعد خبير تابع لـ Saeed MarketAds.
                     """
-                )
- Google لديك
-                model = genai.GenerativeModel(
-                    model_name='gemini-3.5-flash', 
-                    system_instruction="أنت Saeed DataBot، مساعد ذكي يقدم خدمات ومعلومات واسعة عن السوق بلطف."
                 )
                 
                 with st.spinner("جاري التفكير..."):
