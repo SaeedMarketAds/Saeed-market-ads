@@ -13,9 +13,14 @@ st.title("🚀 نظام سعيد المتكامل")
 tab1, tab2 = st.tabs(["🤖 Saeed DataBot", "📦 لوحة تحكم المتجر"])
 
 with tab1:
-    st.subheader("مساعدك الذكي")
-    if os.path.exists("ROBOT.jpg"):
-        st.image("ROBOT.jpg", width=150)
+     col1, col2 = st.columns(2)
+    with col1:
+        if os.path.exists("saeed.jpg"):
+            st.image("saeed.jpg", width=150, caption="المؤسس")
+    with col2:
+        if os.path.exists("ROBOT.jpg"):
+            st.image("ROBOT.jpg", width=150, caption="Saeed DataBot")
+
     
     user_input = st.text_input("اطرح سؤالك عن المنتجات:")
     if st.button("تفاعل مع البوت"):
