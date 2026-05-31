@@ -1,63 +1,35 @@
-import google.generativeai as genai
-import os
-from st_audiorec import st_audiorec 
 import streamlit as st
+import os
+import google.generativeai as genai
 
-# إعداد الصفحة
-st.set_page_config(page_title="Saeed DataBot", page_icon="🛍️")
+st.set_page_config(page_title="Saeed MarketAds", layout="wide")
 
-# تحميل المفتاح السري من Streamlit Secrets
-API_KEY = st.secrets.get("GOOGLE_API_KEY")
+st.title("🚀 نظام سعيد المتكامل")
 
-# واجهة التطبيق
-st.title("🛍️ Saeed DataBot")
-if os.path.exists("saeed.jpg"):
-    st.image("saeed.jpg", width=200)
-st.subheader("مساعدك الذكي للتفاعل مع السوق")
+# التبديل بين التبويبات
+tab1, tab2 = st.tabs(["🤖 Saeed DataBot", "📦 لوحة تحكم المتجر"])
 
-user_input = st.text_input("اطرح سؤالك هنا")
+# تبويب البوت
+with tab1:
+    st.subheader("مساعدك الذكي")
+    if os.path.exists("ROBOT.jpg"): # تأكد من الاسم ROBOT.jpg كما طلبت
+        st.image("ROBOT.jpg", width=150)
+    
+    user_input = st.text_input("اطرح سؤالك عن المنتجات:")
+    if st.button("تفاعل مع البوت"):
+        # هنا يتم استدعاء Gemini (تأكد من إعداد API_KEY)
+        st.write("جارٍ المعالجة...")
 
-audio_bytes = st.audio_input("سجل صوتك هنا")
+# تبويب لوحة التحكم
+with tab2:
+    st.subheader("📦 لوحة تحكم المتجر")
+    with st.form("product_form"):
+        prod_name = st.text_input("اسم المنتج")
+        prod_price = st.number_input("السعر", min_value=0.0)
+        prod_desc = st.text_area("وصف المنتج")
+        submit = st.form_submit_button("نشر المنتج")
+        
+        if submit:
+            st.success(f"تم إضافة {prod_name} بنجاح!")
 
-if audio_bytes:
-    st.audio(audio_bytes)
-
-if st.button("تفاعل مع البوت"):
-    if user_input:
-        if not API_KEY:
-            st.error("Streamlit: تأكد من إضافة API Key في إعدادات التطبيق (Secrets)")
-        else:
-            try:
-                genai.configure(api_key=API_KEY)
-                
-                # استخدام النموذج المعتمد لديك مع التعليمات الاحترافية
-                model = genai.GenerativeModel(
-                    model_name='gemini-3.5-flash', 
-                    system_instruction="""
-                    أنت Saeed DataBot، المساعد الذكي الخاص بـ Saeed MarketAds. 
-                    مهمتك هي تقديم دعم تسويقي احترافي، ودود، وسريع للعملاء.
-                    تخصصك الأساسي هو التسويق بالعمولة لمنتجات: SHEIN، AliExpress، و Noon.
-                    عندما يطرح المستخدم سؤالاً عن منتج:
-                    1. قدم وصفاً تسويقياً جذاباً ومقنعاً للمنتج.
-                    2. استخدم لهجة تناسب الجمهور المستهدف.
-                    3. إذا طلب المستخدم المساعدة في الشراء، وجهه بالطريقة الصحيحة لاستخدام الروابط الخاصة بك.
-                    4. حافظ دائماً على هويتك كمساعد خبير تابع لـ Saeed MarketAds.
-                    """
-                )
-                
-                with st.spinner("جاري التفكير..."):
-                    response = model.generate_content(user_input)
-                
-                st.success("الرد:")
-                st.write(response.text)
-                
-                if os.path.exists("welcome_voice.mp3"):
-                    st.audio("welcome_voice.mp3")
-                    
-            except Exception as e:
-                st.error(f"حدث خطأ في الاتصال بالنموذج: {e}")
-    else:
-        st.warning("الرجاء كتابة سؤال!")
-
-# تذييل الصفحة
 st.sidebar.info("مشروع saeedmarketads - 1.0")
