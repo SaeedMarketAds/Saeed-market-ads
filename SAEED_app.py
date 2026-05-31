@@ -2,47 +2,52 @@ import streamlit as st
 import os
 import google.generativeai as genai
 
-# إعداد الصفحة
 st.set_page_config(page_title="Saeed MarketAds", layout="wide")
 
-st.title("🚀 نظام سعيد المتكامل")
+# إعداد الـ API
+API_KEY = st.secrets.get("GOOGLE_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
 
-# التبديل بين التبويبات
+st.title("🚀 نظام سعيد المتكامل")
 tab1, tab2 = st.tabs(["🤖 Saeed DataBot", "📦 لوحة تحكم المتجر"])
 
-# تبويب البوت
 with tab1:
     st.subheader("مساعدك الذكي")
-    # عرض الصور الشخصية وصورة الروبوت
-    col1, col2 = st.columns(2)
-    with col1:
-        if os.path.exists("saeed.jpg"):
-            st.image("saeed.jpg", width=150, caption="المؤسس")
-    with col2:
-        if os.path.exists("ROBOT.jpg"):
-            st.image("ROBOT.jpg", width=150, caption="Saeed DataBot")
+    if os.path.exists("ROBOT.jpg"):
+        st.image("ROBOT.jpg", width=150)
     
-    user_input = st.text_input("اطرح سؤالك عن المنتجات هنا:")
+    user_input = st.text_input("اطرح سؤالك عن المنتجات:")
     if st.button("تفاعل مع البوت"):
         if user_input:
-            st.write("جارٍ المعالجة بواسطة Saeed DataBot...")
-            # هنا يتم وضع منطق استدعاء Gemini الخاص بك
+            try:
+                model = genai.GenerativeModel('gemini-3.5-flash')
+                response = model.generate_content(user_input)
+                st.success("الرد:")
+                st.write(response.text)
+            except Exception as e:
+                st.error(f"خطأ في الاتصال: {e}")
         else:
             st.warning("الرجاء كتابة سؤال!")
 
-# تبويب لوحة التحكم
 with tab2:
     st.subheader("📦 لوحة تحكم المتجر")
     with st.form("product_form"):
         prod_name = st.text_input("اسم المنتج")
         prod_price = st.number_input("السعر", min_value=0.0)
         prod_desc = st.text_area("وصف المنتج")
-        prod_link = st.text_input("رابط المنتج المخفي")
-        prod_img = st.text_input("رابط صورة المنتج")
+        hidden_link = st.text_input("رابط المنتج المخفي")
+        img_link = st.text_input("رابط صورة المنتج")
         
         submit = st.form_submit_button("نشر المنتج")
         
         if submit:
-            st.success(f"تم إرسال {prod_name} للنظام بنجاح!")
+            st.balloons() # تأثير احتفالي عند النشر
+            st.success(f"تم نشر {prod_name} بنجاح في النظام!")
+            st.write("---")
+            st.write(f"**المنتج:** {prod_name}")
+            st.write(f"**السعر:** {prod_price}")
+            if img_link: st.image(img_link, width=200)
+            st.info(f"الرابط المخفي: {hidden_link}")
 
 st.sidebar.info("مشروع saeedmarketads - 1.0")
