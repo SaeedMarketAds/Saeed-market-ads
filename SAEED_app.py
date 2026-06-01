@@ -25,7 +25,7 @@ with tab1:
     if st.button("إرسال"):
         if user_input:
             try:
-                model = genai.GenerativeModel('gemini-3.5-flash')
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 response = model.generate_content(user_input)
                 st.success("تم")
                 st.write(response.text)
@@ -52,4 +52,5 @@ with tab2:
             st.write(f"**السعر:** {prod_price}")
             if img_link:
                 st.image(img_link, width=300)
-            st.info(f"الرابط: {hidden_link}")
+            if hidden_link:
+                st.info(f"الرابط المخفي الذي تم فحصه: {hidden_link}")
