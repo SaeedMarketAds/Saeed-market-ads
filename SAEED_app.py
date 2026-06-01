@@ -22,7 +22,7 @@ with tab1:
     if st.button("إرسال السؤال"):
         if user_input and api_key:
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-3.5-flash')
                 response = model.generate_content(user_input)
                 st.write(response.text)
             except Exception as e:
