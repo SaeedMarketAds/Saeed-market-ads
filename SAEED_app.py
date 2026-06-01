@@ -21,7 +21,15 @@ with tab1:
         if os.path.exists("ROBOT.jpg"):
             st.image("ROBOT.jpg", width=150, caption="Saeed DataBot")
 
-    IndentationError: expected an indented block
+    # السطر 24-25 يجب أن يكونا هكذا:
+user_input = st.text_input("...")
+if st.button("..."):
+    # السطر 26 يجب أن يبدأ بمسافة بادئة تحت الـ if السابقة
+    if user_input:
+        try:
+            # كل ما بداخل الـ try يجب أن يكون مزاحاً للداخل
+            model = ...
+
 
         if user_input:
             try:
