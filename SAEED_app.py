@@ -25,7 +25,7 @@ with tab1:
     if st.button("إرسال"):
         if user_input:
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-3.5-flash')
                 response = model.generate_content(user_input)
                 st.success("تم")
                 st.write(response.text)
