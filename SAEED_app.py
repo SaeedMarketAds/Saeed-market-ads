@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import google.generativeai as genai
 
+# إعداد الصفحة
 st.set_page_config(page_title="Saeed MarketAds", layout="wide")
 
 # إعداد API
@@ -10,47 +11,36 @@ if api_key:
     genai.configure(api_key=api_key)
 
 st.title("مرحباً بك في Saeed DataBot")
-tab1, tab2 = st.tabs(["Saeed DataBot", "إضافة منتج جديد"])
 
+# إنشاء التبويبات
+tab1, tab2 = st.tabs(["🤖 Saeed DataBot", "➕ إضافة منتج جديد"])
+
+# تبويب الذكاء الاصطناعي
 with tab1:
-    col1, col2 = st.columns(2)
-    with col1:
-        if os.path.exists("saeed.jpg"):
-            st.image("saeed.jpg", width=150, caption="سعيد")
-    with col2:
-        if os.path.exists("ROBOT.jpg"):
-            st.image("ROBOT.jpg", width=150, caption="Saeed DataBot")
-
-    user_input = st.text_input("اطرح سؤالك عن المنتجات:")
-    if st.button("إرسال"):
-        if user_input:
+    st.subheader("اسأل الذكاء الاصطناعي")
+    user_input = st.text_input("اطرح سؤالك عن المنتجات:", key="ai_input")
+    if st.button("إرسال السؤال"):
+        if user_input and api_key:
             try:
-                model = genai.GenerativeModel('gemini-3.5-flash')
+                model = genai.GenerativeModel('gemini-1.5-flash')
                 response = model.generate_content(user_input)
-                st.success("تم")
                 st.write(response.text)
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
-        else:
-            st.warning("يرجى كتابة سؤال!")
+                st.error(f"خطأ في الذكاء الاصطناعي: {e}")
+        elif not api_key:
+            st.warning("مفتاح API غير موجود في الإعدادات.")
 
+# تبويب إضافة المنتجات (منفصل تماماً)
 with tab2:
-    st.subheader("إضافة منتج جديد")
-    with st.form("product_form"):
+    st.subheader("نشر منتج جديد")
+    with st.form("add_product_form", clear_on_submit=True):
         prod_name = st.text_input("اسم المنتج")
-        prod_price = st.number_input("السعر", min_value=0.0)
-        prod_desc = st.text_area("وصف المنتج")
-        hidden_link = st.text_input("رابط المنتج المخفي")
-        img_link = st.text_input("رابط صورة المنتج")
-        submit = st.form_submit_button("نشر المنتج")
+        prod_link = st.text_input("رابط المنتج")
+        submitted = st.form_submit_button("نشر المنتج الآن")
         
-        if submit:
-            st.balloons()
-            st.success(f"تم بنجاح إضافة {prod_name}")
-            st.write("---")
-            st.write(f"**الاسم:** {prod_name}")
-            st.write(f"**السعر:** {prod_price}")
-            if img_link:
-                st.image(img_link, width=300)
-            if hidden_link:
-                st.info(f"الرابط المخفي: {hidden_link}")
+        if submitted:
+            if prod_name and prod_link:
+                st.success(f"تم بنجاح نشر المنتج: {prod_name}")
+                st.info(f"الرابط: {prod_link}")
+            else:
+                st.error("يرجى ملء جميع الحقول!")
