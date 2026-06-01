@@ -21,8 +21,8 @@ with tab1:
         if os.path.exists("ROBOT.jpg"):
             st.image("ROBOT.jpg", width=150, caption="Saeed DataBot")
 
-    user_input = st.text_input("اطرح سؤالك عن المنتجات")
-    if st.button("اسأل الآن"):
+    IndentationError: expected an indented block
+
         if user_input:
             try:
                 model = genai.GenerativeModel('gemini-3.5-flash')
