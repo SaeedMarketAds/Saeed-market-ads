@@ -32,7 +32,7 @@ with tab1:
             except Exception as e:
                 st.error(f"حدث خطأ: {e}")
         else:
-            
+            st.warning("يرجى كتابة سؤال!")
 
 with tab2:
     st.subheader("إضافة منتج جديد")
@@ -53,4 +53,4 @@ with tab2:
             if img_link:
                 st.image(img_link, width=300)
             if hidden_link:
-                st.info(f"الرابط المخفي الذي تم فحصه: {hidden_link}")
+                st.info(f"الرابط المخفي: {hidden_link}")
