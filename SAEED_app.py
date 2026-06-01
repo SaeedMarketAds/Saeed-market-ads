@@ -21,16 +21,8 @@ with tab1:
         if os.path.exists("ROBOT.jpg"):
             st.image("ROBOT.jpg", width=150, caption="Saeed DataBot")
 
-    # السطر 24-25 يجب أن يكونا هكذا:
-user_input = st.text_input("...")
-if st.button("..."):
-    # السطر 26 يجب أن يبدأ بمسافة بادئة تحت الـ if السابقة
-    if user_input:
-        try:
-            # كل ما بداخل الـ try يجب أن يكون مزاحاً للداخل
-            model = ...
-
-
+    user_input = st.text_input("اطرح سؤالك عن المنتجات:")
+    if st.button("إرسال"):
         if user_input:
             try:
                 model = genai.GenerativeModel('gemini-3.5-flash')
@@ -40,7 +32,7 @@ if st.button("..."):
             except Exception as e:
                 st.error(f"حدث خطأ: {e}")
         else:
-            st.warning("يرجى كتابة سؤال")
+            st.warning("يرجى كتابة سؤال!")
 
 with tab2:
     st.subheader("إضافة منتج جديد")
@@ -50,9 +42,8 @@ with tab2:
         prod_desc = st.text_area("وصف المنتج")
         hidden_link = st.text_input("رابط المنتج المخفي")
         img_link = st.text_input("رابط صورة المنتج")
-        
         submit = st.form_submit_button("نشر المنتج")
-
+        
         if submit:
             st.balloons()
             st.success(f"تم بنجاح إضافة {prod_name}")
@@ -62,5 +53,3 @@ with tab2:
             if img_link:
                 st.image(img_link, width=300)
             st.info(f"الرابط: {hidden_link}")
-
-st.sidebar.info("جميع حقوق SaeedMarketAds محفوظة ©")
