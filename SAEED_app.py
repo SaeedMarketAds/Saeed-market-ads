@@ -32,7 +32,7 @@ with tab1:
             except Exception as e:
                 st.error(f"حدث خطأ: {e}")
         else:
-            st.warning("يرجى كتابة سؤال!")
+            
 
 with tab2:
     st.subheader("إضافة منتج جديد")
