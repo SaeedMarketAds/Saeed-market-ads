@@ -35,6 +35,8 @@ if not products:
     st.info("لا توجد منتجات حالياً")
 else:
     for p in products:
-        st.write(f"**المنتج:** {p[1]} | **السعر:** {p[2]} ريال")
+if st.button("نشر المنتج"):
+# يجب أن يكون هناك كود هنا بمسافة بادئة (4 مسافات أو Tab)
+
         st.write(f"**الوصف:** {p[3]}")
         st.markdown("---")
