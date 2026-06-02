@@ -33,7 +33,7 @@ def setup_gemini():
     genai.configure(api_key=api_key)
     
     # قائمة النماذج المحدثة للبحث التلقائي
-    models_to_try = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-3.5-pro']
+     'gemini-3.5-pro']
     
     for model_name in models_to_try:
         try:
