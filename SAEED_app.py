@@ -4,8 +4,6 @@ import google.generativeai as genai
 from gtts import gTTS
 import tempfile
 import time
-from io import BytesIO
-import base64
 
 # إعداد الصفحة
 st.set_page_config(page_title="Saeed MarketAds - بالصوت والصورة", layout="wide")
@@ -19,10 +17,6 @@ if "current_avatar" not in st.session_state:
     st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
 if "voice_enabled" not in st.session_state:
     st.session_state.voice_enabled = True
-if "use_recorded_voice" not in st.session_state:
-    st.session_state.use_recorded_voice = False
-if "recorded_voice_path" not in st.session_state:
-    st.session_state.recorded_voice_path = None
 
 # ======================= دالة الإعداد الذكي لـ Gemini =======================
 def setup_gemini():
@@ -32,13 +26,14 @@ def setup_gemini():
         return None
     genai.configure(api_key=api_key)
     
-    # قائمة النماذج المحدثة للبحث التلقائي
-     'gemini-3.5-pro']
+    # قائمة النماذج المتاحة والمصححة
+    models_to_try = ['gemini-3.5-flash', 'gemini-3.5-pro']
     
     for model_name in models_to_try:
         try:
             model = genai.GenerativeModel(model_name)
-            model.generate_content("test") # اختبار اتصال سريع
+            # اختبار بسيط للتأكد من عمل الموديل
+            model.generate_content("hi") 
             st.sidebar.success(f"✅ متصل بـ: {model_name}")
             return model
         except Exception:
@@ -55,7 +50,7 @@ def text_to_speech_tts(text, lang='ar'):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
             tts.save(fp.name)
             return fp.name
-    except Exception as e:
+    except Exception:
         return None
 
 def animate_avatar(image_path):
@@ -75,7 +70,6 @@ with st.sidebar:
     st.header("⚙️ إعدادات الأفاتار والصوت")
     avatar_option = st.selectbox("اختر الأفاتار", ["سعيد (saeed.jpg)", "روبوت (ROBOT.jpg)"])
     st.session_state.current_avatar = "saeed.jpg" if avatar_option == "سعيد (saeed.jpg)" else "ROBOT.jpg"
-    
     st.session_state.voice_enabled = st.checkbox("🔊 تفعيل الصوت", value=True)
     st.info("جميع الحقوق محفوظة SaeedMarketAds ©")
 
@@ -91,13 +85,11 @@ with tab1:
         user_question = st.chat_input("اكتب سؤالك هنا...")
         if user_question:
             st.session_state.conversation.append({"role": "user", "content": user_question})
-            
             if gemini_model:
                 response = gemini_model.generate_content(user_question)
                 ai_reply = response.text
             else:
                 ai_reply = "النموذج غير متاح حالياً."
-            
             st.session_state.conversation.append({"role": "assistant", "content": ai_reply})
             
             if st.session_state.voice_enabled:
@@ -107,6 +99,3 @@ with tab1:
                     st.audio(audio_file, format='audio/mp3')
                     os.unlink(audio_file)
             st.rerun()
-
-# باقي الكود كما هو (التبويبات 2 و 3) ...
-
