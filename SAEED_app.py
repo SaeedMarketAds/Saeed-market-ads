@@ -3,6 +3,35 @@ import os
 import base64
 from pathlib import Path
 import random
+import google.generativeai as genai
+
+# ==================== إعداد موديل Gemini 3.5 ====================
+# تأكد من وضع مفتاح API الخاص بك في متغير البيئة GOOGLE_API_KEY
+# أو اكتبه مباشرة هنا (غير آمن للإنتاج)
+try:
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY", "YOUR_API_KEY_HERE"))
+    model = genai.GenerativeModel(
+        'gemini-1.5-flash',  # موديل 3.5 Flash
+        system_instruction="""
+        أنت "سعيد المسوري"، خبير تسويق إلكتروني ومستشار مبيعات محترف.
+
+        **هويتك التقنية:**
+        تعمل عبر نموذج Google Gemini 3.5 Flash. أنت سريع، دقيق، وتتذكر سياق المحادثة بشكل ممتاز. استخدم قدراتك في التحليل المنطقي والفهم العميق للغة العربية لتقديم إجابات غير سطحية.
+
+        **قواعد عملك (الأهم):**
+        1. **الذاكرة مطلوبة:** بما أنك تعمل على موديل 3.5، أنت قادر على تذكر آخر 5-10 رسائل من المحادثة. استخدم هذه الميزة دائماً. لا تكرر الأسئلة التي سبق أن سألتها.
+        2. **لا تخرج عن دورك:** أنت خبير تسويق فقط. لا تتحدث عن البرمجة أو السياسة أو أي شيء خارج نطاق مساعدة المستخدم في الشراء، تحليل المنتجات، أو نصائح البيع.
+        3. **اسأل قبل أن تجيب:** إذا طلب المستخدم منتجاً (مثل: هاتف، ساعة)، اسأله أولاً عن: الميزانية التقريبية، المواصفات المهمة، التفضيل (جديد أم مستعمل).
+        4. **أسلوب الرد:** ودود، احترافي، ومباشر. استخدم الرموز التعبيرية المناسبة 👍 ✅ 🎯.
+
+        **تذكير داخلي للنموذج 3.5:**
+        أنت لست Gemini 1.0 ولا 2.0. أنت الإصدار 3.5. استغل هذه القوة لتكون أكثر فائدة من أي بوت تسويقي عادي.
+        """
+    )
+    GEMINI_AVAILABLE = True
+except Exception as e:
+    st.warning(f"⚠️ لم يتم تفعيل Gemini 3.5: {e}. سيتم استخدام الردود المحلية بدلاً من ذلك.")
+    GEMINI_AVAILABLE = False
 
 # إعداد الصفحة
 st.set_page_config(
@@ -33,9 +62,11 @@ def play_owner_voice():
 
 def speak_text(text):
     """نطق النص باستخدام المتصفح"""
+    # تنظيف النص من علامات Markdown
+    clean_text = text.replace("**", "").replace("*", "").replace("\n", " ")
     js_code = f"""
     <script>
-        var utterance = new SpeechSynthesisUtterance("{text}");
+        var utterance = new SpeechSynthesisUtterance("{clean_text}");
         utterance.lang = "ar-SA";
         utterance.rate = 0.9;
         window.speechSynthesis.cancel();
@@ -79,12 +110,34 @@ def get_market_products(market_name):
     }
     return products.get(market_name, [])
 
-# ==================== دوال البوت الذكي ====================
-def get_bot_response(user_message, mode="bot"):
-    """توليد رد ذكي من SaeedDataBot"""
+# ==================== دوال البوت الذكي (باستخدام Gemini 3.5) ====================
+def get_bot_response_with_gemini(user_message, chat_history):
+    """توليد رد ذكي باستخدام Gemini 3.5 Flash مع السياق"""
+    if not GEMINI_AVAILABLE:
+        return get_bot_response_fallback(user_message)
+    
+    try:
+        # بناء تاريخ المحادثة
+        chat = model.start_chat(history=[])
+        
+        # إضافة تاريخ المحادثة السابق (آخر 10 رسائل)
+        recent_history = chat_history[-10:] if len(chat_history) > 10 else chat_history
+        for msg in recent_history:
+            if msg["role"] == "user":
+                chat.send_message(msg["content"])
+            # لا نضيف ردود البوت لأنها ستأتي تلقائياً
+        
+        # إرسال الرسالة الجديدة
+        response = chat.send_message(user_message)
+        return response.text
+    except Exception as e:
+        st.error(f"خطأ في Gemini: {e}")
+        return get_bot_response_fallback(user_message)
+
+def get_bot_response_fallback(user_message):
+    """الردود المحلية الاحتياطية في حال تعذر استخدام Gemini"""
     msg = user_message.lower()
     
-    # ردود البوت الذكية
     if any(word in msg for word in ['aliexpress', 'علي', 'اكسبريس']):
         return "🔍 **AliExpress** يقدم أفضل الأسعار للإلكترونيات والمنتجات الصينية. يمكنك شراء الهواتف، الساعات، السماعات بأسعار تنافسية. هل تريد مساعدة في البحث عن منتج محدد؟"
     elif any(word in msg for word in ['noon', 'نون']):
@@ -93,8 +146,6 @@ def get_bot_response(user_message, mode="bot"):
         return "👗 **Shein** وجهتك الأولى للأزياء العصرية. أحدث الصيحات والموضة بأسعار لا تُقارن. هل تبحث عن فستان، حقيبة، أو إكسسوارات؟"
     elif any(word in msg for word in ['يمن', 'يمني', 'محلي', 'ريال']):
         return "🇾🇪 **السوق اليمني** قادم قريباً جداً! سندعم المحافظ الإلكترونية اليمنية (مدى، كاش، تيلي يمن). شكراً لدعمك الاقتصاد المحلي ❤️"
-    elif any(word in msg for word in ['شكر', 'جزاك', 'الله']):
-        return "🙏 العفو! شكر الله لك. أنا SaeedDataBot، موجود لخدمتك ولخدمة أطفالك. لا تتردد أبداً في طلب المساعدة."
     elif any(word in msg for word in ['سعر', 'غالي', 'رخيص', 'عرض', 'خصم']):
         return "📊 **تحليل الأسعار**: أنصحك بمقارنة العروض بين AliExpress و Noon قبل الشراء. هل تريد مني البحث عن أفضل سعر لمنتج معين؟"
     elif any(word in msg for word in ['منتج', 'بحث', 'أريد']):
@@ -198,7 +249,7 @@ else:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.image("ROBOT.jpg", width=150, caption="SaeedDataBot")
-    st.markdown('<div class="main-header"><h1>🤖 SaeedDataBot</h1><p>مساعدك الذكي للتسوق العالمي وتحليل السوق</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><h1>🤖 SaeedDataBot</h1><p>مساعدك الذكي للتسوق العالمي وتحليل السوق (Gemini 3.5 Flash)</p></div>', unsafe_allow_html=True)
 
 # ==================== الأسواق السريعة ====================
 st.markdown("### 🏪 الأسواق العالمية")
@@ -254,6 +305,8 @@ if "selected_market" in st.session_state:
 # ==================== منطقة المحادثة ====================
 st.markdown("---")
 st.markdown("## 💬 دردش مع المساعد الذكي")
+if GEMINI_AVAILABLE:
+    st.caption("✨ يعمل الآن على **Gemini 3.5 Flash** - أسرع وأذكى من أي وقت مضى")
 
 # تهيئة سجل المحادثة
 if "chat_history" not in st.session_state:
@@ -286,11 +339,14 @@ if send_button and user_input:
     st.session_state.chat_history.append({"role": "user", "content": user_input})
     
     if "الآفاتار" in mode:
-        # ردود الآفاتار الشخصي
-        reply = f"**سعيد المسوري:** شكراً لسؤالك. بصفتي خبيراً في التسويق الإلكتروني، أنصحك بالاطلاع على عروض AliExpress و Noon. هل تريد تفاصيل أكثر؟"
+        # ردود الآفاتار الشخصي - استخدام Gemini أيضاً
+        if GEMINI_AVAILABLE:
+            reply = get_bot_response_with_gemini(user_input, st.session_state.chat_history[:-1])
+        else:
+            reply = f"**سعيد المسوري:** شكراً لسؤالك. بصفتي خبيراً في التسويق الإلكتروني، أنصحك بالاطلاع على عروض AliExpress و Noon. هل تريد تفاصيل أكثر؟"
     else:
-        # ردود SaeedDataBot
-        reply = get_bot_response(user_input)
+        # ردود SaeedDataBot باستخدام Gemini 3.5
+        reply = get_bot_response_with_gemini(user_input, st.session_state.chat_history[:-1])
     
     st.session_state.chat_history.append({"role": "assistant", "content": reply})
     speak_text(reply.replace("**", ""))
@@ -335,6 +391,6 @@ with col2:
 # ==================== التذييل ====================
 st.markdown("---")
 st.markdown(
-    '<p style="text-align: center; color: #888;">© 2025 SaeedMarktAds - SaeedDataBot | قريباً: دعم المحافظ اليمنية 🤝</p>',
+    '<p style="text-align: center; color: #888;">© 2025 SaeedMarktAds - SaeedDataBot | يعمل على Gemini 3.5 Flash 🤖 | قريباً: دعم المحافظ اليمنية 🤝</p>',
     unsafe_allow_html=True
 )
