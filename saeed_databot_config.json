@@ -1,6 +1,12 @@
-{
-  "model": "gemini-2.5-flash",
-  "project_name": "Saeed DataBot",
-  "version": "1.0",
-  "base_path": "/storage/emulated/0/SAEED_MARKET_SITE/"
+here{
+    "bot_name": "سعيد داتابوت",
+    "owner_name": "سعيد المسوري",
+    "model_name": "gemini-1.5-flash",
+    "max_history": 15,
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "voice_enabled": true,
+    "markets": ["aliexpress", "noon", "shein", "yemen"],
+    "admin_password": "saeed2024",
+    "admin_username": "admin"
 }
