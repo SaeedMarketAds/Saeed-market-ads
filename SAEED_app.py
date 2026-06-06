@@ -1,4 +1,4 @@
-hereimport json
+import json
 import streamlit as st
 from streamlit_chat import message
 import gtts
@@ -6,12 +6,12 @@ from io import BytesIO
 import base64
 import random
 
-# تحميل الإعدادات
-with open("saeed_databot_config.json", "r", encoding="utf-8") as f:
-    config = json.load(f)
+# ========== الإعدادات ==========
+BOT_NAME = "Saeed DataBot"  # ✅ الاسم بالإنجليزي
+OWNER_NAME = "Saeed Almasoori"
 
-BOT_NAME = config["bot_name"]
-OWNER_NAME = config["owner_name"]
+# إعدادات الصوت
+VOICE_ENABLED = True
 
 def text_to_speech(text):
     """تحويل النص إلى صوت"""
@@ -26,69 +26,64 @@ def text_to_speech(text):
         return ""
 
 def get_bot_response(user_input):
-    """دالة ردود البوت الذكية - تفهم SHEIN والسلام والمنتجات"""
+    """دالة ردود البوت الذكية"""
     user_input_lower = user_input.lower().strip()
     
-    # 1. الرد على التحية (السلام)
-    greetings = ["سلام", "مرحباً", "اهلا", "السلام", "مرحبا", "هلا", "السلام عليكم"]
-    if any(word in user_input_lower for word in greetings):
-        responses = [
-            "وعليكم السلام ورحمة الله وبركاته، SHEIN موجود لخدمتك! كيف أقدم المساعدة؟",
-            "السلام عليكم! أنا Saeed DataBot، شريكك للتسوق من SHEIN وAliExpress وNoon.",
-            "وعليكم السلام! SHEIN عندي أفضل العروض للموضة والأزياء."
-        ]
-        return random.choice(responses)
+    # 1. الرد على التحية (السلام) - الأولوية القصوى
+    greetings = ["سلام", "مرحباً", "اهلا", "السلام", "مرحبا", "هلا", "السلام عليكم", "السالم"]
+    for word in greetings:
+        if word in user_input_lower:
+            return "وعليكم السلام ورحمة الله وبركاته، SHEIN موجود لخدمتك! كيف أقدم المساعدة؟"
     
-    # 2. الرد على سؤال عن SHEIN (الأهم)
+    # 2. الرد على SHEIN
     if "shein" in user_input_lower:
-        responses = [
-            "🌟 SHEIN: عالم الموضة والأزياء بين يديك! أسعار تنافسية وتوصيل سريع. هل تريد البحث عن منتج معين؟",
-            "👗 SHEIN هو وجهتك الأولى للموضة! فساتين، أحذية، إكسسوارات - خصومات تصل إلى 70%",
-            "🛍️ SHEIN متوفر الآن! أخبرني ما تبحث عنه: ملابس، أحذية، أو إكسسوارات؟"
-        ]
-        return random.choice(responses)
+        return "🌟 SHEIN: عالم الموضة والأزياء بين يديك! أسعار تنافسية وتوصيل سريع. هل تريد البحث عن منتج معين؟"
     
-    # 3. البحث عن هاتف
-    if any(word in user_input_lower for word in ["هاتف", "سامسونج", "iphone", "نوت", "note", "جالكسي", "galaxy"]):
-        phone_models = {
-            "note": "Samsung Galaxy Note 10+",
-            "سامسونج": "Samsung Galaxy",
-            "iphone": "iPhone"
-        }
-        for key, model in phone_models.items():
-            if key in user_input_lower:
-                return f"📱 {model} متوفر على SHEIN وAliExpress وNoon. سعره يبدأ من $250. هل تريد مقارنة الأسعار؟"
-        return "📱 أبحث عن هاتف؟ سأبحث لك أفضل العروض من SHEIN وAliExpress وNoon. ما هي ميزانيتك؟"
+    # 3. البحث عن هاتف (سامسونج، نوت، جالكسي، iPhone)
+    phones = ["هاتف", "سامسونج", "iphone", "نوت", "note", "جالكسي", "galaxy", "موبايل"]
+    if any(word in user_input_lower for word in phones):
+        if "نوت" in user_input_lower or "note" in user_input_lower:
+            return "📱 Samsung Galaxy Note 10+ متوفر على SHEIN وAliExpress وNoon. سعره يبدأ من $250. هل تريد مساعدة في الشراء؟"
+        elif "سامسونج" in user_input_lower or "galaxy" in user_input_lower:
+            return "📱 سامسونج جالكسي متوفر الآن! قارن الأسعار بين SHEIN وAliExpress وNoon. ما موديلك المفضل؟"
+        else:
+            return "📱 أبحث عن هاتف؟ سأبحث لك أفضل العروض من SHEIN وAliExpress وNoon. ما هي ميزانيتك؟"
     
     # 4. سؤال عن السعر والميزانية
     if any(word in user_input_lower for word in ["سعر", "$", "دولار", "ميزانية", "كم"]):
-        return f"💰 فهمت ميزانيتك. {BOT_NAME} سيبحث لك أفضل العروض من SHEIN (للموضة) وAliExpress (للإلكترونيات) وNoon (للجميع)."
+        return f"💰 فهمت ميزانيتك. {BOT_NAME} سيبحث لك أفضل العروض من SHEIN وAliExpress وNoon."
     
     # 5. سؤال "من انت" أو "who are you"
     if any(word in user_input_lower for word in ["من انت", "who are you", "من أنت"]):
-        return f"🤖 أنا {BOT_NAME}، مساعدك الذكي للتسوق من SHEIN، AliExpress، وNoon. صنعني {OWNER_NAME} لمساعدتك في إيجاد أفضل العروض!"
+        return f"🤖 أنا {BOT_NAME}، مساعدك الذكي للتسوق من SHEIN، AliExpress، وNoon. صنعني {OWNER_NAME}!"
     
-    # 6. أي سؤال عام
-    return f"🛒 كيف يمكنني مساعدتك اليوم؟ يمكنني: \n✅ البحث في SHEIN عن الملابس والأزياء\n✅ مقارنة أسعار الهواتف في AliExpress\n✅ إيجاد عروض Noon\n✅ الرد على استفساراتك عن المنتجات"
+    # 6. رد افتراضي ذكي
+    return f"🛒 كيف يمكنني مساعدتك اليوم؟\n✅ اكتب 'SHEIN' لعروض الموضة\n✅ اكتب 'هاتف' لشراء هاتف\n✅ اكتب 'سلام' للتحية"
 
 # ========== واجهة Streamlit ==========
 st.set_page_config(page_title=BOT_NAME, page_icon="🤖", layout="centered")
 
-# محاولة عرض الصورة
-try:
-    st.image("ROBO.T.jpg", caption=BOT_NAME, width=120)
-except:
-    st.warning("⚠️ الصورة ROBO.T.jpg غير موجودة - تأكد من وجودها في مجلد المشروع")
+# محاولة عرض الصورة (جرب أسماء مختلفة)
+image_found = False
+for img_name in ["ROBO.T.jpg", "ROBOT.jpg", "robot.jpg", "ROBO-T.jpg"]:
+    try:
+        st.image(img_name, caption=BOT_NAME, width=120)
+        image_found = True
+        break
+    except:
+        pass
+
+if not image_found:
+    st.info(f"🤖 {BOT_NAME} - مساعدك الذكي للتسوق")
 
 # العنوان
 st.title(f"🤖 {BOT_NAME}")
-st.caption(f"🛍️ مساعدك الذكي للتسوق العالمي - صنع بواسطة {OWNER_NAME}")
+st.caption(f"🛍️ Smart Shopping Assistant - Built by {OWNER_NAME}")
 
 # تهيئة سجل المحادثة
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # رسالة ترحيب أولية
-    welcome_msg = f"أهلاً بك! أنا {BOT_NAME}. كيف أخدمك اليوم؟ أبحث عن عروض SHEIN؟ أو تريد شراء هاتف؟"
+    welcome_msg = f"Welcome! I'm {BOT_NAME}. How can I help you today? Looking for SHEIN fashion? Or a new phone?"
     st.session_state.messages.append({
         "role": "bot",
         "content": welcome_msg,
@@ -103,7 +98,7 @@ for msg in st.session_state.messages:
         message(msg["content"], is_user=False, key=msg["key"])
 
 # مربع الإدخال
-user_input = st.chat_input("✍️ اكتب رسالتك هنا...")
+user_input = st.chat_input("✍️ Type your message here...")
 
 if user_input:
     # إضافة رسالة المستخدم
@@ -126,10 +121,9 @@ if user_input:
     message(response, is_user=False)
     
     # تشغيل الصوت
-    if config.get("voice_enabled", True):
+    if VOICE_ENABLED:
         audio_html = text_to_speech(response)
         if audio_html:
             st.markdown(audio_html, unsafe_allow_html=True)
     
-    # تحديث الصفحة لعرض الصوت
     st.rerun()
