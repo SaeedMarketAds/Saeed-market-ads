@@ -1,6 +1,6 @@
 {
-  "bot_name": "سعيد داتابوت",
-  "owner_name": "سعيد المسوري",
+  "bot_name": "Saeed DataBot",
+  "owner_name": "Saeed Almasoori",
   "model_name": "gemini-1.5-flash",
   "max_history": 15,
   "temperature": 0.7,
