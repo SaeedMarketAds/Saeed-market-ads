@@ -1,123 +1,135 @@
-# SAEED_app.py - الملف الرئيسي المعدل
+hereimport json
 import streamlit as st
-import os
+from streamlit_chat import message
+import gtts
+from io import BytesIO
 import base64
-from saeed_databot import (
-    get_bot_response, speak_response, get_market_products, 
-    get_market_advice, CONFIG
-)
+import random
 
-# ==================== إعداد الصفحة ====================
-st.set_page_config(
-    page_title="SaeedMarketAds - سوق سعيد",
-    page_icon="🛍️",
-    layout="wide"
-)
+# تحميل الإعدادات
+with open("saeed_databot_config.json", "r", encoding="utf-8") as f:
+    config = json.load(f)
 
-# تنسيق CSS
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-    * { font-family: 'Tajawal', sans-serif; }
-    .stApp { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
-    .main-header {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        padding: 2rem;
-        border-radius: 20px;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .product-card {
-        background: rgba(255,255,255,0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 15px;
-        padding: 1rem;
-        text-align: center;
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 15px;
-        margin: 0.5rem 0;
-    }
-    .bot-message { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: right; }
-    .user-message { background: linear-gradient(135deg, #11998e, #38ef7d); color: white; text-align: left; }
-    </style>
-""", unsafe_allow_html=True)
+BOT_NAME = config["bot_name"]
+OWNER_NAME = config["owner_name"]
 
-# ==================== رأس الصفحة ====================
-if os.path.exists("ROBOT.jpg"):
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image("ROBOT.jpg", width=150)
+def text_to_speech(text):
+    """تحويل النص إلى صوت"""
+    try:
+        tts = gtts.gTTS(text, lang="ar")
+        audio_bytes = BytesIO()
+        tts.write_to_fp(audio_bytes)
+        audio_bytes.seek(0)
+        audio_base64 = base64.b64encode(audio_bytes.read()).decode()
+        return f'<audio autoplay="true" src="data:audio/mp3;base64,{audio_base64}">'
+    except:
+        return ""
 
-st.markdown(f'<div class="main-header"><h1>🤖 {CONFIG["bot_name"]}</h1><p>مساعدك الذكي للتسوق العالمي</p></div>', unsafe_allow_html=True)
-
-# ==================== الأسواق ====================
-st.markdown("### 🏪 الأسواق العالمية")
-col1, col2, col3, col4 = st.columns(4)
-
-markets = {
-    "aliexpress": ("🛒 AliExpress", "عروض حصرية"),
-    "noon": ("🇦🇪 Noon", "توصيل سريع"),
-    "shein": ("👗 Shein", "أزياء وموضة"),
-    "yemen": ("🇾🇪 السوق اليمني", "دعم المحلي")
-}
-
-for i, (market, (name, desc)) in enumerate(markets.items()):
-    with [col1, col2, col3, col4][i]:
-        if st.button(f"**{name}**\n{desc}", use_container_width=True):
-            st.session_state.selected_market = market
-
-# ==================== عرض المنتجات ====================
-if "selected_market" in st.session_state:
-    st.markdown("---")
-    st.markdown(f"### 🛍️ منتجات {st.session_state.selected_market}")
+def get_bot_response(user_input):
+    """دالة ردود البوت الذكية - تفهم SHEIN والسلام والمنتجات"""
+    user_input_lower = user_input.lower().strip()
     
-    products = get_market_products(st.session_state.selected_market)
+    # 1. الرد على التحية (السلام)
+    greetings = ["سلام", "مرحباً", "اهلا", "السلام", "مرحبا", "هلا", "السلام عليكم"]
+    if any(word in user_input_lower for word in greetings):
+        responses = [
+            "وعليكم السلام ورحمة الله وبركاته، SHEIN موجود لخدمتك! كيف أقدم المساعدة؟",
+            "السلام عليكم! أنا Saeed DataBot، شريكك للتسوق من SHEIN وAliExpress وNoon.",
+            "وعليكم السلام! SHEIN عندي أفضل العروض للموضة والأزياء."
+        ]
+        return random.choice(responses)
     
-    for i in range(0, len(products), 3):
-        cols = st.columns(3)
-        for j in range(3):
-            if i + j < len(products):
-                p = products[i + j]
-                with cols[j]:
-                    st.markdown(f"""
-                    <div class="product-card">
-                        <div style="font-size: 3rem;">{p['icon']}</div>
-                        <h4>{p['name']}</h4>
-                        <p style="color: #f5576c;">{p['price']}</p>
-                        <small>📦 المخزون: {p.get('stock', 'متوفر')}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    if st.button(f"🛒 شراء", key=f"buy_{p['id']}"):
-                        if p.get('link') and p['link'] != "#":
-                            st.markdown(f'<meta http-equiv="refresh" content="0; url={p["link"]}">', unsafe_allow_html=True)
+    # 2. الرد على سؤال عن SHEIN (الأهم)
+    if "shein" in user_input_lower:
+        responses = [
+            "🌟 SHEIN: عالم الموضة والأزياء بين يديك! أسعار تنافسية وتوصيل سريع. هل تريد البحث عن منتج معين؟",
+            "👗 SHEIN هو وجهتك الأولى للموضة! فساتين، أحذية، إكسسوارات - خصومات تصل إلى 70%",
+            "🛍️ SHEIN متوفر الآن! أخبرني ما تبحث عنه: ملابس، أحذية، أو إكسسوارات؟"
+        ]
+        return random.choice(responses)
+    
+    # 3. البحث عن هاتف
+    if any(word in user_input_lower for word in ["هاتف", "سامسونج", "iphone", "نوت", "note", "جالكسي", "galaxy"]):
+        phone_models = {
+            "note": "Samsung Galaxy Note 10+",
+            "سامسونج": "Samsung Galaxy",
+            "iphone": "iPhone"
+        }
+        for key, model in phone_models.items():
+            if key in user_input_lower:
+                return f"📱 {model} متوفر على SHEIN وAliExpress وNoon. سعره يبدأ من $250. هل تريد مقارنة الأسعار؟"
+        return "📱 أبحث عن هاتف؟ سأبحث لك أفضل العروض من SHEIN وAliExpress وNoon. ما هي ميزانيتك؟"
+    
+    # 4. سؤال عن السعر والميزانية
+    if any(word in user_input_lower for word in ["سعر", "$", "دولار", "ميزانية", "كم"]):
+        return f"💰 فهمت ميزانيتك. {BOT_NAME} سيبحث لك أفضل العروض من SHEIN (للموضة) وAliExpress (للإلكترونيات) وNoon (للجميع)."
+    
+    # 5. سؤال "من انت" أو "who are you"
+    if any(word in user_input_lower for word in ["من انت", "who are you", "من أنت"]):
+        return f"🤖 أنا {BOT_NAME}، مساعدك الذكي للتسوق من SHEIN، AliExpress، وNoon. صنعني {OWNER_NAME} لمساعدتك في إيجاد أفضل العروض!"
+    
+    # 6. أي سؤال عام
+    return f"🛒 كيف يمكنني مساعدتك اليوم؟ يمكنني: \n✅ البحث في SHEIN عن الملابس والأزياء\n✅ مقارنة أسعار الهواتف في AliExpress\n✅ إيجاد عروض Noon\n✅ الرد على استفساراتك عن المنتجات"
 
-# ==================== المحادثة ====================
-st.markdown("---")
-st.markdown("## 💬 دردش مع المساعد الذكي")
+# ========== واجهة Streamlit ==========
+st.set_page_config(page_title=BOT_NAME, page_icon="🤖", layout="centered")
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [{"role": "assistant", "content": f"🎙️ أهلاً بك! أنا {CONFIG['bot_name']}. كيف أخدمك اليوم؟"}]
+# محاولة عرض الصورة
+try:
+    st.image("ROBO.T.jpg", caption=BOT_NAME, width=120)
+except:
+    st.warning("⚠️ الصورة ROBO.T.jpg غير موجودة - تأكد من وجودها في مجلد المشروع")
 
-for msg in st.session_state.chat_history:
+# العنوان
+st.title(f"🤖 {BOT_NAME}")
+st.caption(f"🛍️ مساعدك الذكي للتسوق العالمي - صنع بواسطة {OWNER_NAME}")
+
+# تهيئة سجل المحادثة
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    # رسالة ترحيب أولية
+    welcome_msg = f"أهلاً بك! أنا {BOT_NAME}. كيف أخدمك اليوم؟ أبحث عن عروض SHEIN؟ أو تريد شراء هاتف؟"
+    st.session_state.messages.append({
+        "role": "bot",
+        "content": welcome_msg,
+        "key": "welcome"
+    })
+
+# عرض المحادثة
+for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.markdown(f'<div class="chat-message user-message">🗣️ {msg["content"]}</div>', unsafe_allow_html=True)
+        message(msg["content"], is_user=True, key=msg["key"])
     else:
-        st.markdown(f'<div class="chat-message bot-message">🤖 {msg["content"]}</div>', unsafe_allow_html=True)
+        message(msg["content"], is_user=False, key=msg["key"])
 
-user_input = st.text_input("", placeholder="اكتب سؤالك هنا...", key="user_input", label_visibility="collapsed")
-col1, col2 = st.columns([1, 5])
-with col1:
-    if st.button("📤 إرسال", use_container_width=True) and user_input:
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
-        reply = get_bot_response(user_input, st.session_state.chat_history[:-1], is_avatar_mode=False)
-        st.session_state.chat_history.append({"role": "assistant", "content": reply})
-        speak_response(reply)
-        st.rerun()
+# مربع الإدخال
+user_input = st.chat_input("✍️ اكتب رسالتك هنا...")
 
-# ==================== رابط لوحة الأدمن ====================
-st.markdown("---")
-st.markdown(f'<p style="text-align: center;">🔐 <a href="/admin_panel" target="_blank">لوحة تحكم الأدمن</a> | © 2025 {CONFIG["owner_name"]}</p>', unsafe_allow_html=True)
+if user_input:
+    # إضافة رسالة المستخدم
+    st.session_state.messages.append({
+        "role": "user",
+        "content": user_input,
+        "key": f"user_{len(st.session_state.messages)}"
+    })
+    message(user_input, is_user=True)
+    
+    # الحصول على رد البوت
+    response = get_bot_response(user_input)
+    
+    # إضافة رد البوت
+    st.session_state.messages.append({
+        "role": "bot",
+        "content": response,
+        "key": f"bot_{len(st.session_state.messages)}"
+    })
+    message(response, is_user=False)
+    
+    # تشغيل الصوت
+    if config.get("voice_enabled", True):
+        audio_html = text_to_speech(response)
+        if audio_html:
+            st.markdown(audio_html, unsafe_allow_html=True)
+    
+    # تحديث الصفحة لعرض الصوت
+    st.rerun()
