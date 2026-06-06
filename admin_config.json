@@ -1,19 +1,23 @@
-# admin_panel.py - لوحة تحكم الأدمن لإدارة المنتجات
+# admin_panel.py - لوحة تحكم الأدمن
+
 import streamlit as st
 import pandas as pd
+
 from saeed_databot import (
-    load_products, save_products, add_product, 
-    update_product, delete_product, CONFIG
+    load_products,
+    save_products,
+    add_product,
+    update_product,
+    delete_product,
+    CONFIG
 )
 
-# إعداد الصفحة
 st.set_page_config(
     page_title="لوحة تحكم الأدمن - SaeedMarketAds",
     page_icon="🔐",
     layout="wide"
 )
 
-# التحقق من تسجيل الدخول
 def check_admin_login():
     if "admin_logged_in" not in st.session_state:
         st.session_state.admin_logged_in = False
@@ -34,7 +38,6 @@ def check_admin_login():
         
         with st.container():
             st.markdown('<div class="login-box">', unsafe_allow_html=True)
-            st.image("saeed.jpg", width=100, caption="سعيد المسوري")
             st.title("🔐 لوحة تحكم الأدمن")
             username = st.text_input("اسم المستخدم")
             password = st.text_input("كلمة المرور", type="password")
@@ -49,10 +52,9 @@ def check_admin_login():
         return False
     return True
 
-# واجهة إدارة المنتجات
 def admin_interface():
-    st.title("🔐 لوحة تحكم الأدمن - SaeedMarketAds")
-    st.markdown(f"مرحباً **{CONFIG['admin_username']}** | [تسجيل خروج](#)")
+    st.title("🔐 لوحة تحكم الأدمن")
+    st.markdown(f"مرحباً **{CONFIG['admin_username']}**")
     
     if st.button("🚪 تسجيل خروج"):
         st.session_state.admin_logged_in = False
@@ -60,109 +62,57 @@ def admin_interface():
     
     st.markdown("---")
     
-    # تبويبات لوحة التحكم
-    tab1, tab2, tab3 = st.tabs(["📦 إدارة المنتجات", "➕ إضافة منتج جديد", "📊 إحصائيات"])
+    tab1, tab2, tab3 = st.tabs(["📦 إدارة المنتجات", "➕ إضافة منتج", "📊 إحصائيات"])
     
     products = load_products()
     
     with tab1:
         st.header("📦 إدارة المنتجات")
-        
-        # اختيار السوق
         market = st.selectbox("اختر السوق", list(products.keys()))
         
         if market in products:
-            # عرض المنتجات في جدول
             df = pd.DataFrame(products[market])
-            df_display = df[["id", "name", "price", "icon", "stock"]]
-            st.dataframe(df_display, use_container_width=True)
+            st.dataframe(df[["id", "name", "price", "icon", "stock"]], use_container_width=True)
             
-            # تعديل أو حذف منتج
-            st.subheader("✏️ تعديل أو حذف منتج")
+            st.subheader("🗑️ حذف منتج")
             product_ids = [p["id"] for p in products[market]]
-            selected_id = st.selectbox("اختر المنتج", product_ids)
+            selected_id = st.selectbox("اختر المنتج للحذف", product_ids)
             
-            selected_product = next((p for p in products[market] if p["id"] == selected_id), None)
-            
-            if selected_product:
-                col1, col2 = st.columns(2)
-                with col1:
-                    new_name = st.text_input("اسم المنتج", selected_product["name"])
-                    new_price = st.text_input("السعر", selected_product["price"])
-                    new_icon = st.text_input("الأيقونة", selected_product["icon"])
-                with col2:
-                    new_link = st.text_input("الرابط", selected_product["link"])
-                    new_stock = st.number_input("الكمية", value=selected_product["stock"], step=1)
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    if st.button("💾 حفظ التعديلات", use_container_width=True):
-                        updates = {
-                            "name": new_name,
-                            "price": new_price,
-                            "icon": new_icon,
-                            "link": new_link,
-                            "stock": new_stock
-                        }
-                        if update_product(market, selected_id, updates):
-                            st.success("✅ تم تحديث المنتج بنجاح")
-                            st.rerun()
-                with col2:
-                    if st.button("🗑️ حذف المنتج", use_container_width=True):
-                        if delete_product(market, selected_id):
-                            st.success("✅ تم حذف المنتج بنجاح")
-                            st.rerun()
+            if st.button("حذف المنتج", use_container_width=True):
+                if delete_product(market, selected_id):
+                    st.success("✅ تم حذف المنتج بنجاح")
+                    st.rerun()
     
     with tab2:
         st.header("➕ إضافة منتج جديد")
-        
         col1, col2 = st.columns(2)
+        
         with col1:
             new_market = st.selectbox("السوق", ["aliexpress", "noon", "shein", "yemen"])
             new_name = st.text_input("اسم المنتج")
             new_price = st.text_input("السعر")
+        
         with col2:
-            new_icon = st.text_input("الأيقونة (رمز تعبيري)", "📱")
-            new_link = st.text_input("رابط المنتج")
-            new_stock = st.number_input("الكمية المتاحة", min_value=0, value=10)
+            new_icon = st.text_input("الأيقونة", "📱")
+            new_link = st.text_input("الرابط")
+            new_stock = st.number_input("الكمية", min_value=0, value=10)
         
         if st.button("➕ إضافة المنتج", use_container_width=True):
             if new_name and new_price:
                 if add_product(new_market, new_name, new_price, new_icon, new_link, new_stock):
-                    st.success(f"✅ تم إضافة المنتج '{new_name}' بنجاح إلى {new_market}")
+                    st.success(f"✅ تم إضافة {new_name} بنجاح")
                     st.rerun()
             else:
-                st.error("❌ يرجى ملء جميع الحقول المطلوبة")
+                st.error("❌ يرجى ملء جميع الحقول")
     
     with tab3:
-        st.header("📊 إحصائيات المتجر")
-        
+        st.header("📊 إحصائيات")
         total_products = sum(len(products[m]) for m in products)
         total_stock = sum(sum(p["stock"] for p in products[m]) for m in products)
         
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("📦 إجمالي المنتجات", total_products)
-        with col2:
-            st.metric("📊 إجمالي الكميات", total_stock)
-        with col3:
-            st.metric("🏪 عدد الأسواق", len(products))
-        with col4:
-            st.metric("🤖 البوت", CONFIG["bot_name"])
-        
-        st.markdown("---")
-        st.subheader("📈 توزيع المنتجات حسب السوق")
-        
-        market_stats = []
-        for market, items in products.items():
-            market_stats.append({
-                "السوق": market,
-                "عدد المنتجات": len(items),
-                "إجمالي الكميات": sum(p["stock"] for p in items)
-            })
-        
-        st.dataframe(pd.DataFrame(market_stats), use_container_width=True)
+        col1, col2 = st.columns(2)
+        col1.metric("📦 إجمالي المنتجات", total_products)
+        col2.metric("📊 إجمالي الكميات", total_stock)
 
-# تشغيل واجهة الأدمن
 if check_admin_login():
     admin_interface()
