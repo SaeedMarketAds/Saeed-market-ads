@@ -27,7 +27,7 @@ VOICE_ENABLED = True
 
 # بيانات المستخدمين المسموح لهم (مثال - يمكن تخزينها في JSON)
 USERS_DB = {
-    "admin": {"password": "admin123", "role": "admin"},
+    "admin": {"password": "ALISAEEDDTCOM-8*", "role": "admin"},
     "saeed": {"password": "saeed2024", "role": "owner"},
     "user": {"password": "user123", "role": "user"}
 }
