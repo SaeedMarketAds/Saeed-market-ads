@@ -3,6 +3,9 @@ import google.generativeai as genai
 import gtts
 from io import BytesIO
 import base64
+import re
+import requests
+from bs4 import BeautifulSoup
 
 # ========== إعدادات البوت ==========
 BOT_NAME = "Saeed DataBot"
@@ -10,25 +13,124 @@ OWNER_NAME = "سعيد المسوري"
 SMART_SAEED = "سعيد الذكي"
 
 # ========== إعداد Gemini ==========
-GEMINI_API_KEY = "ضع_مفتاحك_هنا"
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "ضع_مفتاحك_هنا")
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-3.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # ========== إعدادات الصوت ==========
 def text_to_speech(text):
+    """تحويل النص إلى صوت - نسخة محسنة"""
     try:
-        tts = gtts.gTTS(text, lang="ar")
+        # تنظيف النص من الإيموجيات والرموز التي قد تسبب مشاكل
+        clean_text = re.sub(r'[^\w\s\.،!؟]', ' ', text)
+        tts = gtts.gTTS(clean_text, lang="ar", slow=False)
         audio_bytes = BytesIO()
         tts.write_to_fp(audio_bytes)
         audio_bytes.seek(0)
         audio_base64 = base64.b64encode(audio_bytes.read()).decode()
         return f'<audio autoplay="true" src="data:audio/mp3;base64,{audio_base64}">'
-    except:
+    except Exception as e:
+        print(f"خطأ في الصوت: {e}")
         return ""
+
+def play_welcome_audio():
+    """تشغيل صوت الترحيب"""
+    try:
+        with open("welcome_voice.mp3", "rb") as f:
+            audio_bytes = f.read()
+            audio_base64 = base64.b64encode(audio_bytes).decode()
+            return f'<audio autoplay="true" src="data:audio/mp3;base64,{audio_base64}">'
+    except:
+        return text_to_speech("مرحباً بك في Saeed DataBot، أنا مساعدك الذكي")
+
+# ========== قراءة الروابط (Scraper) ==========
+def extract_product_from_url(url):
+    """استخراج معلومات المنتج من الرابط"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        product_info = {
+            'title': 'غير معروف',
+            'price': 'غير معروف',
+            'platform': 'غير معروف',
+            'url': url
+        }
+        
+        # تحديد المنصة من الرابط
+        if 'noon.com' in url:
+            product_info['platform'] = 'Noon'
+            title_tag = soup.find('h1', class_=re.compile('product'))
+            if title_tag:
+                product_info['title'] = title_tag.text.strip()
+            price_tag = soup.find('span', class_=re.compile('price'))
+            if price_tag:
+                product_info['price'] = price_tag.text.strip()
+                
+        elif 'aliexpress' in url:
+            product_info['platform'] = 'AliExpress'
+            title_tag = soup.find('h1', class_=re.compile('title'))
+            if title_tag:
+                product_info['title'] = title_tag.text.strip()
+                
+        elif 'shein' in url:
+            product_info['platform'] = 'SHEIN'
+            title_tag = soup.find('h1', class_=re.compile('product-name'))
+            if title_tag:
+                product_info['title'] = title_tag.text.strip()
+        
+        return product_info
+        
+    except Exception as e:
+        return {'title': 'خطأ في قراءة الرابط', 'price': 'غير معروف', 'platform': 'غير معروف', 'url': url, 'error': str(e)}
+
+def generate_post_from_url(url, platform, audience):
+    """توليد منشور تسويقي من الرابط"""
+    product_info = extract_product_from_url(url)
+    
+    prompt = f"""اكتب منشور تسويقي احترافي باللغة العربية لـ:
+المنتج: {product_info['title']}
+السعر: {product_info['price']}
+المنصة: {platform or product_info['platform']}
+الجمهور المستهدف: {audience or 'العملاء'}
+
+المطلوب:
+1. افتتاحية جذابة
+2. وصف المنتج ومميزاته
+3. إيموجيات مناسبة
+4. هاشتاجات (3-5)
+5. عبارة تحث على الشراء
+
+المنشور:"""
+    
+    try:
+        response = model.generate_content(prompt)
+        return response.text, product_info
+    except Exception as e:
+        return f"⚠️ عذراً، حدث خطأ: {str(e)}", product_info
 
 # ========== ردود البوت الذكية ==========
 def get_bot_response(user_input):
     user_input_lower = user_input.lower().strip()
+    
+    # التحقق إذا كان المدخل رابطاً
+    if user_input.startswith('http://') or user_input.startswith('https://'):
+        with st.spinner("📡 جاري قراءة الرابط وتحليل المنتج..."):
+            product_info = extract_product_from_url(user_input)
+            if product_info.get('error'):
+                return f"⚠️ عذراً، لم أتمكن من قراءة هذا الرابط. تأكد من أنه رابط صحيح من Noon أو AliExpress أو SHEIN.\n\nالخطأ: {product_info['error']}"
+            else:
+                prompt = f"""بناءً على هذا المنتج:
+الاسم: {product_info['title']}
+السعر: {product_info['price']}
+المتجر: {product_info['platform']}
+
+اكتب رداً ترحيبياً قصيراً يخبر المستخدم أنك وجدت المنتج، وتطلب منه إذا كان يريد منشوراً تسويقياً لهذا المنتج."""
+                response = model.generate_content(prompt)
+                return f"🔗 **تم قراءة الرابط بنجاح!**\n\n📦 **المنتج:** {product_info['title']}\n💰 **السعر:** {product_info['price']}\n🏪 **المتجر:** {product_info['platform']}\n\n{response.text}\n\n(اكتب 'منشور' لتوليد منشور تسويقي لهذا المنتج)"
     
     # ترحيب بالأسواق المختلفة
     if "سلام" in user_input_lower or "مرحباً" in user_input_lower:
@@ -38,17 +140,25 @@ def get_bot_response(user_input):
     if "من برمجك" in user_input_lower:
         return f"🤖 أنا {BOT_NAME}، تم برمجتي بواسطة {OWNER_NAME} ({SMART_SAEED}) بمساعدة الذكاء الاصطناعي Gemini."
     
+    # توليد منشور
+    if "منشور" in user_input_lower or "بوست" in user_input_lower:
+        if "last_url" in st.session_state and st.session_state.last_url:
+            post, info = generate_post_from_url(st.session_state.last_url, None, None)
+            return f"📝 **منشور تسويقي للمنتج:**\n\n{post}"
+        else:
+            return "📝 أريد رابط المنتج أولاً حتى أتمكن من كتابة منشور تسويقي له. أرسل لي رابطاً من Noon أو AliExpress أو SHEIN."
+    
     # Noon
     if "noon" in user_input_lower:
-        return "🛍️ **Noon** - أكبر سوق عربي!\n✅ خصومات تصل إلى 70%\n✅ توصيل سريع\n✅ منتجات أصلية\n\nما المنتج الذي تبحث عنه؟"
+        return "🛍️ **Noon** - أكبر سوق عربي!\n✅ خصومات تصل إلى 70%\n✅ توصيل سريع\n✅ منتجات أصلية\n\nأرسل لي رابط منتج وسأكتب لك منشوراً تسويقياً فوراً!"
     
     # AliExpress
     if "aliexpress" in user_input_lower or "علي اكسبرس" in user_input_lower:
-        return "🌏 **AliExpress** - عالم من المنتجات!\n✅ أسعار المصنع\n✅ شحن دولي\n✅ حماية المشتري\n\nأخبرني ماذا تريد أن أبحث لك؟"
+        return "🌏 **AliExpress** - عالم من المنتجات!\n✅ أسعار المصنع\n✅ شحن دولي\n✅ حماية المشتري\n\nأرسل لي رابط المنتج الذي تريد الترويج له!"
     
     # SHEIN
     if "shein" in user_input_lower or "شي ان" in user_input_lower:
-        return "👗 **SHEIN** - موضة وأزياء!\n✅ كود خصم 20%\n✅ توصيل سريع\n✅ أحدث الصيحات\n\nهل تريد مساعدة في اختيار منتج؟"
+        return "👗 **SHEIN** - موضة وأزياء!\n✅ كود خصم 20%\n✅ توصيل سريع\n✅ أحدث الصيحات\n\nأرسل رابط المنتج وسأكتب منشوراً جذاباً!"
     
     # هاتف
     if "هاتف" in user_input_lower:
@@ -67,9 +177,9 @@ def get_bot_response(user_input):
         return "📱 **هواتف VIVO:**\n• VIVO Y16 - $120\n• VIVO V25 - $250\n• VIVO X90 - $450\n📍 كاميرات رائعة، متوفرة في المركز الدولي."
     
     # رد افتراضي
-    return f"🎯 أنا {BOT_NAME}، كيف أخدمك؟\n\nاكتب:\n• Noon - لعروض noon\n• AliExpress - لعروض علي اكسبرس\n• SHEIN - لعروض شي ان\n• هاتف - لعروض الهواتف\n• LT / Itel / VIVO - لهواتف معينة"
+    return f"🎯 أنا {BOT_NAME}، كيف أخدمك؟\n\n📌 **أرسل لي رابط منتج** من Noon, AliExpress, أو SHEIN وسأكتب لك منشوراً تسويقياً فوراً!\n\nأو اكتب:\n• Noon - لعروض noon\n• AliExpress - لعروض علي اكسبرس\n• SHEIN - لعروض شي ان\n• هاتف - لعروض الهواتف"
 
-# ========== توليد منشور ==========
+# ========== توليد منشور يدوي ==========
 def generate_post(product, platform, audience):
     prompt = f"""اكتب منشور تسويقي احترافي بالعربية لـ:
 المنتج: {product}
@@ -86,15 +196,23 @@ def generate_post(product, platform, audience):
 # ========== الواجهة الرئيسية ==========
 st.set_page_config(page_title="Saeed MarketAds", page_icon="🤖", layout="wide")
 
+# تشغيل الصوت الترحيبي
+if "welcome_played" not in st.session_state:
+    audio_html = play_welcome_audio()
+    if audio_html:
+        st.markdown(audio_html, unsafe_allow_html=True)
+    st.session_state.welcome_played = True
+
 # عنوان الصفحة
 st.markdown("""
 <div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 15px;">
     <h1 style="color: white;">🤖 Saeed DataBot</h1>
     <p style="color: #e0e0e0;">صنع بواسطة سعيد المسوري | الذكاء الاصطناعي للتسويق والهواتف</p>
+    <p style="color: #ffd700;">✨ أرسل رابط منتج وسأكتب لك منشوراً تسويقياً فوراً! ✨</p>
 </div>
 """, unsafe_allow_html=True)
 
-# إنشاء التبويبات (Tabs) مثل ما في مخططك
+# إنشاء التبويبات (Tabs)
 tab1, tab2, tab3 = st.tabs(["🌍 التسويق بالعمولة", "📱 عرض الهواتف", "💬 تحدث مع البوت"])
 
 # ========== TAB 1: التسويق بالعمولة ==========
@@ -107,21 +225,19 @@ with tab1:
         st.info("🌏 **AliExpress** - شحن دولي مجاني")
         st.info("👗 **SHEIN** - كود خصم 20%")
         
-        # أزرار سريعة للمتاجر
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        with col_btn1:
-            if st.button("🛍️ Noon", use_container_width=True):
-                st.session_state.bot_response = "🛍️ Noon: خصومات تصل إلى 70% على آلاف المنتجات! ما الذي تبحث عنه؟"
-        with col_btn2:
-            if st.button("🌏 AliExpress", use_container_width=True):
-                st.session_state.bot_response = "🌏 AliExpress: منتجات من كل العالم بأسعار المصنع! أخبرني ماذا تريد؟"
-        with col_btn3:
-            if st.button("👗 SHEIN", use_container_width=True):
-                st.session_state.bot_response = "👗 SHEIN: كود خصم 20% على أول طلب! هل تريد مساعدة؟"
+        st.markdown("### 🔗 رابط المنتج")
+        product_url = st.text_input("أدخل رابط المنتج من Noon, AliExpress, أو SHEIN", placeholder="https://www.noon.com/...")
+        
+        if product_url:
+            st.session_state.last_url = product_url
+            if st.button("📊 تحليل المنتج", use_container_width=True):
+                with st.spinner("جاري قراءة الرابط..."):
+                    info = extract_product_from_url(product_url)
+                    st.session_state.bot_response = f"🔍 **نتيجة التحليل:**\n\n📦 المنتج: {info['title']}\n💰 السعر: {info['price']}\n🏪 المتجر: {info['platform']}\n\nهل تريد مني كتابة منشور تسويقي لهذا المنتج؟ اكتب 'منشور'"
     
     with col2:
         st.markdown("### ✍️ توليد المنشورات")
-        product_name = st.text_input("اسم المنتج", placeholder="مثال: هاتف Samsung")
+        product_name = st.text_input("اسم المنتج (بدون رابط)", placeholder="مثال: هاتف Samsung")
         platform = st.selectbox("المنصة", ["Facebook", "Instagram", "Twitter", "TikTok"])
         target_audience = st.text_input("الجمهور المستهدف", placeholder="مثال: شباب 18-25")
         
@@ -137,7 +253,6 @@ with tab1:
 with tab2:
     st.markdown("### 📱 المتاجر المحلية - الهواتف")
     
-    # عرض الهواتف في أعمدة
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -184,7 +299,6 @@ with tab2:
     
     st.divider()
     
-    # إدارة المخزون
     st.markdown("### 📦 إدارة المخزون")
     st.info("""
     | الماركة | الموديلات المتوفرة | الكمية |
@@ -201,7 +315,7 @@ with tab3:
     # تهيئة سجل المحادثة
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        st.session_state.messages.append({"role": "assistant", "content": "🎯 مرحباً بك في Saeed DataBot! أنا مساعدك الذكي للتسويق والهواتف. كيف أخدمك اليوم؟\n\nاكتب: Noon, AliExpress, SHEIN, هاتف, LT, Itel, VIVO"})
+        st.session_state.messages.append({"role": "assistant", "content": "🎯 مرحباً بك في Saeed DataBot!\n\n✨ **ميزة جديدة:** أرسل لي رابط منتج من Noon, AliExpress, أو SHEIN وسأكتب لك منشوراً تسويقياً فوراً! ✨\n\nأو اكتب:\n• Noon, AliExpress, SHEIN\n• هاتف, LT, Itel, VIVO"})
     
     if "bot_response" in st.session_state and st.session_state.bot_response:
         st.session_state.messages.append({"role": "assistant", "content": st.session_state.bot_response})
@@ -213,9 +327,13 @@ with tab3:
             st.write(msg["content"])
     
     # إدخال المستخدم
-    user_input = st.chat_input("✍️ اكتب سؤالك هنا...")
+    user_input = st.chat_input("✍️ اكتب سؤالك أو أرسل رابط المنتج هنا...")
     
     if user_input:
+        # تخزين الرابط إذا وجد
+        if user_input.startswith('http://') or user_input.startswith('https://'):
+            st.session_state.last_url = user_input
+        
         # إضافة رسالة المستخدم
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
@@ -249,6 +367,11 @@ with st.sidebar:
     - لا نشارك معلوماتك
     - للتسويق بالعمولة فقط
     """)
+    
+    if st.button("🎵 تشغيل الترحيب الصوتي"):
+        audio_html = play_welcome_audio()
+        if audio_html:
+            st.markdown(audio_html, unsafe_allow_html=True)
     
     if st.button("🚪 تسجيل الخروج"):
         st.session_state.clear()
