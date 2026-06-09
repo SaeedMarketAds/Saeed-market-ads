@@ -28,7 +28,7 @@ if TELEGRAM_BOT_TOKEN != "ضع_توكن_البوت_هنا":
 # ========== إعداد Gemini ==========
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "ضع_مفتاحك_هنا")
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-3.5-flash')
 
 # ========== إعداد ElevenLabs ==========
 ELEVENLABS_API_KEY = st.secrets.get("ELEVENLABS_API_KEY", "ضع_مفتاح_ElevenLabs_هنا")
