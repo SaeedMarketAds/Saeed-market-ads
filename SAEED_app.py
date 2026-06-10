@@ -13,8 +13,8 @@ from telegram import Bot
 import tempfile
 import os
 
-# ========== إعدادات البوت ==========
-BOT_NAME = "Saeed DaTaBoT"
+# ========== إعدادات البوت (تم التعديل) ==========
+BOT_NAME = "Saeed DaTaBoT"  # ✅ تم التغيير من Gemini إلى Saeed DaTaBoT
 OWNER_NAME = "سعيد المسوري"
 SMART_SAEED = "سعيد الذكي"
 
@@ -28,11 +28,11 @@ if TELEGRAM_BOT_TOKEN != "ضع_توكن_البوت_هنا":
 # ========== إعداد Gemini ==========
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "ضع_مفتاحك_هنا")
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-3.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')  # ✅ تم تصحيح الإصدار
 
 # ========== إعداد ElevenLabs ==========
 ELEVENLABS_API_KEY = st.secrets.get("ELEVENLABS_API_KEY", "ضع_مفتاح_ElevenLabs_هنا")
-ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # صوت Arabic
+ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
 
 def elevenlabs_tts(text):
     """تحويل النص إلى صوت باستخدام ElevenLabs"""
@@ -79,7 +79,7 @@ def text_to_speech_fallback(text):
 
 # ========== تخزين المنشورات ==========
 if "posts" not in st.session_state:
-    st.session_state.posts = []  # تم إفراغ المنشورات الافتراضية
+    st.session_state.posts = []
 
 if "current_user" not in st.session_state:
     st.session_state.current_user = "تاجر يمني"
@@ -155,9 +155,9 @@ def add_comment(post_id, comment_text):
             post["comments"].append({"user": st.session_state.current_user, "text": comment_text})
             break
 
-# ========== ردود البوت باستخدام Gemini ==========
+# ========== ردود البوت باستخدام Gemini (تم التعديل) ==========
 def get_bot_response(user_input, chat_history=None):
-    """ردود البوت باستخدام Gemini AI"""
+    """ردود البوت - Saeed DaTaBoT"""
     
     system_prompt = f"""أنت {BOT_NAME}، مساعد ذكي جداً تم تطويره بواسطة {OWNER_NAME} ({SMART_SAEED}).
     
@@ -167,21 +167,16 @@ def get_bot_response(user_input, chat_history=None):
 3. الرد بذكاء واحترافية على جميع الاستفسارات
 4. تحليل روابط المنتجات واقتراح منشورات تسويقية
 
-ممنوع منعاً باتاً:
-- ذكر أي معلومات عن "المركز الدولي للهواتف الذكية"
-- الترويج لأي متجر معين بشكل حصري
-- عرض قوائم أسعار ثابتة للهواتف
-
 تحدث بذكاء، حماس، واحترافية. استخدم الإيموجيات المناسبة. كن مفيداً وخلاقاً في اقتراحاتك التسويقية.
 """
     
-    full_prompt = system_prompt + f"\n\nالمستخدم: {user_input}\n\n{SMART_SAEED}:"
+    full_prompt = system_prompt + f"\n\nالمستخدم: {user_input}\n\n{BOT_NAME}:"
     
     try:
         response = model.generate_content(full_prompt)
         return response.text
     except Exception as e:
-        return f"عذراً، حدث خطأ: {e}\n\nالرجاء المحاولة مرة أخرى."
+        return f"عذراً {BOT_NAME} يواجه مشكلة: {e}\n\nالرجاء المحاولة مرة أخرى."
 
 # ========== تحليل الروابط ==========
 def extract_product_from_url(url):
@@ -231,7 +226,39 @@ def generate_marketing_post(product_info):
         return "🔥 منتج رائع بجودة عالية وسعر مميز! لا تفوت الفرصة 🛍️\n#تسوق #عروض #تخفيضات"
 
 # ========== الواجهة الرئيسية ==========
-st.set_page_config(page_title="Saeed Market", page_icon="📱", layout="wide")
+st.set_page_config(page_title="Saeed Market", page_icon="🤖", layout="wide")
+
+# ✅ إضافة الفيديو كأفتار متحرك (من رابطك)
+st.markdown("""
+    <style>
+        .avatar-video {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .stVideo {
+            max-width: 200px;
+            margin: 0 auto;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #667eea;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# محاولة عرض الفيديو من الملف المحلي (يجب رفعه إلى المشروع)
+video_path = "saeed_avatar_v1.mp4"
+if os.path.exists(video_path):
+    with open(video_path, "rb") as video_file:
+        video_bytes = video_file.read()
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.video(video_bytes, format="video/mp4")
+        st.caption(f"🎙️ {BOT_NAME} - بوت التسوق الذكي")
+else:
+    # إذا لم يوجد الفيديو، اعرض تحذيراً
+    st.info(f"ℹ️ لتفعيل الأفتار المتحرك، قم برفع ملف {video_path} إلى مجلد المشروع")
 
 # CSS للواجهة الشبيهة بفيسبوك
 st.markdown("""
@@ -290,42 +317,25 @@ st.markdown("""
     .reaction-btn:hover {
         background-color: #f0f2f5;
     }
-    .chat-message {
-        padding: 10px 15px;
-        border-radius: 18px;
-        margin: 5px 0;
-        max-width: 80%;
-    }
-    .user-message {
-        background-color: #0084ff;
-        color: white;
-        align-self: flex-end;
-        margin-left: auto;
-    }
-    .assistant-message {
-        background-color: #e4e6eb;
-        color: black;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# عنوان الصفحة
-st.markdown("""
+# عنوان الصفحة (تم التعديل)
+st.markdown(f"""
 <div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 20px; margin-bottom: 2rem;">
-    <h1 style="color: white; margin: 0;">📱 سعيد ماركت</h1>
+    <h1 style="color: white; margin: 0;">🤖 {BOT_NAME}</h1>
     <p style="color: #e0e0e0; margin-top: 10px;">منصة ذكية لنشر المنتجات والتسويق بالعمولة</p>
     <p style="color: #ffd700; font-size: 14px;">✨ أنشر منتجك - تواصل مع العملاء - حقق مبيعات ✨</p>
 </div>
 """, unsafe_allow_html=True)
 
 # إنشاء التبويبات
-tab1, tab2, tab3 = st.tabs(["🌐 النشر الاجتماعي", "🤖 المساعد الذكي", "🛍️ التسويق بالعمولة"])
+tab1, tab2, tab3 = st.tabs(["🌐 النشر الاجتماعي", f"🤖 {BOT_NAME} - المساعد الذكي", "🛍️ التسويق بالعمولة"])
 
-# ========== TAB 1: النشر الاجتماعي (مثل فيسبوك) ==========
+# ========== TAB 1: النشر الاجتماعي ==========
 with tab1:
     st.markdown("### 📝 أنشر منتجك الآن")
     
-    # نموذج نشر منتج جديد
     with st.expander("➕ إنشاء منشور جديد", expanded=True):
         col1, col2 = st.columns([2, 1])
         
@@ -367,7 +377,6 @@ with tab1:
     if not st.session_state.posts:
         st.info("📭 لا توجد منشورات بعد. ابدأ بنشر منتجك الأول!")
     
-    # عرض المنشورات
     for post in st.session_state.posts:
         with st.container():
             st.markdown(f"""
@@ -385,11 +394,9 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
             
-            # عرض الصورة إذا وجدت
             if post['image']:
                 st.image(post['image'], width=200)
             
-            # أزرار التفاعل
             col1, col2, col3 = st.columns([1, 1, 2])
             with col1:
                 if st.button(f"❤️ {post['likes']}", key=f"like_{post['id']}"):
@@ -398,13 +405,11 @@ with tab1:
             with col2:
                 st.button(f"💬 {len(post['comments'])}", key=f"comment_btn_{post['id']}")
             
-            # عرض التعليقات
             if post['comments']:
                 with st.expander(f"💬 تعليقات ({len(post['comments'])})"):
                     for comment in post['comments']:
                         st.markdown(f"**{comment['user']}:** {comment['text']}")
             
-            # إضافة تعليق جديد
             new_comment = st.text_input("اكتب تعليقاً...", key=f"new_comment_{post['id']}", placeholder="اكتب ردك...")
             if st.button("إرسال", key=f"submit_comment_{post['id']}"):
                 if new_comment:
@@ -414,12 +419,11 @@ with tab1:
             
             st.markdown("---")
 
-# ========== TAB 2: المحادثة الذكية ==========
+# ========== TAB 2: المساعد الذكي (Saeed DaTaBoT) ==========
 with tab2:
-    st.markdown("### 💬 المساعد الذكي (Gemini AI)")
+    st.markdown(f"### 💬 {BOT_NAME} - المساعد الذكي")
     st.caption("اسألني أي شيء - استشارات تسويقية، تحليل منتجات، أفكار إعلانية")
     
-    # عرض المحادثة
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
@@ -431,7 +435,7 @@ with tab2:
         with st.chat_message("user"):
             st.write(user_input)
         
-        with st.spinner("🤖 جاري التفكير..."):
+        with st.spinner(f"🤖 {BOT_NAME} يفكر..."):
             response = get_bot_response(user_input)
         
         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -443,7 +447,6 @@ with tab2:
         if audio_html:
             st.markdown(audio_html, unsafe_allow_html=True)
     
-    # زر مسح المحادثة
     if st.button("🗑️ مسح المحادثة"):
         st.session_state.messages = []
         st.rerun()
@@ -463,18 +466,15 @@ with tab3:
                     info = extract_product_from_url(affiliate_url)
                     st.success(f"✅ تم التحليل - المتجر: {info['platform']}")
                     
-                    # توليد المنشور
                     marketing_post = generate_marketing_post(info)
                     
                     st.markdown("### 📝 المنشور التسويقي المقترح:")
                     st.info(marketing_post)
-                    
-                    # زر نسخ
                     st.code(marketing_post, language="markdown")
         
         with col2:
             if st.button("🎯 طلب استشارة تسويقية", use_container_width=True):
-                with st.spinner("🤖 جاري توليد استشارة..."):
+                with st.spinner(f"🤖 {BOT_NAME} يقدم استشارة..."):
                     prompt = f"قدم لي استشارة تسويقية احترافية لمنتج من {affiliate_url}، كيف يمكن تسويقه بنجاح؟"
                     advice = get_bot_response(prompt)
                     st.markdown("### 💡 الاستشارة التسويقية:")
@@ -503,7 +503,6 @@ with st.sidebar:
     st.markdown(f"**المطور:** {OWNER_NAME}")
     st.markdown(f"**البوت:** {BOT_NAME}")
     
-    # حالة التليجرام
     if telegram_bot:
         st.success("✅ متصل بتليجرام")
     else:
