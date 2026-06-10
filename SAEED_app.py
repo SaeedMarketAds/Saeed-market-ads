@@ -8,13 +8,15 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import pandas as pd
-import asyncio
-from telegram import Bot
-import tempfile
 import os
+from telegram import Bot
+import nest_asyncio
 
-# ========== إعدادات البوت (تم التعديل) ==========
-BOT_NAME = "Saeed DaTaBoT"  # ✅ تم التغيير من Gemini إلى Saeed DaTaBoT
+# تطبيق nest_asyncio لحل مشكلة asyncio في Streamlit
+nest_asyncio.apply()
+
+# ========== إعدادات البوت ==========
+BOT_NAME = "Saeed DaTaBoT"
 OWNER_NAME = "سعيد المسوري"
 SMART_SAEED = "سعيد الذكي"
 
@@ -28,44 +30,26 @@ if TELEGRAM_BOT_TOKEN != "ضع_توكن_البوت_هنا":
 # ========== إعداد Gemini ==========
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "ضع_مفتاحك_هنا")
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-3.5-flash')  # ✅ تم تصحيح الإصدار
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# ========== إعداد ElevenLabs ==========
-ELEVENLABS_API_KEY = st.secrets.get("ELEVENLABS_API_KEY", "ضع_مفتاح_ElevenLabs_هنا")
-ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
+# ========== الصوت المسجل من الفن لابس ==========
+def play_recorded_audio():
+    """تشغيل الصوت المسجل Saeed_DataBot_Voice.mp3"""
+    audio_path = "Saeed_DataBot_Voice.mp3"
+    if os.path.exists(audio_path):
+        with open(audio_path, "rb") as audio_file:
+            audio_bytes = audio_file.read()
+        audio_base64 = base64.b64encode(audio_bytes).decode()
+        return f'<audio autoplay="true" src="data:audio/mp3;base64,{audio_base64}">'
+    return ""
 
 def elevenlabs_tts(text):
-    """تحويل النص إلى صوت باستخدام ElevenLabs"""
-    if ELEVENLABS_API_KEY == "ضع_مفتاح_ElevenLabs_هنا":
-        return text_to_speech_fallback(text)
-    
-    try:
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
-        headers = {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": ELEVENLABS_API_KEY
-        }
-        data = {
-            "text": text,
-            "model_id": "eleven_monolingual_v1",
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
-            }
-        }
-        response = requests.post(url, json=data, headers=headers)
-        
-        if response.status_code == 200:
-            audio_base64 = base64.b64encode(response.content).decode()
-            return f'<audio autoplay="true" src="data:audio/mpeg;base64,{audio_base64}">'
-        else:
-            return text_to_speech_fallback(text)
-    except:
-        return text_to_speech_fallback(text)
+    """تحويل النص إلى صوت - استخدام الصوت المسجل بدلاً من API"""
+    # استخدام الصوت المسجل مباشرة
+    return play_recorded_audio()
 
 def text_to_speech_fallback(text):
-    """النسخة الاحتياطية باستخدام gTTS"""
+    """نسخة احتياطية - استخدام gTTS"""
     try:
         clean_text = re.sub(r'[^\w\s\.،!؟]', ' ', text)
         tts = gtts.gTTS(clean_text, lang="ar", slow=False)
@@ -87,9 +71,9 @@ if "current_user" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# ========== وظيفة إرسال إلى تليجرام ==========
-async def send_to_telegram(product_name, price, description, platform, image_bytes=None):
-    """إرسال المنشور إلى قناة التليجرام"""
+# ========== إرسال إلى تليجرام (نسخة متزامنة تعمل بشكل مؤكد) ==========
+def send_to_telegram_sync(product_name, price, description, platform, image_bytes=None):
+    """إرسال المنشور إلى قناة التليجرام - نسخة متزامنة"""
     if not telegram_bot:
         return False
     
@@ -108,14 +92,14 @@ async def send_to_telegram(product_name, price, description, platform, image_byt
 """
     try:
         if image_bytes:
-            await telegram_bot.send_photo(
+            telegram_bot.send_photo(
                 chat_id=TELEGRAM_CHANNEL_ID,
                 photo=image_bytes,
                 caption=message,
                 parse_mode='Markdown'
             )
         else:
-            await telegram_bot.send_message(
+            telegram_bot.send_message(
                 chat_id=TELEGRAM_CHANNEL_ID,
                 text=message,
                 parse_mode='Markdown'
@@ -155,7 +139,7 @@ def add_comment(post_id, comment_text):
             post["comments"].append({"user": st.session_state.current_user, "text": comment_text})
             break
 
-# ========== ردود البوت باستخدام Gemini (تم التعديل) ==========
+# ========== ردود البوت ==========
 def get_bot_response(user_input, chat_history=None):
     """ردود البوت - Saeed DaTaBoT"""
     
@@ -228,41 +212,21 @@ def generate_marketing_post(product_info):
 # ========== الواجهة الرئيسية ==========
 st.set_page_config(page_title="Saeed Market", page_icon="🤖", layout="wide")
 
-# ✅ إضافة الفيديو كأفتار متحرك (من رابطك)
-st.markdown("""
-    <style>
-        .avatar-video {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .stVideo {
-            max-width: 200px;
-            margin: 0 auto;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 3px solid #667eea;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# محاولة عرض الفيديو من الملف المحلي (يجب رفعه إلى المشروع)
-video_path = "saeed_avatar_v1.mp4"
-if os.path.exists(video_path):
-    with open(video_path, "rb") as video_file:
-        video_bytes = video_file.read()
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.video(video_bytes, format="video/mp4")
-        st.caption(f"🎙️ {BOT_NAME} - بوت التسوق الذكي")
-else:
-    # إذا لم يوجد الفيديو، اعرض تحذيراً
-    st.info(f"ℹ️ لتفعيل الأفتار المتحرك، قم برفع ملف {video_path} إلى مجلد المشروع")
-
-# CSS للواجهة الشبيهة بفيسبوك
+# CSS للواجهة
 st.markdown("""
 <style>
+    .avatar-video {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    .stVideo {
+        max-width: 200px;
+        margin: 0 auto;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid #667eea;
+    }
     .post-card {
         border: 1px solid #e0e0e0;
         border-radius: 12px;
@@ -306,21 +270,33 @@ st.markdown("""
         font-size: 20px;
         font-weight: bold;
     }
-    .reaction-btn {
-        background: none;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .reaction-btn:hover {
-        background-color: #f0f2f5;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# عنوان الصفحة (تم التعديل)
+# ✅ عرض الأفتار (صورة + فيديو + صوت)
+col_vid1, col_vid2, col_vid3 = st.columns([1, 2, 1])
+with col_vid2:
+    # محاولة عرض الفيديو إذا كان موجوداً
+    video_path = "saeed_avatar_v1.mp4"
+    if os.path.exists(video_path):
+        with open(video_path, "rb") as video_file:
+            video_bytes = video_file.read()
+        st.video(video_bytes, format="video/mp4")
+    else:
+        # إذا لم يوجد الفيديو، اعرض الصورة الموجودة
+        image_paths = ["Saeed_DataBot_Avatar.jpg", "saeed_avatar.jpg", "ROBO.T.jpg"]
+        found_image = False
+        for img_path in image_paths:
+            if os.path.exists(img_path):
+                st.image(img_path, width=150)
+                found_image = True
+                break
+        if not found_image:
+            st.info(f"ℹ️ قم برفع فيديو الأفتار (saeed_avatar_v1.mp4) أو صورة للبوت")
+    
+    st.caption(f"🎙️ {BOT_NAME} - بوت التسوق الذكي")
+
+# عنوان الصفحة
 st.markdown(f"""
 <div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 20px; margin-bottom: 2rem;">
     <h1 style="color: white; margin: 0;">🤖 {BOT_NAME}</h1>
@@ -330,7 +306,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # إنشاء التبويبات
-tab1, tab2, tab3 = st.tabs(["🌐 النشر الاجتماعي", f"🤖 {BOT_NAME} - المساعد الذكي", "🛍️ التسويق بالعمولة"])
+tab1, tab2, tab3 = st.tabs(["🌐 النشر الاجتماعي", f"🤖 {BOT_NAME}", "🛍️ التسويق بالعمولة"])
 
 # ========== TAB 1: النشر الاجتماعي ==========
 with tab1:
@@ -357,13 +333,14 @@ with tab1:
                 new_post = add_new_post(product_name, product_price, product_desc, platform_choice, product_image)
                 st.success("✅ تم نشر منتجك بنجاح!")
                 
+                # إرسال إلى تليجرام (نسخة متزامنة تعمل)
                 if send_to_tg and telegram_bot:
                     with st.spinner("جاري الإرسال إلى تليجرام..."):
                         image_bytes = product_image.getvalue() if product_image else None
-                        try:
-                            asyncio.run(send_to_telegram(product_name, product_price, product_desc, platform_choice, image_bytes))
+                        success = send_to_telegram_sync(product_name, product_price, product_desc, platform_choice, image_bytes)
+                        if success:
                             st.success("📨 تم الإرسال إلى قناة التليجرام")
-                        except:
+                        else:
                             st.warning("⚠️ لم يتم الإرسال إلى تليجرام، تأكد من التوكن والقناة")
                 
                 st.balloons()
@@ -419,7 +396,7 @@ with tab1:
             
             st.markdown("---")
 
-# ========== TAB 2: المساعد الذكي (Saeed DaTaBoT) ==========
+# ========== TAB 2: المساعد الذكي ==========
 with tab2:
     st.markdown(f"### 💬 {BOT_NAME} - المساعد الذكي")
     st.caption("اسألني أي شيء - استشارات تسويقية، تحليل منتجات، أفكار إعلانية")
@@ -442,7 +419,7 @@ with tab2:
         with st.chat_message("assistant"):
             st.write(response)
         
-        # تشغيل الصوت
+        # تشغيل الصوت المسجل من الفن لابس
         audio_html = elevenlabs_tts(response)
         if audio_html:
             st.markdown(audio_html, unsafe_allow_html=True)
@@ -456,7 +433,7 @@ with tab3:
     st.markdown("### 🛍️ التسويق بالعمولة الذكي")
     st.markdown("أرسل رابط منتج وسأقوم بتحليله وكتابة منشور تسويقي احترافي لك")
     
-    affiliate_url = st.text_input("رابط المنتج", placeholder="https://www.noon.com/... أو https://www.amazon.com/...")
+    affiliate_url = st.text_input("رابط المنتج", placeholder="https://www.noon.com/... أو https://www.shein.com/...")
     
     if affiliate_url:
         col1, col2 = st.columns(2)
@@ -495,6 +472,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 🔗 روابط سريعة")
+    st.markdown("- [SHEIN](https://www.shein.com)")
     st.markdown("- [Noon](https://www.noon.com)")
     st.markdown("- [AliExpress](https://www.aliexpress.com)")
     st.markdown("- [Amazon](https://www.amazon.com)")
