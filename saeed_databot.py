@@ -13,17 +13,17 @@ BOT_NAME = config["bot_name"]
 OWNER_NAME = config["owner_name"]
 
 def get_bot_response(user_input):
-    """دالة ردود البوت مع تحسين فهم السلام و SHEIN"""
+    """دالة ردود البوت (تم إزالة كلمة SHEIN من الترحيبة)"""
     user_input_lower = user_input.lower().strip()
     
-    # 1. الرد على التحية (السلام)
+    # 1. الرد على التحية (السلام) - بدون SHEIN
     greetings = ["سلام", "مرحباً", "اهلا", "السلام", "مرحبا", "هلا"]
     if any(word in user_input_lower for word in greetings):
-        return "وعليكم السلام ورحمة الله وبركاته، (SHEIN) كيف أخدمك اليوم؟"
+        return "وعليكم السلام ورحمة الله وبركاته، كيف أخدمك اليوم؟"
     
     # 2. الرد على سؤال عن SHEIN
     if "shein" in user_input_lower:
-        return "SHEIN عالم الموضة والأزياء بين يديك. وجهتك للأسعار التنافسية. خيارك السريع للأناقة!"
+        return "عالم الموضة والأزياء بين يديك. وجهتك للأسعار التنافسية. خيارك السريع للأناقة!"
     
     # 3. الرد على AliExpress أو Noon
     if any(market in user_input_lower for market in ["aliexpress", "noon"]):
@@ -48,14 +48,29 @@ def text_to_speech(text):
     except:
         return ""
 
-# واجهة Streamlit
+# ========== واجهة Streamlit ==========
 st.set_page_config(page_title=BOT_NAME, page_icon="🤖")
 
-# عرض الصورة (تأكد من وجود ROBO.T.jpg في نفس المجلد)
+# عرض الفيديو كأفتار متحرك (بدلاً من الصورة الثابتة)
+st.markdown("""
+    <style>
+        .stVideo {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# محاولة عرض الفيديو
 try:
-    st.image("ROBO.T.jpg", caption=BOT_NAME, width=150)
-except:
-    st.warning("الصورة ROBO.T.jpg غير موجودة، تأكد من وجودها في مجلد المشروع")
+    with open("saeed_avatar_v1.mp4", "rb") as video_file:
+        video_bytes = video_file.read()
+    st.video(video_bytes, format="video/mp4")
+    st.caption(f"🎙️ {BOT_NAME} - بوت التسوق الذكي")
+except FileNotFoundError:
+    st.warning("⚠️ الفيديو saeed_avatar_v1.mp4 غير موجود، يرجى رفعه إلى مجلد المشروع")
+    # عرض اسم البوت كبديل
+    st.title(f"🤖 {BOT_NAME}")
 
 st.title(f"🤖 {BOT_NAME}")
 st.caption(f"بوت التسوق الذكي - صنع بواسطة {OWNER_NAME}")
@@ -95,7 +110,7 @@ if user_input:
     message(response, is_user=False)
     
     # تشغيل الصوت إذا كان مفعلاً
-    if config["voice_enabled"]:
+    if config.get("voice_enabled", False):
         audio_html = text_to_speech(response)
         if audio_html:
             st.markdown(audio_html, unsafe_allow_html=True)
