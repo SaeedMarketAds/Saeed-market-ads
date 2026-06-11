@@ -23,7 +23,7 @@ TELEGRAM_CHANNEL_ID = st.secrets.get("TELEGRAM_CHANNEL_ID", "@SaeedMarket2026")
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 if GEMINI_API_KEY and GEMINI_API_KEY != "ضع_مفتاحك_هنا":
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-3.5-flash')
 else:
     model = None
 
@@ -223,16 +223,16 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # ===== إصلاح TypeError =====
-                full_post = f"""
-**اسم المنتج:** {post['product']}
-**السعر:** {post['price']}
-**الوصف:** {post['description']}
-"""
-                if full_post and isinstance(full_post, str):
-                    st.code(full_post, language="markdown", help="مشتقة")
-                else:
-                    st.warning("⚠️ النص غير صالح للعرض")
+                # ===== إصلاح TypeError النهائي =====
+                # استخدام st.text بدلاً من st.code لتجنب المشكلة تماماً
+                try:
+                    post_text = f"اسم المنتج: {post['product']} | السعر: {post['price']} | الوصف: {post['description']}"
+                    if post_text and len(post_text) > 0:
+                        st.text(post_text)
+                    else:
+                        st.info("لا يوجد نص لعرضه")
+                except Exception as e:
+                    st.warning(f"⚠️ لا يمكن عرض النص: {str(e)[:50]}")
                 
                 # عرض الرابط المخفي
                 if post.get('hidden_link') and post['hidden_link'].strip():
@@ -256,8 +256,8 @@ with tab1:
                         for c in post['comments']:
                             st.markdown(f"**{c['user']}:** {c['text']}")
                 
-                comment = st.text_input("💬 تعليق", key=f"comment_{post['id']}")
-                if st.button("إرسال", key=f"send_{post['id']}"):
+                comment = st.text_input("💬 تعليق", key=f"comment_{post['id']}", placeholder="اكتب تعليقاً...")
+                if st.button("📨 إرسال", key=f"send_{post['id']}"):
                     if comment:
                         posts2 = load_posts()
                         for p in posts2:
@@ -265,6 +265,7 @@ with tab1:
                                 p["comments"].append({"user": st.session_state.current_user, "text": comment})
                                 break
                         save_posts(posts2)
+                        st.success("✅ تم إضافة التعليق")
                         st.rerun()
                 
                 st.markdown("---")
@@ -299,7 +300,7 @@ with tab2:
         st.session_state.messages = []
         st.rerun()
 
-# ========== تبويب 3: التسويق (مع إصلاح الرابط المخفي) ==========
+# ========== تبويب 3: التسويق ==========
 with tab3:
     st.markdown("### 🛍️ التسويق بالعمولة - فحص الروابط")
     
@@ -321,20 +322,17 @@ with tab3:
                 st.markdown(f'<div class="hidden-link">{url}</div>', unsafe_allow_html=True)
             
             st.markdown("### 🏷️ هاشتاجات مقترحة")
-            st.code(analysis.get('hashtags', ''))
+            st.code(analysis.get('hashtags', ''), language="markdown")
             
             # ===== إصلاح TypeError للمنشور المقترح =====
-            suggested_post = f"""
-📦 منتج ممتاز!
-💰 سعر ممتاز
-{analysis.get('suggestion', '')}
-
-{analysis.get('hashtags', '')}
-"""
-            if suggested_post and isinstance(suggested_post, str):
-                st.code(suggested_post, language="markdown")
-            else:
-                st.warning("⚠️ لا يمكن عرض المنشور المقترح")
+            try:
+                suggested_post = f"📦 منتج ممتاز! 💰 سعر ممتاز {analysis.get('suggestion', '')} {analysis.get('hashtags', '')}"
+                if suggested_post and len(suggested_post) > 0:
+                    st.text(suggested_post)
+                else:
+                    st.info("لا يوجد منشور مقترح")
+            except Exception as e:
+                st.warning(f"⚠️ لا يمكن عرض المنشور المقترح: {str(e)[:50]}")
 
 # ========== الشريط الجانبي ==========
 with st.sidebar:
