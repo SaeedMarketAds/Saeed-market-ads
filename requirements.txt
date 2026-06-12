@@ -3,4 +3,7 @@ google-generativeai
 gtts
 requests
 beautifulsoup4
+pandas
 python-telegram-bot
+streamlit_chat
+nest_asyncio
