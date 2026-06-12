@@ -1,2 +1,1 @@
-pip uninstall streamlit google-generativeai gtts -y
-pip install streamlit==1.35.0 google-generativeai==0.7.2 gtts==2.5.1
+pip uninstall streamlit google-generativeai gtts requests beautifulsoup4 pandas python-telegram-bot streamlit-chat nest-asyncio -y && pip install streamlit==1.35.0 google-generativeai==0.7.2 gtts==2.5.1 requests==2.32.3 beautifulsoup4==4.12.3 pandas==2.2.2 python-telegram-bot==21.5 streamlit-chat==0.1.1 nest-asyncio==1.6.0
