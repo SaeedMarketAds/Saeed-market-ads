@@ -5,19 +5,26 @@ import google.generativeai as genai
 # ========== إعداد الصفحة ==========
 st.set_page_config(page_title="سوق سعيد | متجر SHEIN", page_icon="🛍️", layout="wide")
 
+# ========== قراءة جميع المفاتيح من Secrets ==========
+try:
+    GEMINI_API_KEY = st.secrets["GEMINI_API"]
+    TELEGRAM_BOT_TOKEN_SAEED_MARKETADS = st.secrets["TELEGRAM_BOT_TOKEN_SAEED_MARKETADS"]
+    TELEGRAM_BOT_TOKEN_SAEED_PLUS = st.secrets["TELEGRAM_BOT_TOKEN_SAEED_PLUS"]
+    TELEGRAM_CHANNEL_ID = st.secrets["TELEGRAM_CHANNEL_ID"]
+    ELEVENLABS_API_KEY = st.secrets["ELEVENLABS_API_KEY"]
+except Exception as e:
+    st.error(f"⚠️ خطأ في قراءة Secrets: {e}")
+
+# ========== إعداد Gemini ==========
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    model = None
+
 # ========== العنوان ==========
 st.title("🛍️ سوق سعيد - متجر SHEIN")
 st.markdown("---")
-
-# ========== جلب المفتاح من متغيرات البيئة ==========
-GEMINI_API_KEY = os.environ.get("GEMINI_API", "")
-
-# ========== إعداد Gemini 3.5 Flash ==========
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-3.5-flash')
-else:
-    model = None
 
 # ========== جميع منتجات SHEIN (مترجمة للعربية) ==========
 PRODUCTS = [
@@ -90,22 +97,18 @@ st.markdown("---")
 # ========== عرض المنتجات ==========
 st.subheader(f"🛍️ منتجات SHEIN ({len(PRODUCTS)} منتج)")
 
-# عرض المنتجات في شبكة
 cols = st.columns(4)
 for i, product in enumerate(PRODUCTS):
     with cols[i % 4]:
         final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
         
         st.markdown(f"""
-        <div style='border: 1px solid #ddd; border-radius: 15px; padding: 15px; margin-bottom: 15px; background: white;'>
-            <h4 style='font-size: 14px;'>{product['name']}</h4>
-            <p style='color: #ff4757; font-size: 20px; font-weight: bold;'>
-                ${final_price:.2f}
-                {' ' + 'عذراً، خطأ في عرض السعر' if product['discount'] > 0 else ''}
-            </p>
-            <p>🛍️ {product['sales']} تم البيع</p>
+        <div style='border-radius: 20px; padding: 15px; margin-bottom: 15px; background: linear-gradient(135deg, #fff, #f8f9fa); box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.3s;'>
+            <h4 style='font-size: 16px; color: #1e2a3e;'>{product['name']}</h4>
+            <p style='color: #ff4757; font-size: 22px; font-weight: bold;'>💰 ${final_price:.2f}</p>
+            <p style='color: #2ecc71; font-weight: bold;'>📦 تم البيع: {product['sales']}</p>
             <a href='{product['link']}' target='_blank'>
-                <button style='background: linear-gradient(90deg, #667eea, #764ba2); color: white; border: none; padding: 10px; width: 100%; border-radius: 10px; cursor: pointer;'>
+                <button style='background: linear-gradient(90deg, #667eea, #764ba2); color: white; border: none; padding: 10px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold;'>
                     🛒 تسوق الآن
                 </button>
             </a>
@@ -114,7 +117,7 @@ for i, product in enumerate(PRODUCTS):
 
 st.markdown("---")
 
-# ========== قسم الذكاء الاصطناعي Gemini 3.5 Flash ==========
+# ========== قسم الذكاء الاصطناعي Gemini ==========
 st.subheader("🤖 اسأل الذكاء الاصطناعي Gemini 3.5 Flash")
 
 question = st.text_input("اكتب سؤالك هنا:")
@@ -125,7 +128,7 @@ if st.button("اسأل Gemini"):
             with st.spinner("🤖 جاري التفكير..."):
                 try:
                     response = model.generate_content(question)
-                    st.success(f"**Gemini 3.5 Flash يقول:**\n\n{response.text}")
+                    st.success(f"**Gemini يقول:**\n\n{response.text}")
                 except Exception as e:
                     st.error(f"خطأ: {e}")
         else:
@@ -140,7 +143,7 @@ with st.expander("📌 معلومات عن سوق سعيد"):
     st.markdown(f"""
     - **عدد المنتجات:** {len(PRODUCTS)} منتج من SHEIN
     - **كود الخصم الحصري:** WL7KA (خصم 60% للمستخدمين الجدد)
-    - **الذكاء الاصطناعي:** Google Gemini 3.5 Flash
+    - **الذكاء الاصطناعي:** Google Gemini 1.5 Flash
     - **منتجات أخرى:** نون وعلي إكسبرس (قريباً)
     - **للتواصل:** @SaeedMarketAds
     """)
@@ -151,7 +154,7 @@ st.sidebar.title("📌 القائمة")
 st.sidebar.markdown(f"""
 - 🛍️ **{len(PRODUCTS)} منتج** من SHEIN
 - 🎁 كود الخصم: **WL7KA**
-- 🤖 **Gemini 3.5 Flash**
+- 🤖 **Gemini 1.5 Flash**
 - 📞 @SaeedMarketAds
 """)
 st.sidebar.markdown("---")
