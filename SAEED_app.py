@@ -129,7 +129,7 @@ if st.button("اسأل Gemini"):
                 except Exception as e:
                     st.error(f"خطأ: {e}")
         else:
-            st.warning("⚠️ مفتاح Gemini API غير موجود. أضف GEMINI_API في Secrets")
+            Secrets")
     else:
         st.warning("⚠️ الرجاء كتابة سؤال أولاً")
 
