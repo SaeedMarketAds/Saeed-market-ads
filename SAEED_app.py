@@ -154,7 +154,7 @@ st.sidebar.title("📌 القائمة")
 st.sidebar.markdown(f"""
 - 🛍️ **{len(PRODUCTS)} منتج** من SHEIN
 - 🎁 كود الخصم: **WL7KA**
-- 🤖 **Gemini 1.5 Flash**
+- 🤖 **Gemini 3.5 Flash**
 - 📞 @SaeedMarketAds
 """)
 st.sidebar.markdown("---")
