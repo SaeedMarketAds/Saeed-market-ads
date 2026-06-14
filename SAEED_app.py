@@ -5,7 +5,6 @@ import requests
 import base64
 from gtts import gTTS
 import io
-import time
 
 # ========== إعداد الصفحة ==========
 st.set_page_config(page_title="Saeed DaTaBoT | سوق سعيد", page_icon="🤖", layout="wide")
@@ -32,6 +31,12 @@ page_bg = """
     transform: scale(1.02);
     background: linear-gradient(90deg, #feca57, #ff6b6b);
 }
+/* جعل بطاقات المنتجات متساوية */
+.equal-height {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
@@ -46,33 +51,73 @@ try:
 except Exception as e:
     st.error(f"⚠️ خطأ في قراءة Secrets: {e}")
 
-# ========== إعداد Gemini مع نظام إعادة المحاولة ==========
+# ========== إعداد Gemini ==========
 try:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-3.5-flash')
 except Exception as e:
     model = None
 
-def generate_with_retry(prompt, max_retries=3):
-    """دالة لإرسال الطلب مع إعادة المحاولة في حال تجاوز الحصة"""
-    for attempt in range(max_retries):
-        try:
-            response = model.generate_content(prompt)
-            return response
-        except Exception as e:
-            error_msg = str(e)
-            if "Quota exceeded" in error_msg or "rate-limits" in error_msg:
-                wait_time = 60  # انتظر 60 ثانية قبل إعادة المحاولة
-                if attempt < max_retries - 1:
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    st.error("⚠️ عذراً، تم تجاوز الحصة المسموحة لـ Gemini API. الرجاء المحاولة بعد دقيقة.")
-                    return None
-            else:
-                st.error(f"خطأ: {e}")
-                return None
-    return None
+# دالة سريعة للرد بدون تأخير
+def quick_response(question):
+    question_lower = question.lower()
+    
+    # ردود سريعة مسبقة للأسئلة الشائعة
+    if "من أنت" in question or "من انت" in question or "عرف نفسك" in question:
+        return """وعليكم السلام ورحمة الله وبركاتة 🤖
+
+أنا **Saeed DaTaBoT**، المساعد الشخصي الذكي لـ **سعيد المسوري**.
+
+تم برمجتي بواسطة سعيد المسوري وبمساعدة أحدث تقنيات الذكاء الاصطناعي.
+
+**مهامي الأساسية:**
+• 🔗 تحليل الروابط والمنتجات
+• 🛍️ مساعدتك في التسوق من SHEIN
+• 🇾🇪 دعم المنتجات اليمنية
+• 📹 إنشاء محتوى تسويقي (ريلز - صور - فيديوهات)
+• 💬 محادثة ذكية للإجابة على استفساراتك
+
+كيف يمكنني مساعدتك اليوم؟ 😊"""
+    
+    elif "السلام" in question or "اهلا" in question or "مرحبا" in question:
+        return """وعليكم السلام ورحمة الله وبركاتة 🌹
+
+أهلاً وسهلاً بك! أنا Saeed DaTaBoT في خدمتك.
+
+ماذا تحتاج اليوم؟ هل تريد:
+- تحليل رابط منتج؟
+- مساعدة في التسوق؟
+- معلومات عن عروض SHEIN؟
+- أو أي استفسار آخر؟
+
+أنا هنا لمساعدتك 😊"""
+    
+    elif "كود الخصم" in question or "خصم" in question or "كود" in question:
+        return """🎁 **كود خصم SHEIN الحصري** 🎁
+
+🏷️ **الكود: WL7KA**
+
+🔥 **مميزات الكود:**
+• خصم يصل إلى 60% على أول طلب
+• ساري على جميع منتجات SHEIN
+• يمكن استخدامه مع العروض الأخرى
+
+**كيف تستخدم الكود؟**
+1. اختر منتجاتك من SHEIN
+2. اذهب إلى سلة المشتريات
+3. أدخل الكود **WL7KA** في خانة الرموز الترويجية
+4. استمتع بالخصم فوراً!
+
+هل تريد مساعدة في اختيار المنتجات؟ 😊"""
+    
+    elif "شكرا" in question or "thank" in question:
+        return """العفو، هذا واجبي 🤍
+
+شكراً لثقتك بـ Saeed DaTaBoT. أنا في خدمتك دائماً.
+
+هل تحتاج أي مساعدة أخرى؟ 😊"""
+    
+    return None  # إذا لم يكن سؤالاً شائعاً، نرسل لـ Gemini
 
 # ========== تعريف البوت ==========
 st.markdown("""
@@ -90,7 +135,7 @@ st.markdown("---")
 
 # ========== كود خصم SHEIN بارز جداً ==========
 st.markdown("""
-<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 50px 30px; border-radius: 50px; text-align: center; margin-bottom: 40px; box-shadow: 0 25px 45px rgba(0,0,0,0.3); animation: pulse 2s infinite;'>
+<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 50px 30px; border-radius: 50px; text-align: center; margin-bottom: 40px; box-shadow: 0 25px 45px rgba(0,0,0,0.3);'>
     <h1 style='color: #fff; margin-bottom: 15px; font-size: 32px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>🎁 عرض خاص للمستخدمين الجدد 🎁</h1>
     <div style='background: white; display: inline-block; padding: 20px 60px; border-radius: 80px; margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.2);'>
         <h1 style='color: #ff0844; margin: 0; font-size: 64px; letter-spacing: 5px;'>🏷️ WL7KA</h1>
@@ -98,42 +143,29 @@ st.markdown("""
     <p style='color: #fff; font-size: 28px; margin: 15px 0 0 0; font-weight: bold;'>🔥 خصم يصل إلى 60% على أول طلب من SHEIN 🔥</p>
     <p style='color: #fff; font-size: 20px; margin-top: 10px;'>✨ استخدم الكود الآن ووفر أكثر ✨</p>
 </div>
-<style>
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 25px 45px rgba(0,0,0,0.3); }
-    50% { transform: scale(1.01); box-shadow: 0 30px 55px rgba(0,0,0,0.4); }
-    100% { transform: scale(1); box-shadow: 0 25px 45px rgba(0,0,0,0.3); }
-}
-</style>
 """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# ========== تحليل الروابط ==========
+# ========== تحليل الروابط (سريع) ==========
 st.markdown("<h2 style='color: #feca57;'>🔗 تحليل الروابط والمساعدة الذكية</h2>", unsafe_allow_html=True)
 
 url_input = st.text_input("أرسل رابط المنتج أو الموقع هنا (SHEIN, AliExpress, Noon, أو أي رابط):", placeholder="https://...")
 
 if url_input:
     with st.spinner("🤖 جاري تحليل الرابط..."):
-        analysis_prompt = f"""
-        أنت Saeed DaTaBoT، المساعد الشخصي الذكي لسعيد المسوري.
-        تم برمجتك بواسطة سعيد المسوري وبمساعدة الذكاء الاصطناعي.
-        
-        عليك الرد بثقة واحترام. ابدأ دائماً بـ:
-        "وعليكم السلام ورحمة الله وبركاتة، أنا Saeed DaTaBoT المساعد الشخصي لسعيد المسوري. ماذا يمكنني أن أساعدك اليوم؟"
-        
-        ثم قم بتحليل هذا الرابط للمستخدم: {url_input}
-        
-        أجب بالعربية وأخبر المستخدم:
-        1. ما هو نوع هذا الرابط (متجر، منتج، فيديو، صورة، ريلز)
-        2. ماذا يمكن أن يقدم له هذا الرابط
-        3. قدم له نصيحة تسويقية أو شرائية مناسبة
-        4. كن ودوداً ومحفزاً بأسلوب اليمني الأصيل واثقاً من نفسك
-        """
-        
-        response = generate_with_retry(analysis_prompt)
-        if response:
+        try:
+            analysis_prompt = f"""
+            أنت Saeed DaTaBoT. رد بسرعة وبثقة.
+            قم بتحليل هذا الرابط باختصار: {url_input}
+            
+            أجب بشكل مباشر وسريع:
+            1. نوع الرابط
+            2. فائدته
+            3. نصيحة سريعة
+            """
+            response = model.generate_content(analysis_prompt)
+            
             st.markdown(f"""
             <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 6px solid #ff6b6b; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
                 <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
@@ -142,17 +174,19 @@ if url_input:
             """, unsafe_allow_html=True)
             
             try:
-                tts = gTTS(text=response.text[:500], lang='ar')
+                tts = gTTS(text=response.text[:300], lang='ar')
                 audio_bytes = io.BytesIO()
                 tts.write_to_fp(audio_bytes)
                 audio_bytes.seek(0)
                 st.audio(audio_bytes, format='audio/mp3')
             except:
                 pass
+        except Exception as e:
+            st.error(f"خطأ: {e}")
 
 st.markdown("---")
 
-# ========== منتجات SHEIN الـ 51 ==========
+# ========== منتجات SHEIN الـ 51 (عريضة ومتساوية) ==========
 st.markdown(f"<h2 style='color: #feca57; text-align: center; font-size: 42px;'>🛍️ متجر SHEIN - 51 منتج 🛍️</h2>", unsafe_allow_html=True)
 st.markdown(f"<p style='text-align: center; color: #ff6b6b; font-size: 24px; margin-bottom: 30px;'>✨ اكتشف أكثر من 50 منتج بأسعار خرافية ✨</p>", unsafe_allow_html=True)
 
@@ -211,19 +245,21 @@ PRODUCTS = [
     {"name": "حمالة هاتف فراشة مع كريستال", "price": 2.48, "discount": 25, "link": "https://onelink.shein.com/38/5shs5gdxezhw", "sales": "150+"},
 ]
 
-# عرض المنتجات في شبكة 4 أعمدة
+# عرض المنتجات في شبكة 4 أعمدة - عريضة ومتساوية
 cols = st.columns(4)
 for i, product in enumerate(PRODUCTS):
     with cols[i % 4]:
         final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
         
         st.markdown(f"""
-        <div style='border-radius: 25px; padding: 18px; margin-bottom: 20px; background: linear-gradient(135deg, #ffffff, #f1f5f9); box-shadow: 0 10px 25px rgba(0,0,0,0.1); transition: 0.3s;'>
-            <h4 style='font-size: 16px; color: #1e293b; margin-bottom: 10px;'>{product['name']}</h4>
-            <p style='color: #ff4757; font-size: 24px; font-weight: bold; margin-bottom: 8px;'>💰 ${final_price:.2f}</p>
-            <p style='color: #2ecc71; font-weight: bold; margin-bottom: 12px;'>📦 تم البيع: {product['sales']}</p>
+        <div style='border-radius: 25px; padding: 20px; margin-bottom: 25px; background: linear-gradient(135deg, #ffffff, #f1f5f9); box-shadow: 0 10px 25px rgba(0,0,0,0.1); transition: 0.3s; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between;'>
+            <div>
+                <h4 style='font-size: 16px; color: #1e293b; margin-bottom: 12px; min-height: 50px;'>{product['name']}</h4>
+                <p style='color: #ff4757; font-size: 26px; font-weight: bold; margin-bottom: 10px;'>💰 ${final_price:.2f}</p>
+                <p style='color: #2ecc71; font-weight: bold; margin-bottom: 15px; font-size: 14px;'>📦 تم البيع: {product['sales']}</p>
+            </div>
             <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
-                <div style='background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 40px; padding: 10px; text-align: center; cursor: pointer; font-weight: bold; color: white;'>
+                <div style='background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 40px; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; color: white; transition: 0.3s;'>
                     🛒 تسوق الآن
                 </div>
             </a>
@@ -238,9 +274,9 @@ st.markdown("<h2 style='color: #feca57;'>📹 ريلز وفيديوهات تسو
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 25px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
+    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 25px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); min-height: 200px; display: flex; flex-direction: column; justify-content: center;'>
         <h3 style='color: #feca57;'>🎬 فيديو تعريفي بـ Saeed DaTaBoT</h3>
-        <div style='background: rgba(255,255,255,0.05); border-radius: 20px; padding: 50px; margin-top: 15px;'>
+        <div style='background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin-top: 15px;'>
             <p style='color: #aaa;'>📹 ريلز قادم قريباً...</p>
             <p style='color: #ff6b6b;'>اشترك في القناة لمشاهدة المحتوى الحصري</p>
         </div>
@@ -249,9 +285,9 @@ with col1:
 
 with col2:
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 25px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
+    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 25px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); min-height: 200px; display: flex; flex-direction: column; justify-content: center;'>
         <h3 style='color: #feca57;'>📸 صور المنتجات</h3>
-        <div style='background: rgba(255,255,255,0.05); border-radius: 20px; padding: 50px; margin-top: 15px;'>
+        <div style='background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin-top: 15px;'>
             <p style='color: #aaa;'>🖼️ معرض الصور قيد التجهيز...</p>
             <p style='color: #ff6b6b;'>سيكون متاحاً قريباً</p>
         </div>
@@ -260,49 +296,61 @@ with col2:
 
 st.markdown("---")
 
-# ========== بوت الدردشة الذكي ==========
+# ========== بوت الدردشة الذكي (سريع جداً) ==========
 st.markdown("<h2 style='color: #feca57;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
 chat_question = st.text_area("ماذا تريد أن تسأل المساعد الشخصي لسعيد؟", placeholder="اكتب سؤالك هنا...")
 
 if st.button("💬 أرسل"):
     if chat_question and model:
-        with st.spinner("🤖 Saeed DaTaBoT يفكر..."):
-            system_prompt = f"""
-            أنت Saeed DaTaBoT، المساعد الشخصي الذكي لسعيد المسوري.
-            تم برمجتك بواسطة سعيد المسوري وبمساعدة الذكاء الاصطناعي.
+        with st.spinner("🤖 Saeed DaTaBoT يرد..."):
+            # التحقق من الرد السريع أولاً
+            quick_ans = quick_response(chat_question)
             
-            عليك الرد بثقة واحترام. ابدأ دائماً بـ:
-            "وعليكم السلام ورحمة الله وبركاتة، أنا Saeed DaTaBoT المساعد الشخصي لسعيد المسوري. ماذا يمكنني أن أساعدك اليوم؟"
-            
-            مهمتك:
-            1. التعريف بنفسك وبسعيد المسوري
-            2. مساعدة المستخدمين في التسوق والتسويق الرقمي
-            3. تشجيع المنتجات اليمنية
-            4. تقديم النصائح الحياتية والمهنية
-            5. الرد بود واحترام بأسلوب يمني أصيل وثقة عالية
-            
-            سؤال المستخدم: {chat_question}
-            """
-            response = generate_with_retry(system_prompt)
-            if response:
+            if quick_ans:
+                # رد سريع فوري بدون AI
                 st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 6px solid #2ecc71; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
                     <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
-                    <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{response.text}</p>
+                    <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{quick_ans}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 try:
-                    tts = gTTS(text=response.text[:500], lang='ar')
+                    tts = gTTS(text=quick_ans[:300], lang='ar')
                     audio_bytes = io.BytesIO()
                     tts.write_to_fp(audio_bytes)
                     audio_bytes.seek(0)
                     st.audio(audio_bytes, format='audio/mp3')
                 except:
                     pass
+            else:
+                # إذا لم يكن سؤالاً شائعاً، نستخدم AI
+                try:
+                    system_prompt = f"""
+                    أنت Saeed DaTaBoT. رد بسرعة وبثقة.
+                    ارد على هذا السؤال بشكل مباشر ومختصر: {chat_question}
+                    """
+                    response = model.generate_content(system_prompt)
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 6px solid #2ecc71; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
+                        <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
+                        <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{response.text}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    try:
+                        tts = gTTS(text=response.text[:300], lang='ar')
+                        audio_bytes = io.BytesIO()
+                        tts.write_to_fp(audio_bytes)
+                        audio_bytes.seek(0)
+                        st.audio(audio_bytes, format='audio/mp3')
+                    except:
+                        pass
+                except Exception as e:
+                    st.error(f"خطأ: {e}")
     else:
-        st.warning("يرجى كتابة سؤالك أولاً أو التحقق من المفتاح")
+        st.warning("يرجى كتابة سؤالك أولاً")
 
 st.markdown("---")
 
