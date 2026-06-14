@@ -15,7 +15,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API", "")
 # ========== إعداد Gemini 3.5 Flash ==========
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-3.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 else:
     model = None
 
@@ -129,7 +129,7 @@ if st.button("اسأل Gemini"):
                 except Exception as e:
                     st.error(f"خطأ: {e}")
         else:
-            Secrets")
+            st.warning("⚠️ مفتاح Gemini API غير موجود. أضف GEMINI_API في Secrets")
     else:
         st.warning("⚠️ الرجاء كتابة سؤال أولاً")
 
