@@ -10,7 +10,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API")
 # إعداد البوت
 bot = telebot.TeleBot(BOT_TOKEN)
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-3.5-flash')
 
 # باقي كود البوت هنا...
 # إعداد نموذج Gemini 3.5 Flash
