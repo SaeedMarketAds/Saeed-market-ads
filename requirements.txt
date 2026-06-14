@@ -1,2 +1,8 @@
 pyTelegramBotAPI
 google-generativeai
+streamlit
+streamlit-chat
+gtts
+
+
+
