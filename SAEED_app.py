@@ -1,4 +1,10 @@
-# ========== المكتبات ==========
+# ========== المكتباتimport os
+import telebot
+
+TOKEN = os.environ.get("TOKEN", "ضع_توكنك_هنا")
+bot = telebot.TeleBot(TOKEN)
+
+# باقي الكود كما هو... ==========
 import telebot
 import os
 import subprocess
