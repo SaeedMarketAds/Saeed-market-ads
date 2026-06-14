@@ -1,26 +1,19 @@
-import os
+ import os
 import telebot
-import subprocess
-
-# توكن البوت - جربه من البيئة أولاً
-TOKEN = os.environ.get("TOKEN")
-
-# إذا لم يجده من البيئة، استخدم هذا (للتجربة على جهازك)
-if TOKEN is None:
-    TOKEN = "ضع_توكنك_هنا_بدون_أقواس"
-
-bot = telebot.TeleBot(TOKEN)
-
-# باقي الكود...
 import google.generativeai as genai
 
-# ========== إعداد Gemini 3.5 Flash ==========
-# ضع مفتاح API الخاص بك هنا (استخرجه من https://aistudio.google.com/)
-GEMINI_API_KEY = "ضع_مفتاح_Gemini_هنا"  # 🔴 غير هذا إلى مفتاحك الحقيقي
+# جلب المفاتيح من متغيرات البيئة (Environment Variables)
+BOT_TOKEN = os.environ.get("TOKEN")
+GEMINI_API_KEY = os.environ.get("GEMINI_API")
+
+# إعداد البوت و Gemini
+bot = telebot.TeleBot(BOT_TOKEN)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-3.5-flash')  # 🔴 التصحيح هنا
 genai.configure(api_key=GEMINI_API_KEY)
 
 # إعداد نموذج Gemini 3.5 Flash
-model = genai.GenerativeModel('gemini-1.5-flash')  # الإصدار السريع والخفيف
+model = genai.GenerativeModel('gemini-3.5-flash')  # الإصدار السريع والخفيف
 
 # ========== دالة للتواصل مع Gemini ==========
 def ask_gemini(prompt):
