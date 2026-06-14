@@ -1,13 +1,17 @@
-# ========== المكتباتimport os
+import os
 import telebot
-TOKEN = os.environ.get("TOKEN", "null")
+import subprocess
+
+# توكن البوت - جربه من البيئة أولاً
+TOKEN = os.environ.get("TOKEN")
+
+# إذا لم يجده من البيئة، استخدم هذا (للتجربة على جهازك)
+if TOKEN is None:
+    TOKEN = "ضع_توكنك_هنا_بدون_أقواس"
 
 bot = telebot.TeleBot(TOKEN)
 
-# باقي الكود كما هو... ==========
-import telebot
-import os
-import subprocess
+# باقي الكود...
 import google.generativeai as genai
 
 # ========== إعداد Gemini 3.5 Flash ==========
