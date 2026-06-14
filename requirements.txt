@@ -1,11 +1,11 @@
 streamlit
-
 streamlit-chat
-
 gtts
-
 google-generativeai
-
 Requests
-
 beautifulsoup4
+
+
+
+
+
