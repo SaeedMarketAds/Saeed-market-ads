@@ -1,4 +1,21 @@
 import streamlit as st
+import requests
+
+# هذا هو المكان الصحيح لوضعه
+@st.cache_data(ttl=3600) 
+def is_product_available(url):
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, timeout=5, headers=headers)
+        
+        if "sold-out" in response.text.lower() or response.status_code != 200:
+            return False
+        return True
+    except:
+        return False
+
+# ثم استدعي الدالة في مكان عرض المنتجات كالمعتاد
+import streamlit as st
 import os
 import google.generativeai as genai
 import requests
