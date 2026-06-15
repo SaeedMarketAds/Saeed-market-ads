@@ -1,20 +1,36 @@
 import streamlit as st
 import requests
+import os
+# (أضف هنا باقي مكتباتك مثل google.generativeai, gtts, إلخ)
 
-# هذا هو المكان الصحيح لوضعه
+# 1. تعريف دالة فحص الروابط (ضعها هنا في بداية الملف)
 @st.cache_data(ttl=3600) 
 def is_product_available(url):
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, timeout=5, headers=headers)
-        
+        # نتحقق إذا كان المنتج غير متوفر بناءً على محتوى الصفحة أو كود الحالة
         if "sold-out" in response.text.lower() or response.status_code != 200:
             return False
         return True
     except:
         return False
 
-# ثم استدعي الدالة في مكان عرض المنتجات كالمعتاد
+# 2. إعدادات الصفحة (st.set_page_config)
+st.set_page_config(page_title="Saeed DataBoT | سوق سعيد", page_icon="🤖")
+
+# 3. هنا تبدأ بقية الكود الخاص بتصميم الواجهة (CSS) وعرض المنتجات
+# مثال على كيفية استدعاء الدالة عند عرض كل منتج:
+
+product_url = "رابط_المنتج_من_SHEIN"
+
+if is_product_available(product_url):
+    st.write("### اسم المنتج")
+    # إذا كان المنتج متاحاً، اعرض زر التسوق
+    st.link_button("تسوق الآن 🛒", product_url)
+else:
+    # إذا كان المنتج غير متوفر، لا تعرض زر الشراء أو أظهر تنبيهاً
+    st.warning("هذا المنتج غير متوفر حالياً.")
 import streamlit as st
 import os
 import google.generativeai as genai
@@ -406,3 +422,4 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 Saeed DaTaBoT - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
+
