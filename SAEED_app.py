@@ -1,3 +1,29 @@
+# 1. الاستيرادات (في أعلى الملف)
+import streamlit as st
+import requests
+
+# 2. تعريف دالة الفحص (في أعلى الملف)
+@st.cache_data(ttl=3600)
+def is_product_available(url):
+    # ... (الكود الذي كتبناه سابقاً) ...
+    return True
+
+# 3. قائمة منتجاتك (هنا تضع الروابط التي نسختها من SHEIN)
+products = [
+    {"name": "معطف الفتيات", "url": "رابطك_من_SHEIN_Affiliate"},
+    {"name": "طقم بيسبول", "url": "رابطك_الثاني_من_SHEIN"}
+]
+
+# 4. حلقة عرض المنتجات (هنا يوضع زر التسوق)
+for p in products:
+    st.write(f"### {p['name']}")
+    
+    # التحقق من توفر المنتج قبل عرض الزر
+    if is_product_available(p['url']):
+        # هذا هو الكود الذي سألت عنه، يوضع هنا ليعمل لكل منتج على حدة
+        st.link_button(f"تسوق {p['name']} الآن 🛒", p['url'])
+    else:
+        st.warning("عذراً، هذا المنتج غير متوفر حالياً.")
 import streamlit as st
 import requests
 import os
