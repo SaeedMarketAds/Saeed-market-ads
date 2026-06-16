@@ -1,4 +1,47 @@
 import streamlit as st
+import streamlit.components.v1 as components
+
+# إعداد الصفحة لتكون واسعة
+st.set_page_config(layout="wide")
+
+def render_custom_banner():
+    html_code = """
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; background: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+    <div class="glass w-full max-w-4xl rounded-3xl p-8 shadow-2xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">سوق سعيد 🛍️</h1>
+            <p class="text-blue-300 text-lg">الذكاء الاصطناعي الذي يغير قواعد التسوق العالمي</p>
+        </header>
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div class="space-y-4">
+                <div class="bg-blue-600 p-6 rounded-2xl text-white">
+                    <h2 class="text-xl font-bold mb-2">تجربة تسوق فريدة</h2>
+                    <p class="opacity-90">تحليل فوري للأسعار، كوبونات خصم حصرية، وربط ذكي مع أكبر المتاجر.</p>
+                </div>
+                <div class="bg-pink-500 p-6 rounded-2xl text-white">
+                    <h2 class="text-xl font-bold mb-2">انتشار عالمي في ساعة</h2>
+                    <p class="opacity-90">بفضل Saeed DataBot، تسوق بذكاء وسرعة يعتمد عليها الآلاف.</p>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-3xl text-center">
+                <div class="text-5xl mb-4">🚀</div>
+                <h3 class="text-2xl font-bold text-white mb-2">Code: WL7KA</h3>
+                <p class="text-white mb-4">خصم يصل إلى 60% على أول طلب!</p>
+            </div>
+        </div>
+    </div>
+    """
+    # عرض التصميم
+    components.html(html_code, height=550)
+
+# استدعاء الوظيفة في تطبيقك
+render_custom_banner()
+import streamlit as st
 import os
 import google.generativeai as genai
 import requests
@@ -494,3 +537,4 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 سوق سعيد - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
+
