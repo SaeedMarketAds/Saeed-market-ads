@@ -235,7 +235,7 @@ def quick_response(question):
     elif "من أنت" in q:
         return """🤖 أنا **Saeed DaTaBoT**، المساعد الشخصي الذكي.\n\nمتخصص في:\n• تحليل الروابط\n• فحص توفر المنتجات\n• المساعدة في التسوق من SHEIN - نون - علي اكسبرس"""
     elif "السلام" in q or "مرحبا" in q:
-        return """وعليكم السلام ورحمة الله وبركاتة 🌹\n\nأهلاً بك في **سوق سعيد**! كيف يمكنني مساعدتك اليوم؟"""
+        return """وعليكم السلام ورحمة الله وبركاتة 🌹\n\nأهلاً بك في **سوق سعيد**! أنا **Saeed DaTaBoT** تحت خدمتك."""
     return None
 
 # ========== الهيدر الرئيسي ==========
@@ -244,6 +244,7 @@ st.markdown("""
     <h1 style='color: #fff; font-size: 55px; margin-bottom: 10px;'>🛍️ سوق سعيد</h1>
     <p style='color: #feca57; font-size: 24px;'>متجر SHEIN | نون | علي اكسبرس</p>
     <p style='color: #aaa; font-size: 16px;'>تسوق بأفضل الأسعار مع كود خصم حصري</p>
+    <p style='color: #ff6b6b; font-size: 18px; margin-top: 10px;'>🤖 مساعدك الذكي Saeed DaTaBoT</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -260,12 +261,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ========== تحليل الروابط ==========
-st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط والمساعدة الذكية</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
 url_input = st.text_input("📎 أرسل رابط المنتج أو الموقع هنا (SHEIN, نون, AliExpress):", placeholder="https://...")
 
 if url_input:
-    with st.spinner("🤖 جاري تحليل الرابط..."):
+    with st.spinner("🤖 Saeed DaTaBoT يحلل الرابط..."):
         is_available = is_product_available(url_input)
         if model:
             try:
@@ -273,7 +274,7 @@ if url_input:
                 status = "✅ متوفر" if is_available else "❌ غير متوفر حالياً"
                 st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #feca57; margin-bottom: 20px;'>
-                    <h4 style='color: #feca57;'>🤖 تحليل الرابط:</h4>
+                    <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
                     <p style='color: #e2e8f0;'>{response.text}</p>
                     <hr>
                     <p style='color: #2ecc71;'><strong>📦 حالة المنتج:</strong> {status}</p>
@@ -322,7 +323,7 @@ SHEIN_PRODUCTS = [
 
 # عرض منتجات SHEIN في شبكة 4 أعمدة
 cols = st.columns(4)
-for i, product in enumerate(SHEIN_PRODUCTS[:20]):  # عرض أول 20 منتج
+for i, product in enumerate(SHEIN_PRODUCTS[:20]):
     with cols[i % 4]:
         final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
         old_price = product['price'] if product['discount'] > 0 else None
@@ -418,9 +419,9 @@ st.markdown("""
 st.markdown("---")
 
 # ========== بوت الدردشة ==========
-st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع المساعد الذكي</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
-chat_question = st.text_area("📝 اكتب سؤالك هنا:", placeholder="ماذا تريد أن تسأل؟", height=100)
+chat_question = st.text_area("📝 اكتب سؤالك هنا:", placeholder="ماذا تريد أن تسأل Saeed DaTaBoT؟", height=100)
 
 if st.button("💬 أرسل", use_container_width=True):
     if chat_question:
@@ -428,7 +429,7 @@ if st.button("💬 أرسل", use_container_width=True):
         if quick_ans:
             st.markdown(f"""
             <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71; margin-bottom: 20px;'>
-                <h4 style='color: #feca57;'>🤖 المساعد الذكي يرد:</h4>
+                <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
                 <p style='color: #e2e8f0;'>{quick_ans}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -442,10 +443,10 @@ if st.button("💬 أرسل", use_container_width=True):
                 pass
         elif model:
             try:
-                response = model.generate_content(f"رد باختصار وثقة: {chat_question}")
+                response = model.generate_content(f"رد باختصار وثقة كـ Saeed DaTaBoT: {chat_question}")
                 st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                    <h4 style='color: #feca57;'>🤖 المساعد الذكي يرد:</h4>
+                    <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -460,12 +461,12 @@ st.markdown("---")
 with st.sidebar:
     st.markdown("""
     <div style='text-align: center; padding: 25px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57; margin-bottom: 10px;'>🛍️ سوق سعيد</h2>
+        <h2 style='color: #feca57; margin-bottom: 10px;'>🤖 Saeed DaTaBoT</h2>
         <p style='color: #aaa;'>مساعدك الذكي للتسوق</p>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("### 🎯 خدماتنا:")
+    st.markdown("### 🎯 خدمات Saeed DaTaBoT:")
     st.markdown("""
     - ✅ تحليل الروابط
     - ✅ فحص توفر المنتجات
