@@ -1,62 +1,3 @@
-# 1. الاستيرادات (في أعلى الملف)
-import streamlit as st
-import requests
-
-# 2. تعريف دالة الفحص (في أعلى الملف)
-@st.cache_data(ttl=3600)
-def is_product_available(url):
-    # ... (الكود الذي كتبناه سابقاً) ...
-    return True
-
-# 3. قائمة منتجاتك (هنا تضع الروابط التي نسختها من SHEIN)
-products = [
-    {"name": "معطف الفتيات", "url": "رابطك_من_SHEIN_Affiliate"},
-    {"name": "طقم بيسبول", "url": "رابطك_الثاني_من_SHEIN"}
-]
-
-# 4. حلقة عرض المنتجات (هنا يوضع زر التسوق)
-for p in products:
-    st.write(f"### {p['name']}")
-    
-    # التحقق من توفر المنتج قبل عرض الزر
-    if is_product_available(p['url']):
-        # هذا هو الكود الذي سألت عنه، يوضع هنا ليعمل لكل منتج على حدة
-        st.link_button(f"تسوق {p['name']} الآن 🛒", p['url'])
-    else:
-        st.warning("عذراً، هذا المنتج غير متوفر حالياً.")
-import streamlit as st
-import requests
-import os
-# (أضف هنا باقي مكتباتك مثل google.generativeai, gtts, إلخ)
-
-# 1. تعريف دالة فحص الروابط (ضعها هنا في بداية الملف)
-@st.cache_data(ttl=3600) 
-def is_product_available(url):
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, timeout=5, headers=headers)
-        # نتحقق إذا كان المنتج غير متوفر بناءً على محتوى الصفحة أو كود الحالة
-        if "sold-out" in response.text.lower() or response.status_code != 200:
-            return False
-        return True
-    except:
-        return False
-
-# 2. إعدادات الصفحة (st.set_page_config)
-st.set_page_config(page_title="Saeed DataBoT | سوق سعيد", page_icon="🤖")
-
-# 3. هنا تبدأ بقية الكود الخاص بتصميم الواجهة (CSS) وعرض المنتجات
-# مثال على كيفية استدعاء الدالة عند عرض كل منتج:
-
-product_url = "رابط_المنتج_من_SHEIN"
-
-if is_product_available(product_url):
-    st.write("### اسم المنتج")
-    # إذا كان المنتج متاحاً، اعرض زر التسوق
-    st.link_button("تسوق الآن 🛒", product_url)
-else:
-    # إذا كان المنتج غير متوفر، لا تعرض زر الشراء أو أظهر تنبيهاً
-    st.warning("هذا المنتج غير متوفر حالياً.")
 import streamlit as st
 import os
 import google.generativeai as genai
@@ -64,19 +5,55 @@ import requests
 import base64
 from gtts import gTTS
 import io
+from datetime import datetime
 
 # ========== إعداد الصفحة ==========
 st.set_page_config(page_title="Saeed DaTaBoT | سوق سعيد", page_icon="🤖", layout="wide")
 
+# ========== تعريف دالة فحص الروابط (مهمة جداً) ==========
+@st.cache_data(ttl=3600)  # تخزين النتيجة لمدة ساعة لتسريع الأداء
+def is_product_available(url):
+    """
+    تتحقق هذه الدالة من توفر المنتج قبل عرض زر الشراء
+    """
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        response = requests.get(url, timeout=8, headers=headers)
+        
+        # فحص إذا كان المنتج غير متوفر
+        unavailable_indicators = [
+            "sold out", "out of stock", "غير متوفر", "نفدت الكمية",
+            "unavailable", "not available", "404", "product not found"
+        ]
+        
+        response_lower = response.text.lower()
+        for indicator in unavailable_indicators:
+            if indicator in response_lower:
+                return False
+        
+        # إذا كان كود الاستجابة 200 ولم نجد مؤشرات عدم توفر
+        return response.status_code == 200
+        
+    except requests.RequestException as e:
+        print(f"خطأ في فحص الرابط {url}: {e}")
+        return False  # في حالة الخطأ نعتبر المنتج غير متوفر احترازياً
+
 # ========== تصميم خلفية الواجهة الاحترافية ==========
 page_bg = """
 <style>
+/* تنسيق الخلفية الرئيسية */
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    background-attachment: fixed;
 }
+
 [data-testid="stHeader"] {
-    background: rgba(0,0,0,0.3);
+    background: rgba(0,0,0,0.2);
 }
+
+/* تنسيق الأزرار */
 .stButton > button {
     background: linear-gradient(90deg, #ff6b6b, #feca57);
     color: white;
@@ -84,17 +61,88 @@ page_bg = """
     border-radius: 30px;
     padding: 10px 25px;
     font-weight: bold;
-    transition: 0.3s;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 .stButton > button:hover {
     transform: scale(1.02);
     background: linear-gradient(90deg, #feca57, #ff6b6b);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
-/* جعل بطاقات المنتجات متساوية */
-.equal-height {
+
+/* تنسيق حقول الإدخال */
+.stTextInput > div > div > input {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-radius: 25px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.stTextInput > div > div > input:focus {
+    border-color: #feca57;
+    box-shadow: 0 0 10px rgba(254,202,87,0.3);
+}
+
+/* تنسيق حقل النص */
+.stTextArea > div > div > textarea {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* تنسيق التحذيرات */
+.stAlert {
+    border-radius: 15px;
+    border-right: 5px solid #ff6b6b;
+}
+
+/* إخفاء شريط التنقل العلوي لبعض العناصر */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* بطاقات المنتجات الموحدة */
+.product-card {
+    border-radius: 25px;
+    padding: 20px;
+    margin-bottom: 25px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(245,245,255,0.95));
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    justify-content: space-between;
+    backdrop-filter: blur(5px);
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+/* تنسيق الزر داخل البطاقة */
+.product-btn {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 40px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: all 0.3s ease;
+    border: none;
+    width: 100%;
+}
+.product-btn:hover {
+    background: linear-gradient(90deg, #764ba2, #667eea);
+    transform: scale(1.02);
+}
+.product-btn-disabled {
+    background: #95a5a6;
+    border-radius: 40px;
+    padding: 12px;
+    text-align: center;
+    color: white;
+    width: 100%;
 }
 </style>
 """
@@ -108,14 +156,15 @@ try:
     TELEGRAM_CHANNEL_ID = st.secrets["TELEGRAM_CHANNEL_ID"]
     ELEVENLABS_API_KEY = st.secrets["ELEVENLABS_API_KEY"]
 except Exception as e:
-    st.error(f"⚠️ خطأ في قراءة Secrets: {e}")
+    st.warning(f"⚠️ بعض المفاتيح غير متوفرة: {e}")
 
 # ========== إعداد Gemini ==========
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-3.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     model = None
+    st.warning("⚠️ Gemini AI غير متوفر حالياً")
 
 # دالة سريعة للرد بدون تأخير
 def quick_response(question):
@@ -131,7 +180,7 @@ def quick_response(question):
 
 **مهامي الأساسية:**
 • 🔗 تحليل الروابط والمنتجات
-• 🛍️ مساعدتك في التسوق من SHEIN
+• 🛍️ مساعدتك في التسوق من SHEIN و AliExpress
 • 🇾🇪 دعم المنتجات اليمنية
 • 📹 إنشاء محتوى تسويقي (ريلز - صور - فيديوهات)
 • 💬 محادثة ذكية للإجابة على استفساراتك
@@ -176,16 +225,16 @@ def quick_response(question):
 
 هل تحتاج أي مساعدة أخرى؟ 😊"""
     
-    return None  # إذا لم يكن سؤالاً شائعاً، نرسل لـ Gemini
+    return None
 
 # ========== تعريف البوت ==========
 st.markdown("""
-<div style='text-align: center; padding: 40px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 40px; margin-bottom: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);'>
-    <h1 style='color: #fff; font-size: 56px; margin-bottom: 10px;'>🤖 Saeed DaTaBoT</h1>
-    <p style='color: #ddd; font-size: 22px;'>المساعد الشخصي لـ <span style='color: #ff6b6b; font-weight: bold;'>سعيد المسوري</span></p>
-    <p style='color: #aaa; font-size: 16px;'>تم البرمجة بواسطة سعيد المسوري وبمساعدة الذكاء الاصطناعي 🚀</p>
-    <div style='background: rgba(255,255,255,0.08); border-radius: 30px; padding: 20px; margin-top: 20px;'>
-        <p style='color: #feca57; font-size: 18px;'>🇾🇪 دعم المنتجات اليمنية | التسويق الرقمي | ريلز | صور | فيديوهات 🇾🇪</p>
+<div style='text-align: center; padding: 50px; background: linear-gradient(135deg, rgba(26,26,46,0.9), rgba(22,33,62,0.9)); border-radius: 50px; margin-bottom: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.3); backdrop-filter: blur(10px);'>
+    <h1 style='color: #fff; font-size: 64px; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>🤖 Saeed DaTaBoT</h1>
+    <p style='color: #ddd; font-size: 24px;'>المساعد الشخصي لـ <span style='color: #ff6b6b; font-weight: bold;'>سعيد المسوري</span></p>
+    <p style='color: #aaa; font-size: 18px;'>تم البرمجة بواسطة سعيد المسوري وبمساعدة الذكاء الاصطناعي 🚀</p>
+    <div style='background: rgba(255,255,255,0.1); border-radius: 40px; padding: 20px; margin-top: 25px;'>
+        <p style='color: #feca57; font-size: 20px;'>🇾🇪 دعم المنتجات اليمنية | التسويق الرقمي | ريلز | صور | فيديوهات 🇾🇪</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -194,60 +243,72 @@ st.markdown("---")
 
 # ========== كود خصم SHEIN بارز جداً ==========
 st.markdown("""
-<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 50px 30px; border-radius: 50px; text-align: center; margin-bottom: 40px; box-shadow: 0 25px 45px rgba(0,0,0,0.3);'>
-    <h1 style='color: #fff; margin-bottom: 15px; font-size: 32px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>🎁 عرض خاص للمستخدمين الجدد 🎁</h1>
-    <div style='background: white; display: inline-block; padding: 20px 60px; border-radius: 80px; margin: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.2);'>
-        <h1 style='color: #ff0844; margin: 0; font-size: 64px; letter-spacing: 5px;'>🏷️ WL7KA</h1>
+<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 60px 30px; border-radius: 60px; text-align: center; margin-bottom: 40px; box-shadow: 0 30px 60px rgba(0,0,0,0.3);'>
+    <h1 style='color: #fff; margin-bottom: 15px; font-size: 38px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>🎁 عرض خاص للمستخدمين الجدد 🎁</h1>
+    <div style='background: white; display: inline-block; padding: 25px 70px; border-radius: 100px; margin: 25px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.2);'>
+        <h1 style='color: #ff0844; margin: 0; font-size: 72px; letter-spacing: 8px;'>🏷️ WL7KA</h1>
     </div>
-    <p style='color: #fff; font-size: 28px; margin: 15px 0 0 0; font-weight: bold;'>🔥 خصم يصل إلى 60% على أول طلب من SHEIN 🔥</p>
-    <p style='color: #fff; font-size: 20px; margin-top: 10px;'>✨ استخدم الكود الآن ووفر أكثر ✨</p>
+    <p style='color: #fff; font-size: 32px; margin: 15px 0 0 0; font-weight: bold;'>🔥 خصم يصل إلى 60% على أول طلب من SHEIN 🔥</p>
+    <p style='color: #fff; font-size: 22px; margin-top: 15px;'>✨ استخدم الكود الآن ووفر أكثر ✨</p>
 </div>
 """, unsafe_allow_html=True)
 
 st.markdown("---")
 
 # ========== تحليل الروابط (سريع) ==========
-st.markdown("<h2 style='color: #feca57;'>🔗 تحليل الروابط والمساعدة الذكية</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 36px;'>🔗 تحليل الروابط والمساعدة الذكية</h2>", unsafe_allow_html=True)
 
-url_input = st.text_input("أرسل رابط المنتج أو الموقع هنا (SHEIN, AliExpress, Noon, أو أي رابط):", placeholder="https://...")
+url_input = st.text_input("📎 أرسل رابط المنتج أو الموقع هنا (SHEIN, AliExpress, Noon, أو أي رابط):", placeholder="https://...")
 
 if url_input:
     with st.spinner("🤖 جاري تحليل الرابط..."):
-        try:
-            analysis_prompt = f"""
-            أنت Saeed DaTaBoT. رد بسرعة وبثقة.
-            قم بتحليل هذا الرابط باختصار: {url_input}
-            
-            أجب بشكل مباشر وسريع:
-            1. نوع الرابط
-            2. فائدته
-            3. نصيحة سريعة
-            """
-            response = model.generate_content(analysis_prompt)
-            
-            st.markdown(f"""
-            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 6px solid #ff6b6b; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
-                <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
-                <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{response.text}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
+        # أولاً نفحص توفر المنتج
+        is_available = is_product_available(url_input)
+        
+        if model:
             try:
-                tts = gTTS(text=response.text[:300], lang='ar')
-                audio_bytes = io.BytesIO()
-                tts.write_to_fp(audio_bytes)
-                audio_bytes.seek(0)
-                st.audio(audio_bytes, format='audio/mp3')
-            except:
-                pass
-        except Exception as e:
-            st.error(f"خطأ: {e}")
+                analysis_prompt = f"""
+                أنت Saeed DaTaBoT. رد بسرعة وبثقة.
+                قم بتحليل هذا الرابط باختصار: {url_input}
+                
+                أجب بشكل مباشر وسريع:
+                1. نوع الرابط
+                2. فائدته
+                3. نصيحة سريعة
+                """
+                response = model.generate_content(analysis_prompt)
+                
+                # عرض نتيجة التحليل مع حالة التوفر
+                availability_status = "✅ **متوفر**" if is_available else "❌ **غير متوفر حالياً**"
+                
+                st.markdown(f"""
+                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 30px; padding: 30px; border-right: 6px solid #ff6b6b; box-shadow: 0 15px 30px rgba(0,0,0,0.2);'>
+                    <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
+                    <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{response.text}</p>
+                    <hr style='border-color: rgba(255,255,255,0.1);'>
+                    <p style='color: #2ecc71; font-size: 18px;'><strong>📦 حالة المنتج:</strong> {availability_status}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # تحويل النص إلى صوت
+                try:
+                    tts = gTTS(text=response.text[:300], lang='ar')
+                    audio_bytes = io.BytesIO()
+                    tts.write_to_fp(audio_bytes)
+                    audio_bytes.seek(0)
+                    st.audio(audio_bytes, format='audio/mp3')
+                except:
+                    pass
+            except Exception as e:
+                st.error(f"خطأ في التحليل: {e}")
+        else:
+            st.info("🤖 Gemini AI غير متوفر حالياً، لا يمكن تحليل الرابط.")
 
 st.markdown("---")
 
-# ========== منتجات SHEIN الـ 51 (عريضة ومتساوية) ==========
-st.markdown(f"<h2 style='color: #feca57; text-align: center; font-size: 42px;'>🛍️ متجر SHEIN - 51 منتج 🛍️</h2>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center; color: #ff6b6b; font-size: 24px; margin-bottom: 30px;'>✨ اكتشف أكثر من 50 منتج بأسعار خرافية ✨</p>", unsafe_allow_html=True)
+# ========== منتجات SHEIN (51 منتج) ==========
+st.markdown(f"<h2 style='color: #feca57; text-align: center; font-size: 44px;'>🛍️ متجر SHEIN - 51 منتج 🛍️</h2>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center; color: #ff6b6b; font-size: 26px; margin-bottom: 40px;'>✨ اكتشف أكثر من 50 منتج بأسعار خرافية ✨</p>", unsafe_allow_html=True)
 
 # جميع المنتجات الـ 51 كاملة
 PRODUCTS = [
@@ -304,72 +365,104 @@ PRODUCTS = [
     {"name": "حمالة هاتف فراشة مع كريستال", "price": 2.48, "discount": 25, "link": "https://onelink.shein.com/38/5shs5gdxezhw", "sales": "150+"},
 ]
 
-# عرض المنتجات في شبكة 4 أعمدة - عريضة ومتساوية
+# عرض المنتجات في شبكة 4 أعمدة
 cols = st.columns(4)
 for i, product in enumerate(PRODUCTS):
     with cols[i % 4]:
         final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
         
-        st.markdown(f"""
-        <div style='border-radius: 25px; padding: 20px; margin-bottom: 25px; background: linear-gradient(135deg, #ffffff, #f1f5f9); box-shadow: 0 10px 25px rgba(0,0,0,0.1); transition: 0.3s; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between;'>
-            <div>
-                <h4 style='font-size: 16px; color: #1e293b; margin-bottom: 12px; min-height: 50px;'>{product['name']}</h4>
-                <p style='color: #ff4757; font-size: 26px; font-weight: bold; margin-bottom: 10px;'>💰 ${final_price:.2f}</p>
-                <p style='color: #2ecc71; font-weight: bold; margin-bottom: 15px; font-size: 14px;'>📦 تم البيع: {product['sales']}</p>
-            </div>
+        # فحص توفر المنتج قبل عرض الزر
+        is_available = is_product_available(product['link'])
+        
+        if is_available:
+            button_html = f"""
             <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
-                <div style='background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 40px; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; color: white; transition: 0.3s;'>
+                <div class='product-btn'>
                     🛒 تسوق الآن
                 </div>
             </a>
+            """
+        else:
+            button_html = """
+            <div class='product-btn-disabled'>
+                ⚠️ غير متوفر حالياً
+            </div>
+            """
+        
+        st.markdown(f"""
+        <div class='product-card'>
+            <div>
+                <h4 style='font-size: 17px; color: #1e293b; margin-bottom: 12px; min-height: 50px;'>{product['name']}</h4>
+                <p style='color: #ff4757; font-size: 28px; font-weight: bold; margin-bottom: 10px;'>💰 ${final_price:.2f}</p>
+                <p style='color: #2ecc71; font-weight: bold; margin-bottom: 15px; font-size: 14px;'>📦 تم البيع: {product['sales']}</p>
+                <p style='color: #ff6b6b; font-size: 12px;'>{'🔥 خصم ' + str(product['discount']) + '%' if product['discount'] > 0 else ''}</p>
+            </div>
+            {button_html}
         </div>
         """, unsafe_allow_html=True)
 
 st.markdown("---")
 
+# ========== منتجات AliExpress (قادمة قريباً) ==========
+st.markdown("""
+<div style='text-align: center; padding: 60px; background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(254,202,87,0.2)); border-radius: 50px; margin: 30px 0; backdrop-filter: blur(5px);'>
+    <h2 style='color: #feca57; font-size: 48px; margin-bottom: 20px;'>🛒 متجر AliExpress</h2>
+    <div style='background: rgba(255,255,255,0.1); border-radius: 30px; padding: 40px;'>
+        <p style='color: #ddd; font-size: 28px; margin-bottom: 15px;'>🚀 قادم قريباً جداً</p>
+        <p style='color: #aaa; font-size: 18px;'>نستعد لإطلاق متجر AliExpress مع أفضل العروض والمنتجات</p>
+        <p style='color: #ff6b6b; font-size: 20px; margin-top: 20px;'>✨ تابعونا للمزيد ✨</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
+
 # ========== ريلز وفيديوهات ==========
-st.markdown("<h2 style='color: #feca57;'>📹 ريلز وفيديوهات تسويقية</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 36px;'>📹 ريلز وفيديوهات تسويقية</h2>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 25px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); min-height: 200px; display: flex; flex-direction: column; justify-content: center;'>
-        <h3 style='color: #feca57;'>🎬 فيديو تعريفي بـ Saeed DaTaBoT</h3>
-        <div style='background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin-top: 15px;'>
-            <p style='color: #aaa;'>📹 ريلز قادم قريباً...</p>
-            <p style='color: #ff6b6b;'>اشترك في القناة لمشاهدة المحتوى الحصري</p>
+    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 30px; padding: 35px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.2); min-height: 250px; display: flex; flex-direction: column; justify-content: center;'>
+        <h3 style='color: #feca57; font-size: 28px;'>🎬 فيديو تعريفي بـ Saeed DaTaBoT</h3>
+        <div style='background: rgba(255,255,255,0.05); border-radius: 25px; padding: 35px; margin-top: 20px;'>
+            <p style='color: #aaa; font-size: 18px;'>📹 ريلز قادم قريباً...</p>
+            <p style='color: #ff6b6b; font-size: 16px;'>اشترك في القناة لمشاهدة المحتوى الحصري</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
     st.markdown("""
-    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 25px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); min-height: 200px; display: flex; flex-direction: column; justify-content: center;'>
-        <h3 style='color: #feca57;'>📸 صور المنتجات</h3>
-        <div style='background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px; margin-top: 15px;'>
-            <p style='color: #aaa;'>🖼️ معرض الصور قيد التجهيز...</p>
-            <p style='color: #ff6b6b;'>سيكون متاحاً قريباً</p>
+    <div style='background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 30px; padding: 35px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.2); min-height: 250px; display: flex; flex-direction: column; justify-content: center;'>
+        <h3 style='color: #feca57; font-size: 28px;'>📸 صور المنتجات</h3>
+        <div style='background: rgba(255,255,255,0.05); border-radius: 25px; padding: 35px; margin-top: 20px;'>
+            <p style='color: #aaa; font-size: 18px;'>🖼️ معرض الصور قيد التجهيز...</p>
+            <p style='color: #ff6b6b; font-size: 16px;'>سيكون متاحاً قريباً</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# ========== بوت الدردشة الذكي (سريع جداً) ==========
-st.markdown("<h2 style='color: #feca57;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
+# ========== بوت الدردشة الذكي ==========
+st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 36px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
-chat_question = st.text_area("ماذا تريد أن تسأل المساعد الشخصي لسعيد؟", placeholder="اكتب سؤالك هنا...")
+chat_question = st.text_area("📝 ماذا تريد أن تسأل المساعد الشخصي لسعيد؟", placeholder="اكتب سؤالك هنا...", height=120)
 
-if st.button("💬 أرسل"):
-    if chat_question and model:
+col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+with col_btn2:
+    send_button = st.button("💬 أرسل", use_container_width=True)
+
+if send_button and chat_question:
+    if model:
         with st.spinner("🤖 Saeed DaTaBoT يرد..."):
             # التحقق من الرد السريع أولاً
             quick_ans = quick_response(chat_question)
             
             if quick_ans:
-                # رد سريع فوري بدون AI
                 st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 6px solid #2ecc71; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
+                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 30px; padding: 30px; border-right: 6px solid #2ecc71; box-shadow: 0 15px 30px rgba(0,0,0,0.2);'>
                     <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
                     <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{quick_ans}</p>
                 </div>
@@ -384,7 +477,6 @@ if st.button("💬 أرسل"):
                 except:
                     pass
             else:
-                # إذا لم يكن سؤالاً شائعاً، نستخدم AI
                 try:
                     system_prompt = f"""
                     أنت Saeed DaTaBoT. رد بسرعة وبثقة.
@@ -392,7 +484,7 @@ if st.button("💬 أرسل"):
                     """
                     response = model.generate_content(system_prompt)
                     st.markdown(f"""
-                    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 6px solid #2ecc71; box-shadow: 0 10px 20px rgba(0,0,0,0.2);'>
+                    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 30px; padding: 30px; border-right: 6px solid #2ecc71; box-shadow: 0 15px 30px rgba(0,0,0,0.2);'>
                         <h4 style='color: #feca57; margin-bottom: 15px;'>🤖 Saeed DaTaBoT يرد:</h4>
                         <p style='color: #e2e8f0; line-height: 1.8; font-size: 16px;'>{response.text}</p>
                     </div>
@@ -409,24 +501,28 @@ if st.button("💬 أرسل"):
                 except Exception as e:
                     st.error(f"خطأ: {e}")
     else:
-        st.warning("يرجى كتابة سؤالك أولاً")
+        st.warning("⚠️ Gemini AI غير متوفر حالياً، يرجى المحاولة لاحقاً.")
+elif send_button and not chat_question:
+    st.warning("📝 يرجى كتابة سؤالك أولاً")
 
 st.markdown("---")
 
 # ========== السايدبار ==========
 with st.sidebar:
     st.markdown("""
-    <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57;'>🤖 Saeed DaTaBoT</h2>
+    <div style='text-align: center; padding: 25px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 35px; margin-bottom: 25px;'>
+        <h2 style='color: #feca57; margin-bottom: 10px;'>🤖 Saeed DaTaBoT</h2>
         <p style='color: #aaa;'>المساعد الشخصي</p>
-        <p style='color: #ff6b6b;'>لـ سعيد المسوري</p>
+        <p style='color: #ff6b6b; font-size: 18px;'>لـ سعيد المسوري</p>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
+    
     st.markdown("### 🎯 خدماتي:")
     st.markdown("""
     - ✅ تحليل الروابط
+    - ✅ فحص توفر المنتجات
     - ✅ التسويق الرقمي
     - ✅ دعم المنتجات اليمنية
     - ✅ إنشاء ريلز وصور
@@ -434,18 +530,34 @@ with st.sidebar:
     - ✅ تحويل النص إلى صوت
     - ✅ إرسال رسائل تليجرام
     """)
+    
     st.markdown("---")
+    
     st.markdown("### 📞 للتواصل:")
-    st.markdown("- @SaeedMarketAds")
-    st.markdown("- @SaeedDataBot")
+    st.markdown("""
+    - [@SaeedMarketAds](https://t.me/SaeedMarketAds)
+    - [@SaeedDataBot](https://t.me/SaeedDataBot)
+    """)
+    
     st.markdown("---")
+    
     st.markdown("### 🚀 رؤيتنا:")
     st.markdown("""
-    *"نسوق لمنتجاتك بأحدث تقنيات الذكاء الاصطناعي*  
-    *ونوصل صوتك للعالم*  
-    *ونبني معاً مستقبل التسويق الرقمي في اليمن"*
+    > *"نسوق لمنتجاتك بأحدث تقنيات الذكاء الاصطناعي*  
+    > *ونوصل صوتك للعالم*  
+    > *ونبني معاً مستقبل التسويق الرقمي في اليمن"*
     """)
+    
+    st.markdown("---")
+    
+    # إحصائيات سريعة
+    st.markdown("### 📊 إحصائيات سريعة:")
+    col_stat1, col_stat2 = st.columns(2)
+    with col_stat1:
+        st.metric("🛍️ منتجات SHEIN", "51")
+    with col_stat2:
+        st.metric("💬 محادثات", "1000+")
+    
     st.markdown("---")
     st.caption("© 2026 Saeed DaTaBoT - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
-
