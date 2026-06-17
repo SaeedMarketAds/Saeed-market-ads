@@ -1,4 +1,28 @@
 import streamlit as st
+from gtts import gTTS
+import os
+
+# 1. الدالة في الأعلى
+def generate_dynamic_greeting(platform_name):
+    greetings = {
+        "noon": "مرحباً بك في نون، وجهتك الأولى للتسوق الموثوق.",
+        "shein": "مرحباً بك في شي إن، استمتع بأحدث صيحات الموضة.",
+        "ali": "مرحباً بك في علي إكسبرس، العالم بين يديك."
+    }
+    text = greetings.get(platform_name.lower(), "مرحباً بك في سعيد ماركت، كيف يمكنني مساعدتك اليوم؟")
+    tts = gTTS(text=text, lang='ar')
+    audio_file = "welcome_message.mp3"
+    tts.save(audio_file)
+    return audio_file
+
+# 2. منطق التشغيل داخل التطبيق
+platform = "noon" # يمكنك تغيير هذا المتغير حسب المدخلات أو الحالة
+audio_path = generate_dynamic_greeting(platform)
+
+# 3. العرض في الواجهة
+st.image("Saeed_DataBot_Avatar.jpg")
+st.audio(audio_path, autoplay=True)
+import streamlit as st
 import google.generativeai as genai
 import requests
 import io
@@ -482,3 +506,4 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 سوق سعيد - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
+
