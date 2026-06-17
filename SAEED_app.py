@@ -1,8 +1,204 @@
 import streamlit as st
+import google.generativeai as genai
+import requests
+import io
+import os
+from gtts import gTTS
 import streamlit.components.v1 as components
 
-# إعداد الصفحة لتكون واسعة
-st.set_page_config(layout="wide")
+# ================= إعدادات الصفحة =================
+st.set_page_config(page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس", page_icon="🛍️", layout="wide")
+
+# ================= الخلفية والتصميم =================
+page_bg = """
+<style>
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
+    background-attachment: fixed;
+}
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0.2);
+}
+.stMarkdown {
+    color: #fff;
+}
+.stButton > button {
+    background: linear-gradient(90deg, #ff6b6b, #feca57);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 28px;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+.stButton > button:hover {
+    transform: scale(1.02);
+    background: linear-gradient(90deg, #feca57, #ff6b6b);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+.stTextInput > div > div > input {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-radius: 30px;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 12px 20px;
+}
+.stTextArea > div > div > textarea {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.product-card {
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(250,250,255,0.95));
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+}
+.product-code {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    direction: ltr;
+}
+.product-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1e293b;
+    margin-bottom: 12px;
+    min-height: 50px;
+    padding-right: 60px;
+}
+.product-price {
+    color: #ff4757;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.old-price {
+    color: #999;
+    font-size: 14px;
+    text-decoration: line-through;
+    margin-right: 10px;
+}
+.product-sales {
+    color: #2ecc71;
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+.product-discount {
+    background: #ff6b6b;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+.product-btn {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 40px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    border: none;
+}
+.product-btn:hover {
+    background: linear-gradient(90deg, #764ba2, #667eea);
+    transform: scale(1.02);
+}
+.store-section {
+    background: rgba(255,255,255,0.05);
+    border-radius: 30px;
+    padding: 25px;
+    margin-bottom: 40px;
+    backdrop-filter: blur(5px);
+}
+.store-header-shein { background: linear-gradient(135deg, #ff6b6b, #feca57); text-align: center; padding: 20px; border-radius: 25px; margin-bottom: 30px; }
+.store-header-noon { background: linear-gradient(135deg, #fbbf24, #f59e0b); text-align: center; padding: 20px; border-radius: 25px; margin-bottom: 30px; }
+.store-header-aliexpress { background: linear-gradient(135deg, #ff4757, #ff6b81); text-align: center; padding: 20px; border-radius: 25px; margin-bottom: 30px; }
+hr { border-color: rgba(255,255,255,0.1); }
+</style>
+"""
+st.markdown(page_bg, unsafe_allow_html=True)
+
+# ================= قراءة المفاتيح والتعليمات =================
+try:
+    GEMINI_API_KEY = st.secrets["GEMINI_API"]
+except:
+    GEMINI_API_KEY = None
+
+# قراءة التعليمات من ملف Instructions.txt
+try:
+    with open('Instructions.txt', 'r', encoding='utf-8') as f:
+        instructions = f.read()
+except FileNotFoundError:
+    instructions = "أنت مساعد ذكي للتسوق الإلكتروني، اسمك Saeed DaTaBoT، تساعد المستخدمين في العثور على أفضل العروض والإجابة على استفساراتهم."
+    st.warning("⚠️ ملف Instructions.txt غير موجود، سيتم استخدام التعليمات الافتراضية.")
+
+# ================= إعداد موديل Gemini مع التعليمات =================
+try:
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=instructions
+        )
+    else:
+        model = None
+        st.error("⚠️ مفتاح API غير موجود، يرجى إضافته في secrets.toml")
+except Exception as e:
+    model = None
+    st.error(f"⚠️ حدث خطأ في إعداد الموديل: {str(e)}")
+
+# ================= الوظائف المساعدة =================
+@st.cache_data(ttl=3600)
+def is_product_available(url):
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        response = requests.get(url, timeout=8, headers=headers)
+        unavailable_indicators = ["sold out", "out of stock", "غير متوفر", "نفدت الكمية", "unavailable"]
+        response_lower = response.text.lower()
+        for indicator in unavailable_indicators:
+            if indicator in response_lower:
+                return False
+        return response.status_code == 200
+    except:
+        return True
+
+def quick_response(question):
+    q = question.lower()
+    if "كود الخصم" in q or "خصم" in q or "كود" in q:
+        return """🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب\n✅ ساري على جميع منتجات SHEIN"""
+    elif "من أنت" in q:
+        return """🤖 أنا **Saeed DaTaBoT**، المساعد الشخصي الذكي.\n\nمتخصص في:\n• تحليل الروابط\n• فحص توفر المنتجات\n• المساعدة في التسوق من SHEIN - نون - علي اكسبرس"""
+    elif "السلام" in q or "مرحبا" in q:
+        return """وعليكم السلام ورحمة الله وبركاتة 🌹\n\nأهلاً بك في **سوق سعيد**! أنا **Saeed DaTaBoT** تحت خدمتك."""
+    return None
 
 def render_custom_banner():
     html_code = """
@@ -36,252 +232,11 @@ def render_custom_banner():
         </div>
     </div>
     """
-    # عرض التصميم
     components.html(html_code, height=550)
 
-# استدعاء الوظيفة في تطبيقك
+# ================= واجهة المستخدم =================
 render_custom_banner()
-import streamlit as st
-import os
-import google.generativeai as genai
-import requests
-import io
-from gtts import gTTS
-import random
 
-# ========== إعداد الصفحة ==========
-st.set_page_config(page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس", page_icon="🛍️", layout="wide")
-
-# ========== تعريف دالة فحص الروابط ==========
-@st.cache_data(ttl=3600)
-def is_product_available(url):
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        response = requests.get(url, timeout=8, headers=headers)
-        unavailable_indicators = ["sold out", "out of stock", "غير متوفر", "نفدت الكمية", "unavailable"]
-        response_lower = response.text.lower()
-        for indicator in unavailable_indicators:
-            if indicator in response_lower:
-                return False
-        return response.status_code == 200
-    except:
-        return True  # افتراضي متوفر في حالة خطأ الاتصال
-
-# ========== التصميم المتطور ==========
-page_bg = """
-<style>
-/* الخلفية الرئيسية */
-[data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
-    background-attachment: fixed;
-}
-
-[data-testid="stHeader"] {
-    background: rgba(0,0,0,0.2);
-}
-
-/* تنسيق عام */
-.stMarkdown {
-    color: #fff;
-}
-
-/* تنسيق الأزرار */
-.stButton > button {
-    background: linear-gradient(90deg, #ff6b6b, #feca57);
-    color: white;
-    border: none;
-    border-radius: 30px;
-    padding: 12px 28px;
-    font-weight: bold;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-.stButton > button:hover {
-    transform: scale(1.02);
-    background: linear-gradient(90deg, #feca57, #ff6b6b);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-}
-
-/* تنسيق حقول الإدخال */
-.stTextInput > div > div > input {
-    background: rgba(255,255,255,0.1);
-    color: white;
-    border-radius: 30px;
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 12px 20px;
-}
-.stTextArea > div > div > textarea {
-    background: rgba(255,255,255,0.1);
-    color: white;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-/* بطاقات المنتجات - موحدة الطول */
-.product-card {
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(250,250,255,0.95));
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
-}
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
-}
-
-/* كود المنتج */
-.product-code {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: bold;
-    direction: ltr;
-}
-
-/* اسم المنتج */
-.product-name {
-    font-size: 16px;
-    font-weight: bold;
-    color: #1e293b;
-    margin-bottom: 12px;
-    min-height: 50px;
-    padding-right: 60px;
-}
-
-/* السعر */
-.product-price {
-    color: #ff4757;
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-/* السعر القديم */
-.old-price {
-    color: #999;
-    font-size: 14px;
-    text-decoration: line-through;
-    margin-right: 10px;
-}
-
-/* المبيعات */
-.product-sales {
-    color: #2ecc71;
-    font-weight: bold;
-    font-size: 13px;
-    margin-bottom: 10px;
-}
-
-/* نسبة الخصم */
-.product-discount {
-    background: #ff6b6b;
-    color: white;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: bold;
-    display: inline-block;
-}
-
-/* زر التسوق */
-.product-btn {
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 40px;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    font-weight: bold;
-    color: white;
-    transition: all 0.3s ease;
-    margin-top: 15px;
-    border: none;
-}
-.product-btn:hover {
-    background: linear-gradient(90deg, #764ba2, #667eea);
-    transform: scale(1.02);
-}
-.product-btn-disabled {
-    background: #95a5a6;
-    border-radius: 40px;
-    padding: 12px;
-    text-align: center;
-    color: white;
-    margin-top: 15px;
-}
-
-/* أقسام المتاجر */
-.store-section {
-    background: rgba(255,255,255,0.05);
-    border-radius: 30px;
-    padding: 25px;
-    margin-bottom: 40px;
-    backdrop-filter: blur(5px);
-}
-.store-header {
-    text-align: center;
-    padding: 20px;
-    border-radius: 25px;
-    margin-bottom: 30px;
-}
-.store-header-shein {
-    background: linear-gradient(135deg, #ff6b6b, #feca57);
-}
-.store-header-noon {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-}
-.store-header-aliexpress {
-    background: linear-gradient(135deg, #ff4757, #ff6b81);
-}
-
-/* تنسيقات عامة */
-hr {
-    border-color: rgba(255,255,255,0.1);
-}
-</style>
-"""
-st.markdown(page_bg, unsafe_allow_html=True)
-
-# ========== قراءة المفاتيح ==========
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API"]
-except:
-    GEMINI_API_KEY = None
-
-# ========== إعداد Gemini ==========
-try:
-    if GEMINI_API_KEY:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-3.5-flash')
-    else:
-        model = None
-except:
-    model = None
-
-# ========== دالة الرد السريع ==========
-def quick_response(question):
-    q = question.lower()
-    if "كود الخصم" in q or "خصم" in q or "كود" in q:
-        return """🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب\n✅ ساري على جميع منتجات SHEIN"""
-    elif "من أنت" in q:
-        return """🤖 أنا **Saeed DaTaBoT**، المساعد الشخصي الذكي.\n\nمتخصص في:\n• تحليل الروابط\n• فحص توفر المنتجات\n• المساعدة في التسوق من SHEIN - نون - علي اكسبرس"""
-    elif "السلام" in q or "مرحبا" in q:
-        return """وعليكم السلام ورحمة الله وبركاتة 🌹\n\nأهلاً بك في **سوق سعيد**! أنا **Saeed DaTaBoT** تحت خدمتك."""
-    return None
-
-# ========== الهيدر الرئيسي ==========
 st.markdown("""
 <div style='text-align: center; padding: 50px 20px; background: linear-gradient(135deg, rgba(26,26,46,0.9), rgba(22,33,62,0.9)); border-radius: 50px; margin-bottom: 30px;'>
     <h1 style='color: #fff; font-size: 55px; margin-bottom: 10px;'>🛍️ سوق سعيد</h1>
@@ -291,7 +246,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ========== كود الخصم البارز ==========
 st.markdown("""
 <div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 45px 25px; border-radius: 55px; text-align: center; margin-bottom: 40px;'>
     <h2 style='color: #fff; margin-bottom: 15px; font-size: 32px;'>🎁 عرض خاص للمستخدمين الجدد 🎁</h2>
@@ -303,7 +257,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ========== تحليل الروابط ==========
+# ================= تحليل الروابط =================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
 url_input = st.text_input("📎 أرسل رابط المنتج أو الموقع هنا (SHEIN, نون, AliExpress):", placeholder="https://...")
@@ -323,24 +277,23 @@ if url_input:
                     <p style='color: #2ecc71;'><strong>📦 حالة المنتج:</strong> {status}</p>
                 </div>
                 """, unsafe_allow_html=True)
-            except:
-                st.info("⚠️ لا يمكن تحليل الرابط حالياً")
+            except Exception as e:
+                st.info(f"⚠️ لا يمكن تحليل الرابط حالياً: {str(e)}")
         else:
             st.info("🤖 خدمة التحليل غير متاحة حالياً")
 
 st.markdown("---")
 
-# ========== منتجات SHEIN (قسم منفصل) ==========
+# ================= منتجات SHEIN =================
 st.markdown("""
 <div class='store-section'>
-    <div class='store-header store-header-shein'>
+    <div class='store-header-shein'>
         <h2 style='color: white; font-size: 36px; margin: 0;'>🛍️ متجر SHEIN</h2>
         <p style='color: white; font-size: 18px; margin: 5px 0 0 0;'>51 منتج بأسعار خرافية</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# منتجات SHEIN
 SHEIN_PRODUCTS = [
     {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
     {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
@@ -364,13 +317,11 @@ SHEIN_PRODUCTS = [
     {"code": "SH020", "name": "حقيبة شاطئ كبيرة السعة", "price": 2.34, "discount": 57, "link": "https://onelink.shein.com/38/5shtcj87y44e", "sales": "100+"},
 ]
 
-# عرض منتجات SHEIN في شبكة 4 أعمدة
 cols = st.columns(4)
 for i, product in enumerate(SHEIN_PRODUCTS[:20]):
     with cols[i % 4]:
         final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
         old_price = product['price'] if product['discount'] > 0 else None
-        
         st.markdown(f"""
         <div class='product-card'>
             <div class='product-code'>📦 {product['code']}</div>
@@ -389,17 +340,16 @@ for i, product in enumerate(SHEIN_PRODUCTS[:20]):
 
 st.markdown("---")
 
-# ========== منتجات نون (قسم منفصل) ==========
+# ================= منتجات نون =================
 st.markdown("""
 <div class='store-section'>
-    <div class='store-header store-header-noon'>
+    <div class='store-header-noon'>
         <h2 style='color: white; font-size: 36px; margin: 0;'>🛍️ متجر نون</h2>
         <p style='color: white; font-size: 18px; margin: 5px 0 0 0;'>أفضل العروض والمنتجات</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# منتجات نون
 NOON_PRODUCTS = [
     {"code": "N001", "name": "ساعة ذكية رياضية", "price": 89.99, "discount": 30, "link": "https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/", "sales": "500+"},
     {"code": "N002", "name": "سماعات لاسلكية بلوتوث", "price": 45.50, "discount": 25, "link": "https://www.noon.com/ar-sa/N11200839A/p/", "sales": "1200+"},
@@ -415,13 +365,11 @@ NOON_PRODUCTS = [
     {"code": "N012", "name": "ساعة يد رجالية", "price": 65.00, "discount": 18, "link": "https://www.noon.com/ar-sa/Z5F0E0825DFAF44FB5ED0Z/p/", "sales": "250+"},
 ]
 
-# عرض منتجات نون في شبكة 4 أعمدة
 cols = st.columns(4)
 for i, product in enumerate(NOON_PRODUCTS):
     with cols[i % 4]:
         final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
         old_price = product['price'] if product['discount'] > 0 else None
-        
         st.markdown(f"""
         <div class='product-card'>
             <div class='product-code'>📦 {product['code']}</div>
@@ -440,17 +388,16 @@ for i, product in enumerate(NOON_PRODUCTS):
 
 st.markdown("---")
 
-# ========== منتجات AliExpress (قسم منفصل) ==========
+# ================= منتجات AliExpress =================
 st.markdown("""
 <div class='store-section'>
-    <div class='store-header store-header-aliexpress'>
+    <div class='store-header-aliexpress'>
         <h2 style='color: white; font-size: 36px; margin: 0;'>🛍️ متجر AliExpress</h2>
         <p style='color: white; font-size: 18px; margin: 5px 0 0 0;'>قادم قريباً بأفضل العروض</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# منتجات AliExpress (قادمة)
 st.markdown("""
 <div style='text-align: center; padding: 60px; background: linear-gradient(135deg, rgba(255,71,87,0.2), rgba(255,107,129,0.2)); border-radius: 40px; margin: 20px 0;'>
     <h3 style='color: #feca57; font-size: 32px; margin-bottom: 20px;'>🚀 قادم قريباً جداً</h3>
@@ -461,7 +408,7 @@ st.markdown("""
 
 st.markdown("---")
 
-# ========== بوت الدردشة ==========
+# ================= بوت الدردشة =================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
 chat_question = st.text_area("📝 اكتب سؤالك هنا:", placeholder="ماذا تريد أن تسأل Saeed DaTaBoT؟", height=100)
@@ -493,14 +440,14 @@ if st.button("💬 أرسل", use_container_width=True):
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
-            except:
-                st.error("⚠️ حدث خطأ، يرجى المحاولة لاحقاً")
+            except Exception as e:
+                st.error(f"⚠️ حدث خطأ، يرجى المحاولة لاحقاً: {str(e)}")
     else:
         st.warning("📝 يرجى كتابة سؤالك أولاً")
 
 st.markdown("---")
 
-# ========== السايدبار ==========
+# ================= السايدبار =================
 with st.sidebar:
     st.markdown("""
     <div style='text-align: center; padding: 25px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
@@ -520,13 +467,11 @@ with st.sidebar:
     """)
     
     st.markdown("---")
-    
     st.markdown("### 📞 للتواصل:")
     st.markdown("- [@SaeedMarketAds](https://t.me/SaeedMarketAds)")
     st.markdown("- [@SaeedDataBot](https://t.me/SaeedDataBot)")
     
     st.markdown("---")
-    
     st.markdown("### 📊 إحصائيات:")
     col1, col2 = st.columns(2)
     with col1:
@@ -537,4 +482,3 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 سوق سعيد - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
-
