@@ -4,6 +4,7 @@ import requests
 import io
 import os
 import base64
+import re
 import streamlit.components.v1 as components
 
 # ============================================================
@@ -175,18 +176,24 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت المستخرج من ElevenLabs
+# 3. رابط الصوت من Google Drive
 # ============================================================
-def play_voice_from_file(audio_file_path="Saeed_DataBot_Voice.mp3"):
+VOICE_URL = "https://drive.google.com/file/d/1VOeoclSxJzT0kbz_p7rk43XqnpXppd41/view?usp=drivesdk"
+
+# ============================================================
+# 4. دالة تشغيل الصوت (ملف محلي أو Google Drive)
+# ============================================================
+def play_voice(audio_file_path="Saeed_DataBot_Voice.mp3"):
     """
-    تشغيل الصوت المستخرج من ElevenLabs مباشرة
+    تشغيل الصوت: أولاً من الملف المحلي، وإذا لم يوجد من Google Drive
     """
-    try:
-        if os.path.exists(audio_file_path):
+    # المحاولة الأولى: تشغيل من الملف المحلي
+    if os.path.exists(audio_file_path):
+        try:
             with open(audio_file_path, "rb") as audio_file:
                 audio_bytes = audio_file.read()
                 audio_base64 = base64.b64encode(audio_bytes).decode()
-
+            
             audio_html = f"""
             <audio controls autoplay style="width: 100%;">
                 <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
@@ -195,15 +202,40 @@ def play_voice_from_file(audio_file_path="Saeed_DataBot_Voice.mp3"):
             """
             st.markdown(audio_html, unsafe_allow_html=True)
             return True
+        except Exception as e:
+            st.warning(f"⚠️ خطأ في الملف المحلي: {str(e)}")
+    
+    # المحاولة الثانية: تشغيل من Google Drive
+    try:
+        file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', VOICE_URL)
+        if file_id_match:
+            file_id = file_id_match.group(1)
+            direct_url = f"https://drive.google.com/uc?export=download&id={file_id}"
+            
+            response = requests.get(direct_url)
+            if response.status_code == 200:
+                audio_base64 = base64.b64encode(response.content).decode()
+                
+                audio_html = f"""
+                <audio controls autoplay style="width: 100%;">
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                    متصفحك لا يدعم تشغيل الصوت.
+                </audio>
+                """
+                st.markdown(audio_html, unsafe_allow_html=True)
+                return True
+            else:
+                st.error(f"⚠️ فشل تحميل الصوت من Drive: {response.status_code}")
+                return False
         else:
-            st.warning("⚠️ ملف الصوت غير موجود: " + audio_file_path)
+            st.warning("⚠️ رابط Google Drive غير صحيح")
             return False
     except Exception as e:
-        st.error(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
+        st.error(f"⚠️ حدث خطأ في تحميل الصوت: {str(e)}")
         return False
 
 # ============================================================
-# 4. قراءة المفاتيح والتعليمات
+# 5. قراءة المفاتيح والتعليمات
 # ============================================================
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API"]
@@ -219,7 +251,7 @@ except FileNotFoundError:
     st.warning("⚠️ ملف Instructions.txt غير موجود، سيتم استخدام التعليمات الافتراضية.")
 
 # ============================================================
-# 5. إعداد موديل Gemini
+# 6. إعداد موديل Gemini
 # ============================================================
 try:
     if GEMINI_API_KEY:
@@ -236,7 +268,7 @@ except Exception as e:
     st.error(f"⚠️ حدث خطأ في إعداد الموديل: {str(e)}")
 
 # ============================================================
-# 6. الوظائف المساعدة
+# 7. الوظائف المساعدة
 # ============================================================
 @st.cache_data(ttl=3600)
 def is_product_available(url):
@@ -297,7 +329,7 @@ def render_custom_banner():
     components.html(html_code, height=550)
 
 # ============================================================
-# 7. واجهة المستخدم الرئيسية
+# 8. واجهة المستخدم الرئيسية
 # ============================================================
 render_custom_banner()
 
@@ -332,10 +364,10 @@ st.markdown("""
 
 # تشغيل الصوت الترحيبي تلقائياً
 st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaBoT")
-play_voice_from_file("Saeed_DataBot_Voice.mp3")
+play_voice()
 
 # ============================================================
-# 8. تحليل الروابط
+# 9. تحليل الروابط
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -358,7 +390,7 @@ if url_input:
                 """, unsafe_allow_html=True)
 
                 # تشغيل الصوت مع الرد
-                play_voice_from_file("Saeed_DataBot_Voice.mp3")
+                play_voice()
 
             except Exception as e:
                 st.info(f"⚠️ لا يمكن تحليل الرابط حالياً: {str(e)}")
@@ -368,7 +400,7 @@ if url_input:
 st.markdown("---")
 
 # ============================================================
-# 9. منتجات SHEIN
+# 10. منتجات SHEIN
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -426,7 +458,7 @@ for i, product in enumerate(SHEIN_PRODUCTS[:20]):
 st.markdown("---")
 
 # ============================================================
-# 10. منتجات نون
+# 11. منتجات نون
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -476,7 +508,7 @@ for i, product in enumerate(NOON_PRODUCTS):
 st.markdown("---")
 
 # ============================================================
-# 11. منتجات AliExpress
+# 12. منتجات AliExpress
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -498,7 +530,7 @@ st.markdown("""
 st.markdown("---")
 
 # ============================================================
-# 12. بوت الدردشة (مع الصوت المستخرج)
+# 13. بوت الدردشة (مع الصوت المستخرج)
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -515,8 +547,8 @@ if st.button("💬 أرسل", use_container_width=True):
             </div>
             """, unsafe_allow_html=True)
 
-            # ✅ استخدام الصوت المستخرج بدلاً من gTTS
-            play_voice_from_file("Saeed_DataBot_Voice.mp3")
+            # ✅ استخدام الصوت (ملف محلي أو Google Drive)
+            play_voice()
 
         elif model:
             try:
@@ -528,8 +560,8 @@ if st.button("💬 أرسل", use_container_width=True):
                 </div>
                 """, unsafe_allow_html=True)
 
-                # ✅ استخدام الصوت المستخرج بدلاً من gTTS
-                play_voice_from_file("Saeed_DataBot_Voice.mp3")
+                # ✅ استخدام الصوت (ملف محلي أو Google Drive)
+                play_voice()
 
             except Exception as e:
                 st.error(f"⚠️ حدث خطأ، يرجى المحاولة لاحقاً: {str(e)}")
@@ -539,7 +571,7 @@ if st.button("💬 أرسل", use_container_width=True):
 st.markdown("---")
 
 # ============================================================
-# 13. السايدبار
+# 14. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
