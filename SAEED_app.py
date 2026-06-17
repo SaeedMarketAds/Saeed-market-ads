@@ -1,49 +1,9 @@
 import streamlit as st
-
-# قاموس يحتوي على روابط فيديوهاتك الجاهزة (بعد تحريكها بصوتك الحقيقي)
-# يمكنك رفع هذه الفيديوهات على GitHub ووضع روابطها المباشرة هنا
-videos = {
-    "noon": "رابط_فيديو_سعيد_يرحب_بنون.mp4",
-    "shein": "رابط_فيديو_سعيد_يرحب_بشي_إن.mp4",
-    "default": "رابط_فيديو_سعيد_الترحيب_العام.mp4"
-}
-
-# اختيار المنصة من واجهة المستخدم
-platform = st.selectbox("اختر المنصة:", ["Noon", "Shein", "Default"])
-
-# عرض الفيديو الذي يحمل صوتك وصورتك الحقيقية
-video_file = videos.get(platform.lower(), videos["default"])
-st.video(video_file)
-import streamlit as st
-from gtts import gTTS
-import os
-
-# 1. الدالة في الأعلى
-def generate_dynamic_greeting(platform_name):
-    greetings = {
-        "noon": "مرحباً بك في نون، وجهتك الأولى للتسوق الموثوق.",
-        "shein": "مرحباً بك في شي إن، استمتع بأحدث صيحات الموضة.",
-        "ali": "مرحباً بك في علي إكسبرس، العالم بين يديك."
-    }
-    text = greetings.get(platform_name.lower(), "مرحباً بك في سعيد ماركت، كيف يمكنني مساعدتك اليوم؟")
-    tts = gTTS(text=text, lang='ar')
-    audio_file = "welcome_message.mp3"
-    tts.save(audio_file)
-    return audio_file
-
-# 2. منطق التشغيل داخل التطبيق
-platform = "noon" # يمكنك تغيير هذا المتغير حسب المدخلات أو الحالة
-audio_path = generate_dynamic_greeting(platform)
-
-# 3. العرض في الواجهة
-st.image("Saeed_DataBot_Avatar.jpg")
-st.audio(audio_path, autoplay=True)
-import streamlit as st
 import google.generativeai as genai
 import requests
 import io
 import os
-from gtts import gTTS
+import base64
 import streamlit.components.v1 as components
 
 # ================= إعدادات الصفحة =================
@@ -186,6 +146,32 @@ hr { border-color: rgba(255,255,255,0.1); }
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
+# ================= دالة تشغيل الصوت المستخرج =================
+def play_voice_from_file(audio_file_path="Saeed_DataBot_Voice.mp3"):
+    """
+    تشغيل الصوت المستخرج من ElevenLabs مباشرة
+    """
+    try:
+        if os.path.exists(audio_file_path):
+            with open(audio_file_path, "rb") as audio_file:
+                audio_bytes = audio_file.read()
+                audio_base64 = base64.b64encode(audio_bytes).decode()
+            
+            audio_html = f"""
+            <audio controls autoplay style="width: 100%;">
+                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                متصفحك لا يدعم تشغيل الصوت.
+            </audio>
+            """
+            st.markdown(audio_html, unsafe_allow_html=True)
+            return True
+        else:
+            st.warning("⚠️ ملف الصوت غير موجود: " + audio_file_path)
+            return False
+    except Exception as e:
+        st.error(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
+        return False
+
 # ================= قراءة المفاتيح والتعليمات =================
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API"]
@@ -277,6 +263,15 @@ def render_custom_banner():
 # ================= واجهة المستخدم =================
 render_custom_banner()
 
+# عرض صورة Saeed_DataBot_Avatar
+try:
+    if os.path.exists("Saeed_DataBot_Avatar.jpg"):
+        st.image("Saeed_DataBot_Avatar.jpg", width=200)
+    else:
+        st.warning("⚠️ صورة Saeed_DataBot_Avatar.jpg غير موجودة")
+except Exception as e:
+    st.warning(f"⚠️ لا يمكن عرض الصورة: {str(e)}")
+
 st.markdown("""
 <div style='text-align: center; padding: 50px 20px; background: linear-gradient(135deg, rgba(26,26,46,0.9), rgba(22,33,62,0.9)); border-radius: 50px; margin-bottom: 30px;'>
     <h1 style='color: #fff; font-size: 55px; margin-bottom: 10px;'>🛍️ سوق سعيد</h1>
@@ -296,6 +291,10 @@ st.markdown("""
     <p style='color: #fff; font-size: 18px; margin-top: 10px;'>✨ استخدم الكود عند الدفع ووفر أكثر ✨</p>
 </div>
 """, unsafe_allow_html=True)
+
+# تشغيل الصوت الترحيبي تلقائياً
+st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaBoT")
+play_voice_from_file("Saeed_DataBot_Voice.mp3")
 
 # ================= تحليل الروابط =================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
@@ -317,6 +316,10 @@ if url_input:
                     <p style='color: #2ecc71;'><strong>📦 حالة المنتج:</strong> {status}</p>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                # تشغيل الصوت مع الرد
+                play_voice_from_file("Saeed_DataBot_Voice.mp3")
+                
             except Exception as e:
                 st.info(f"⚠️ لا يمكن تحليل الرابط حالياً: {str(e)}")
         else:
@@ -463,14 +466,10 @@ if st.button("💬 أرسل", use_container_width=True):
                 <p style='color: #e2e8f0;'>{quick_ans}</p>
             </div>
             """, unsafe_allow_html=True)
-            try:
-                tts = gTTS(text=quick_ans[:300], lang='ar')
-                audio_bytes = io.BytesIO()
-                tts.write_to_fp(audio_bytes)
-                audio_bytes.seek(0)
-                st.audio(audio_bytes, format='audio/mp3')
-            except:
-                pass
+            
+            # ✅ استخدام الصوت المستخرج بدلاً من gTTS
+            play_voice_from_file("Saeed_DataBot_Voice.mp3")
+            
         elif model:
             try:
                 response = model.generate_content(f"رد باختصار وثقة كـ Saeed DaTaBoT: {chat_question}")
@@ -480,6 +479,10 @@ if st.button("💬 أرسل", use_container_width=True):
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                # ✅ استخدام الصوت المستخرج بدلاً من gTTS
+                play_voice_from_file("Saeed_DataBot_Voice.mp3")
+                
             except Exception as e:
                 st.error(f"⚠️ حدث خطأ، يرجى المحاولة لاحقاً: {str(e)}")
     else:
