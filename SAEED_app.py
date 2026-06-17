@@ -257,7 +257,7 @@ try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-3.5-flash",
+            model_name="gemini3.5-flash",
             system_instruction=instructions
         )
     else:
@@ -546,10 +546,7 @@ if st.button("💬 أرسل", use_container_width=True):
                 <p style='color: #e2e8f0;'>{quick_ans}</p>
             </div>
             """, unsafe_allow_html=True)
-
-            # ✅ استخدام الصوت (ملف محلي أو Google Drive)
             play_voice()
-
         elif model:
             try:
                 response = model.generate_content(f"رد باختصار وثقة كـ Saeed DaTaBoT: {chat_question}")
@@ -559,10 +556,7 @@ if st.button("💬 أرسل", use_container_width=True):
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
-
-                # ✅ استخدام الصوت (ملف محلي أو Google Drive)
                 play_voice()
-
             except Exception as e:
                 st.error(f"⚠️ حدث خطأ، يرجى المحاولة لاحقاً: {str(e)}")
     else:
