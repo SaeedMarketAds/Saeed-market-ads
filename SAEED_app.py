@@ -1,4 +1,20 @@
 import streamlit as st
+
+# قاموس يحتوي على روابط فيديوهاتك الجاهزة (بعد تحريكها بصوتك الحقيقي)
+# يمكنك رفع هذه الفيديوهات على GitHub ووضع روابطها المباشرة هنا
+videos = {
+    "noon": "رابط_فيديو_سعيد_يرحب_بنون.mp4",
+    "shein": "رابط_فيديو_سعيد_يرحب_بشي_إن.mp4",
+    "default": "رابط_فيديو_سعيد_الترحيب_العام.mp4"
+}
+
+# اختيار المنصة من واجهة المستخدم
+platform = st.selectbox("اختر المنصة:", ["Noon", "Shein", "Default"])
+
+# عرض الفيديو الذي يحمل صوتك وصورتك الحقيقية
+video_file = videos.get(platform.lower(), videos["default"])
+st.video(video_file)
+import streamlit as st
 from gtts import gTTS
 import os
 
@@ -506,4 +522,3 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 سوق سعيد - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
-
