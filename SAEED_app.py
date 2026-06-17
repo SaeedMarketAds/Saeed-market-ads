@@ -6,10 +6,18 @@ import os
 import base64
 import streamlit.components.v1 as components
 
-# ================= إعدادات الصفحة =================
-st.set_page_config(page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس", page_icon="🛍️", layout="wide")
+# ============================================================
+# 1. إعدادات الصفحة
+# ============================================================
+st.set_page_config(
+    page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس",
+    page_icon="🛍️",
+    layout="wide"
+)
 
-# ================= الخلفية والتصميم =================
+# ============================================================
+# 2. الخلفية والتصميم (CSS)
+# ============================================================
 page_bg = """
 <style>
 [data-testid="stAppViewContainer"] {
@@ -138,15 +146,37 @@ page_bg = """
     margin-bottom: 40px;
     backdrop-filter: blur(5px);
 }
-.store-header-shein { background: linear-gradient(135deg, #ff6b6b, #feca57); text-align: center; padding: 20px; border-radius: 25px; margin-bottom: 30px; }
-.store-header-noon { background: linear-gradient(135deg, #fbbf24, #f59e0b); text-align: center; padding: 20px; border-radius: 25px; margin-bottom: 30px; }
-.store-header-aliexpress { background: linear-gradient(135deg, #ff4757, #ff6b81); text-align: center; padding: 20px; border-radius: 25px; margin-bottom: 30px; }
-hr { border-color: rgba(255,255,255,0.1); }
+.store-header-shein {
+    background: linear-gradient(135deg, #ff6b6b, #feca57);
+    text-align: center;
+    padding: 20px;
+    border-radius: 25px;
+    margin-bottom: 30px;
+}
+.store-header-noon {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    text-align: center;
+    padding: 20px;
+    border-radius: 25px;
+    margin-bottom: 30px;
+}
+.store-header-aliexpress {
+    background: linear-gradient(135deg, #ff4757, #ff6b81);
+    text-align: center;
+    padding: 20px;
+    border-radius: 25px;
+    margin-bottom: 30px;
+}
+hr {
+    border-color: rgba(255,255,255,0.1);
+}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
-# ================= دالة تشغيل الصوت المستخرج =================
+# ============================================================
+# 3. دالة تشغيل الصوت المستخرج من ElevenLabs
+# ============================================================
 def play_voice_from_file(audio_file_path="Saeed_DataBot_Voice.mp3"):
     """
     تشغيل الصوت المستخرج من ElevenLabs مباشرة
@@ -156,7 +186,7 @@ def play_voice_from_file(audio_file_path="Saeed_DataBot_Voice.mp3"):
             with open(audio_file_path, "rb") as audio_file:
                 audio_bytes = audio_file.read()
                 audio_base64 = base64.b64encode(audio_bytes).decode()
-            
+
             audio_html = f"""
             <audio controls autoplay style="width: 100%;">
                 <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
@@ -172,7 +202,9 @@ def play_voice_from_file(audio_file_path="Saeed_DataBot_Voice.mp3"):
         st.error(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
 
-# ================= قراءة المفاتيح والتعليمات =================
+# ============================================================
+# 4. قراءة المفاتيح والتعليمات
+# ============================================================
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API"]
 except:
@@ -186,7 +218,9 @@ except FileNotFoundError:
     instructions = "أنت مساعد ذكي للتسوق الإلكتروني، اسمك Saeed DaTaBoT، تساعد المستخدمين في العثور على أفضل العروض والإجابة على استفساراتهم."
     st.warning("⚠️ ملف Instructions.txt غير موجود، سيتم استخدام التعليمات الافتراضية.")
 
-# ================= إعداد موديل Gemini مع التعليمات =================
+# ============================================================
+# 5. إعداد موديل Gemini
+# ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
@@ -201,7 +235,9 @@ except Exception as e:
     model = None
     st.error(f"⚠️ حدث خطأ في إعداد الموديل: {str(e)}")
 
-# ================= الوظائف المساعدة =================
+# ============================================================
+# 6. الوظائف المساعدة
+# ============================================================
 @st.cache_data(ttl=3600)
 def is_product_available(url):
     try:
@@ -260,7 +296,9 @@ def render_custom_banner():
     """
     components.html(html_code, height=550)
 
-# ================= واجهة المستخدم =================
+# ============================================================
+# 7. واجهة المستخدم الرئيسية
+# ============================================================
 render_custom_banner()
 
 # عرض صورة Saeed_DataBot_Avatar
@@ -296,7 +334,9 @@ st.markdown("""
 st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaBoT")
 play_voice_from_file("Saeed_DataBot_Voice.mp3")
 
-# ================= تحليل الروابط =================
+# ============================================================
+# 8. تحليل الروابط
+# ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
 url_input = st.text_input("📎 أرسل رابط المنتج أو الموقع هنا (SHEIN, نون, AliExpress):", placeholder="https://...")
@@ -316,10 +356,10 @@ if url_input:
                     <p style='color: #2ecc71;'><strong>📦 حالة المنتج:</strong> {status}</p>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 # تشغيل الصوت مع الرد
                 play_voice_from_file("Saeed_DataBot_Voice.mp3")
-                
+
             except Exception as e:
                 st.info(f"⚠️ لا يمكن تحليل الرابط حالياً: {str(e)}")
         else:
@@ -327,7 +367,9 @@ if url_input:
 
 st.markdown("---")
 
-# ================= منتجات SHEIN =================
+# ============================================================
+# 9. منتجات SHEIN
+# ============================================================
 st.markdown("""
 <div class='store-section'>
     <div class='store-header-shein'>
@@ -383,7 +425,9 @@ for i, product in enumerate(SHEIN_PRODUCTS[:20]):
 
 st.markdown("---")
 
-# ================= منتجات نون =================
+# ============================================================
+# 10. منتجات نون
+# ============================================================
 st.markdown("""
 <div class='store-section'>
     <div class='store-header-noon'>
@@ -431,7 +475,9 @@ for i, product in enumerate(NOON_PRODUCTS):
 
 st.markdown("---")
 
-# ================= منتجات AliExpress =================
+# ============================================================
+# 11. منتجات AliExpress
+# ============================================================
 st.markdown("""
 <div class='store-section'>
     <div class='store-header-aliexpress'>
@@ -451,7 +497,9 @@ st.markdown("""
 
 st.markdown("---")
 
-# ================= بوت الدردشة =================
+# ============================================================
+# 12. بوت الدردشة (مع الصوت المستخرج)
+# ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
 chat_question = st.text_area("📝 اكتب سؤالك هنا:", placeholder="ماذا تريد أن تسأل Saeed DaTaBoT؟", height=100)
@@ -466,10 +514,10 @@ if st.button("💬 أرسل", use_container_width=True):
                 <p style='color: #e2e8f0;'>{quick_ans}</p>
             </div>
             """, unsafe_allow_html=True)
-            
+
             # ✅ استخدام الصوت المستخرج بدلاً من gTTS
             play_voice_from_file("Saeed_DataBot_Voice.mp3")
-            
+
         elif model:
             try:
                 response = model.generate_content(f"رد باختصار وثقة كـ Saeed DaTaBoT: {chat_question}")
@@ -479,10 +527,10 @@ if st.button("💬 أرسل", use_container_width=True):
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 # ✅ استخدام الصوت المستخرج بدلاً من gTTS
                 play_voice_from_file("Saeed_DataBot_Voice.mp3")
-                
+
             except Exception as e:
                 st.error(f"⚠️ حدث خطأ، يرجى المحاولة لاحقاً: {str(e)}")
     else:
@@ -490,7 +538,9 @@ if st.button("💬 أرسل", use_container_width=True):
 
 st.markdown("---")
 
-# ================= السايدبار =================
+# ============================================================
+# 13. السايدبار
+# ============================================================
 with st.sidebar:
     st.markdown("""
     <div style='text-align: center; padding: 25px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
@@ -498,7 +548,7 @@ with st.sidebar:
         <p style='color: #aaa;'>مساعدك الذكي للتسوق</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("### 🎯 خدمات Saeed DaTaBoT:")
     st.markdown("""
     - ✅ تحليل الروابط
@@ -508,12 +558,12 @@ with st.sidebar:
     - ✅ علي اكسبرس قادم
     - ✅ محادثة ذكية
     """)
-    
+
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
     st.markdown("- [@SaeedMarketAds](https://t.me/SaeedMarketAds)")
     st.markdown("- [@SaeedDataBot](https://t.me/SaeedDataBot)")
-    
+
     st.markdown("---")
     st.markdown("### 📊 إحصائيات:")
     col1, col2 = st.columns(2)
@@ -521,7 +571,7 @@ with st.sidebar:
         st.metric("🛍️ منتجات SHEIN", "51")
     with col2:
         st.metric("⭐ منتجات نون", "12+")
-    
+
     st.markdown("---")
     st.caption("© 2026 سوق سعيد - جميع الحقوق محفوظة")
     st.caption("برمجة وتطوير: سعيد المسوري")
