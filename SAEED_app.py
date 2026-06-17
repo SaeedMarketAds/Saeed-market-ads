@@ -181,58 +181,42 @@ st.markdown(page_bg, unsafe_allow_html=True)
 VOICE_URL = "https://drive.google.com/file/d/1VOeoclSxJzT0kbz_p7rk43XqnpXppd41/view?usp=drivesdk"
 
 # ============================================================
-# 4. دالة تشغيل الصوت (ملف محلي أو Google Drive)
+# 4. دالة تشغيل الصوت (نسخة محسنة للعمل في بيئة السحابة)
 # ============================================================
 def play_voice(audio_file_path="Saeed_DataBot_Voice.mp3"):
     """
-    تشغيل الصوت: أولاً من الملف المحلي، وإذا لم يوجد من Google Drive
+    نسخة محسنة للعمل في بيئة السحابة
+    تستخدم مسارات متعددة للبحث عن الملف
     """
-    # المحاولة الأولى: تشغيل من الملف المحلي
-    if os.path.exists(audio_file_path):
-        try:
-            with open(audio_file_path, "rb") as audio_file:
-                audio_bytes = audio_file.read()
-                audio_base64 = base64.b64encode(audio_bytes).decode()
-            
-            audio_html = f"""
-            <audio controls autoplay style="width: 100%;">
-                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                متصفحك لا يدعم تشغيل الصوت.
-            </audio>
-            """
-            st.markdown(audio_html, unsafe_allow_html=True)
-            return True
-        except Exception as e:
-            st.warning(f"⚠️ خطأ في الملف المحلي: {str(e)}")
+    # قائمة المسارات المحتملة للبحث عن الملف
+    possible_paths = [
+        audio_file_path,
+        os.path.join(os.getcwd(), audio_file_path),
+        os.path.join(os.path.dirname(__file__), audio_file_path),
+        "./" + audio_file_path,
+        "/app/" + audio_file_path,
+    ]
     
-    # المحاولة الثانية: تشغيل من Google Drive
-    try:
-        file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', VOICE_URL)
-        if file_id_match:
-            file_id = file_id_match.group(1)
-            direct_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-            
-            response = requests.get(direct_url)
-            if response.status_code == 200:
-                audio_base64 = base64.b64encode(response.content).decode()
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "rb") as audio_file:
+                    audio_bytes = audio_file.read()
                 
-                audio_html = f"""
-                <audio controls autoplay style="width: 100%;">
-                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                    متصفحك لا يدعم تشغيل الصوت.
+                b64 = base64.b64encode(audio_bytes).decode()
+                audio_html = f'''
+                <audio autoplay="true" style="display:none;">
+                    <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
                 </audio>
-                """
+                '''
                 st.markdown(audio_html, unsafe_allow_html=True)
                 return True
-            else:
-                st.error(f"⚠️ فشل تحميل الصوت من Drive: {response.status_code}")
-                return False
-        else:
-            st.warning("⚠️ رابط Google Drive غير صحيح")
-            return False
-    except Exception as e:
-        st.error(f"⚠️ حدث خطأ في تحميل الصوت: {str(e)}")
-        return False
+            except Exception as e:
+                continue
+    
+    st.error(f"❌ لم يتم العثور على ملف الصوت: {audio_file_path}")
+    st.info("تأكد من أن الملف موجود في المستودع بنفس الاسم تماماً (حساس لحالة الأحرف)")
+    return False
 
 # ============================================================
 # 5. قراءة المفاتيح والتعليمات
@@ -242,7 +226,6 @@ try:
 except:
     GEMINI_API_KEY = None
 
-# قراءة التعليمات من ملف Instructions.txt
 try:
     with open('Instructions.txt', 'r', encoding='utf-8') as f:
         instructions = f.read()
@@ -257,7 +240,7 @@ try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini3.5-flash",
+            model_name="gemini-3.5-flash",
             system_instruction=instructions
         )
     else:
@@ -333,7 +316,6 @@ def render_custom_banner():
 # ============================================================
 render_custom_banner()
 
-# عرض صورة Saeed_DataBot_Avatar
 try:
     if os.path.exists("Saeed_DataBot_Avatar.jpg"):
         st.image("Saeed_DataBot_Avatar.jpg", width=200)
@@ -362,7 +344,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# تشغيل الصوت الترحيبي تلقائياً
 st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaBoT")
 play_voice()
 
@@ -388,10 +369,7 @@ if url_input:
                     <p style='color: #2ecc71;'><strong>📦 حالة المنتج:</strong> {status}</p>
                 </div>
                 """, unsafe_allow_html=True)
-
-                # تشغيل الصوت مع الرد
                 play_voice()
-
             except Exception as e:
                 st.info(f"⚠️ لا يمكن تحليل الرابط حالياً: {str(e)}")
         else:
@@ -530,7 +508,7 @@ st.markdown("""
 st.markdown("---")
 
 # ============================================================
-# 13. بوت الدردشة (مع الصوت المستخرج)
+# 13. بوت الدردشة
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
