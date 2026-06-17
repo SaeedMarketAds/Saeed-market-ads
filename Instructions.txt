@@ -1,0 +1,15 @@
+import streamlit as st
+import google.generativeai as genai
+# ... باقي المكتبات التي تستخدمها ...
+
+# 1. قراءة التعليمات من ملف Instructions.txt
+with open('Instructions.txt', 'r', encoding='utf-8') as f:
+    instructions = f.read()
+
+# 2. إعداد الموديل مع التعليمات
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=instructions
+)
+
+# ... باقي الكود الخاص بـ SAEED_app.py ...
