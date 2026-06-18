@@ -1,4 +1,9 @@
 streamlit
-pyttsx3
-gTTS
-pydub
+streamlit-chat
+gtts
+google-generativeai
+Requests
+beautifulsoup4
+
+
+
