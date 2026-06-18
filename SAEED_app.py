@@ -179,12 +179,21 @@ st.markdown(page_bg, unsafe_allow_html=True)
 # 3. دالة تشغيل الصوت (الحل النهائي - تعمل 100%)
 # ============================================================
 def play_voice(filename="Saeed_DataBot_Voice.mp3"):
+    """ def play_voice():
     """
-    تشغيل الصوت من نفس مجلد الملف - حل نهائي يعمل في السحابة
+    تشغيل الصوت عبر رابط مباشر لضمان العمل في بيئة السحابة
     """
-    try:
-        # الحصول على المسار الحقيقي للمجلد الذي يوجد فيه هذا الملف
-        base_path = os.path.dirname(os.path.abspath(__file__))
+    # ضع هنا رابط الملف المباشر بعد رفعه على موقع استضافة أو GitHub كـ Raw
+    # بدلاً من البحث عن مسار محلي
+    audio_url = "https://raw.githubusercontent.com/SaeedMarketAds/SaeedMarketAds/main/Saeed_DataBot_Voice.mp3"
+    
+    audio_html = f'''
+    <audio autoplay="true">
+        <source src="{audio_url}" type="audio/mp3">
+    </audio>
+    '''
+    st.markdown(audio_html, unsafe_allow_html=True)
+   base_path = os.path.dirname(os.path.abspath(__file__))
         file_path = os.path.join(base_path, filename)
         
         # محاولة مسارات إضافية إذا لم يجد الملف
