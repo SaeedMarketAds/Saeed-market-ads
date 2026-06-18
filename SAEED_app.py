@@ -176,11 +176,13 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (تعمل 100% في السحابة)
-# ============================================================
-def play_voice(filename="Saeed_DataBot_Voice.mp3"):
-    """
-    تشغيل الصوت: يحاول قراءة الملف المحلي، وإذا لم يجد يستخدم رابط GitHub Raw
+ # مثال بعد تغيير الاسم في الكود
+def play_voice(filename="new_voice.mp3"):
+    # تأكد أن filename يطابق اسم الملف الجديد تماماً
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_path, filename)
+    # ... بقية الكود كما هو ...
+
     """
     try:
         # المحاولة الأولى: البحث عن الملف في المسارات المحلية
