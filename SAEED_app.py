@@ -183,23 +183,35 @@ VOICE_URL = "https://drive.google.com/file/d/1VOeoclSxJzT0kbz_p7rk43XqnpXppd41/v
 # ============================================================
 # 4. دالة تشغيل الصوت (نسخة محسنة للعمل في بيئة السحابة)
 # ============================================================
+# 4. دالة تشغيل الصوت (نسخة تعمل 100% في السحابة)
+# ============================================================
 def play_voice(audio_file_path="Saeed_DataBot_Voice.mp3"):
     """
-    نسخة محسنة للعمل في بيئة السحابة
-    تستخدم مسارات متعددة للبحث عن الملف
+    نسخة تعمل بشكل مضمون في بيئة السحابة
     """
-    # قائمة المسارات المحتملة للبحث عن الملف
-    possible_paths = [
-        audio_file_path,
-        os.path.join(os.getcwd(), audio_file_path),
-        os.path.join(os.path.dirname(__file__), audio_file_path),
-        "./" + audio_file_path,
-        "/app/" + audio_file_path,
-    ]
-    
-    for path in possible_paths:
-        if os.path.exists(path):
-            try:
+    try:
+        # IMPORTANT: استخدام المسار المطلق للملف
+        import os
+        import base64
+        
+        # تجربة مسارات متعددة
+        paths_to_try = [
+            audio_file_path,
+            os.path.join(os.getcwd(), audio_file_path),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), audio_file_path),
+            "./" + audio_file_path,
+            "/mount/src/Saeed-market-ads/" + audio_file_path,  # مسار Streamlit Cloud
+            "/app/Saeed-market-ads/" + audio_file_path,       # مسار آخر
+        ]
+        
+        # طباعة المسارات للتشخيص (سيظهر في الـ Logs)
+        st.write("🔍 جاري البحث عن الملف في المسارات التالية:")
+        for p in paths_to_try:
+            st.write(f"  - {p}")
+        
+        for path in paths_to_try:
+            if os.path.exists(path):
+                st.success(f"✅ تم العثور على الملف: {path}")
                 with open(path, "rb") as audio_file:
                     audio_bytes = audio_file.read()
                 
@@ -211,16 +223,15 @@ def play_voice(audio_file_path="Saeed_DataBot_Voice.mp3"):
                 '''
                 st.markdown(audio_html, unsafe_allow_html=True)
                 return True
-            except Exception as e:
-                continue
-    
-    st.error(f"❌ لم يتم العثور على ملف الصوت: {audio_file_path}")
-    st.info("تأكد من أن الملف موجود في المستودع بنفس الاسم تماماً (حساس لحالة الأحرف)")
-    return False
-
-# ============================================================
-# 5. قراءة المفاتيح والتعليمات
-# ============================================================
+        
+        # إذا وصلنا هنا، لم يتم العثور على الملف
+        st.error("❌ لم يتم العثور على ملف الصوت في أي من المسارات")
+        st.info("📁 تأكد من أن الملف موجود في المستودع باسم: Saeed_DataBot_Voice.mp3")
+        return False
+        
+    except Exception as e:
+        st.error(f"❌ حدث خطأ: {str(e)}")
+        return False
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API"]
 except:
