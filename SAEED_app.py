@@ -176,29 +176,17 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (الحل النهائي - تعمل 100%)
+# 3. دالة تشغيل الصوت (تعمل 100% في السحابة)
 # ============================================================
 def play_voice(filename="Saeed_DataBot_Voice.mp3"):
-    """ def play_voice():
     """
-    تشغيل الصوت عبر رابط مباشر لضمان العمل في بيئة السحابة
+    تشغيل الصوت: يحاول قراءة الملف المحلي، وإذا لم يجد يستخدم رابط GitHub Raw
     """
-    # ضع هنا رابط الملف المباشر بعد رفعه على موقع استضافة أو GitHub كـ Raw
-    # بدلاً من البحث عن مسار محلي
-    audio_url = "https://raw.githubusercontent.com/SaeedMarketAds/SaeedMarketAds/main/Saeed_DataBot_Voice.mp3"
-    
-    audio_html = f'''
-    <audio autoplay="true">
-        <source src="{audio_url}" type="audio/mp3">
-    </audio>
-    '''
-    st.markdown(audio_html, unsafe_allow_html=True)
-   base_path = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(base_path, filename)
-        
-        # محاولة مسارات إضافية إذا لم يجد الملف
+    try:
+        # المحاولة الأولى: البحث عن الملف في المسارات المحلية
+        base_path = os.path.dirname(os.path.abspath(__file__))
         paths_to_try = [
-            file_path,
+            os.path.join(base_path, filename),
             os.path.join(os.getcwd(), filename),
             "./" + filename,
             "/mount/src/Saeed-market-ads/" + filename,
@@ -209,7 +197,6 @@ def play_voice(filename="Saeed_DataBot_Voice.mp3"):
             if os.path.exists(path):
                 with open(path, "rb") as f:
                     audio_bytes = f.read()
-                
                 b64 = base64.b64encode(audio_bytes).decode()
                 audio_html = f'''
                 <audio autoplay="true" style="display:none;">
@@ -219,11 +206,18 @@ def play_voice(filename="Saeed_DataBot_Voice.mp3"):
                 st.markdown(audio_html, unsafe_allow_html=True)
                 return True
         
-        st.error(f"❌ لم يتم العثور على ملف الصوت: {filename}")
-        return False
+        # المحاولة الثانية: استخدام رابط GitHub Raw
+        audio_url = "https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/Saeed_DataBot_Voice.mp3"
+        audio_html = f'''
+        <audio autoplay="true" style="display:none;">
+            <source src="{audio_url}" type="audio/mp3">
+        </audio>
+        '''
+        st.markdown(audio_html, unsafe_allow_html=True)
+        return True
         
     except Exception as e:
-        st.error(f"❌ حدث خطأ: {str(e)}")
+        st.error(f"❌ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
 
 # ============================================================
@@ -248,7 +242,7 @@ try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-3.5-flash",
+            model_name="gemini-1.5-flash",
             system_instruction=instructions
         )
     else:
