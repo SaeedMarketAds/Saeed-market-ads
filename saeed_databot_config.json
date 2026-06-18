@@ -1,8 +1,6 @@
 {
-  "bot_name": "Saeed DataBot",
-  "owner_name": "Saeed Almasoori",
-  "model_name": "gemini-1.5-flash",
-  "max_history": 15,
-  "temperature": 0.7,
-  "voice_enabled": true
+    "bot_name": "Saeed DataBot",
+    "owner": "Saeed Almasoori",
+    "version": "1.0.0",
+    "language": "ar"
 }
