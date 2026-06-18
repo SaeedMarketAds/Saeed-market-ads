@@ -1,6 +1,4 @@
-{
-    "bot_name": "Saeed DataBot",
-    "owner": "Saeed Almasoori",
-    "version": "1.0.0",
-    "language": "ar"
-}
+streamlit
+pyttsx3
+gTTS
+pydub
