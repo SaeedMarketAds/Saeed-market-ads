@@ -176,43 +176,30 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. رابط الصوت من Google Drive
+# 3. دالة تشغيل الصوت (الحل النهائي - تعمل 100%)
 # ============================================================
-VOICE_URL = "https://drive.google.com/file/d/1VOeoclSxJzT0kbz_p7rk43XqnpXppd41/view?usp=drivesdk"
-
-# ============================================================
-# ============================================================
-# 4. دالة تشغيل الصوت (نسخة تعمل 100% في السحابة)
-# ============================================================
-def play_voice(audio_file_path="Saeed_DataBot_Voice.mp3"):
+def play_voice(filename="Saeed_DataBot_Voice.mp3"):
     """
-    نسخة تعمل بشكل مضمون في بيئة السحابة
+    تشغيل الصوت من نفس مجلد الملف - حل نهائي يعمل في السحابة
     """
     try:
-        # IMPORTANT: استخدام المسار المطلق للملف
-        import os
-        import base64
+        # الحصول على المسار الحقيقي للمجلد الذي يوجد فيه هذا الملف
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(base_path, filename)
         
-        # تجربة مسارات متعددة
+        # محاولة مسارات إضافية إذا لم يجد الملف
         paths_to_try = [
-            audio_file_path,
-            os.path.join(os.getcwd(), audio_file_path),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), audio_file_path),
-            "./" + audio_file_path,
-            "/mount/src/Saeed-market-ads/" + audio_file_path,  # مسار Streamlit Cloud
-            "/app/Saeed-market-ads/" + audio_file_path,       # مسار آخر
+            file_path,
+            os.path.join(os.getcwd(), filename),
+            "./" + filename,
+            "/mount/src/Saeed-market-ads/" + filename,
+            "/app/Saeed-market-ads/" + filename,
         ]
-        
-        # طباعة المسارات للتشخيص (سيظهر في الـ Logs)
-        st.write("🔍 جاري البحث عن الملف في المسارات التالية:")
-        for p in paths_to_try:
-            st.write(f"  - {p}")
         
         for path in paths_to_try:
             if os.path.exists(path):
-                st.success(f"✅ تم العثور على الملف: {path}")
-                with open(path, "rb") as audio_file:
-                    audio_bytes = audio_file.read()
+                with open(path, "rb") as f:
+                    audio_bytes = f.read()
                 
                 b64 = base64.b64encode(audio_bytes).decode()
                 audio_html = f'''
@@ -223,14 +210,16 @@ def play_voice(audio_file_path="Saeed_DataBot_Voice.mp3"):
                 st.markdown(audio_html, unsafe_allow_html=True)
                 return True
         
-        # إذا وصلنا هنا، لم يتم العثور على الملف
-        st.error("❌ لم يتم العثور على ملف الصوت في أي من المسارات")
-        st.info("📁 تأكد من أن الملف موجود في المستودع باسم: Saeed_DataBot_Voice.mp3")
+        st.error(f"❌ لم يتم العثور على ملف الصوت: {filename}")
         return False
         
     except Exception as e:
         st.error(f"❌ حدث خطأ: {str(e)}")
         return False
+
+# ============================================================
+# 4. قراءة المفاتيح والتعليمات
+# ============================================================
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API"]
 except:
@@ -244,7 +233,7 @@ except FileNotFoundError:
     st.warning("⚠️ ملف Instructions.txt غير موجود، سيتم استخدام التعليمات الافتراضية.")
 
 # ============================================================
-# 6. إعداد موديل Gemini
+# 5. إعداد موديل Gemini
 # ============================================================
 try:
     if GEMINI_API_KEY:
@@ -261,7 +250,7 @@ except Exception as e:
     st.error(f"⚠️ حدث خطأ في إعداد الموديل: {str(e)}")
 
 # ============================================================
-# 7. الوظائف المساعدة
+# 6. الوظائف المساعدة
 # ============================================================
 @st.cache_data(ttl=3600)
 def is_product_available(url):
@@ -322,7 +311,7 @@ def render_custom_banner():
     components.html(html_code, height=550)
 
 # ============================================================
-# 8. واجهة المستخدم الرئيسية
+# 7. واجهة المستخدم الرئيسية
 # ============================================================
 render_custom_banner()
 
@@ -358,7 +347,7 @@ st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaB
 play_voice()
 
 # ============================================================
-# 9. تحليل الروابط
+# 8. تحليل الروابط
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -388,7 +377,7 @@ if url_input:
 st.markdown("---")
 
 # ============================================================
-# 10. منتجات SHEIN
+# 9. منتجات SHEIN
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -446,7 +435,7 @@ for i, product in enumerate(SHEIN_PRODUCTS[:20]):
 st.markdown("---")
 
 # ============================================================
-# 11. منتجات نون
+# 10. منتجات نون
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -496,7 +485,7 @@ for i, product in enumerate(NOON_PRODUCTS):
 st.markdown("---")
 
 # ============================================================
-# 12. منتجات AliExpress
+# 11. منتجات AliExpress
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -518,7 +507,7 @@ st.markdown("""
 st.markdown("---")
 
 # ============================================================
-# 13. بوت الدردشة
+# 12. بوت الدردشة
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -553,7 +542,7 @@ if st.button("💬 أرسل", use_container_width=True):
 st.markdown("---")
 
 # ============================================================
-# 14. السايدبار
+# 13. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
