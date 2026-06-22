@@ -1,9 +1,6 @@
 streamlit
-streamlit-chat
-gtts
 google-generativeai
-Requests
-beautifulsoup4
+requests
 pyttsx3==2.90
-
+gTTS
 
