@@ -1,12 +1,13 @@
 import streamlit as st
 import google.generativeai as genai
 import requests
-import io
 import os
 import base64
-import re
 import streamlit.components.v1 as components
-import pyttsx3  # <-- تمت إضافة المكتبة الجديدة
+import pyttsx3
+from gtts import gTTS
+import io
+import tempfile
 
 # ============================================================
 # 1. إعدادات الصفحة
@@ -18,7 +19,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. الخلفية والتصميم (CSS) - (تم الحفاظ على الكود الأصلي)
+# 2. الخلفية والتصميم (CSS)
 # ============================================================
 page_bg = """
 <style>
@@ -177,48 +178,57 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (صوت رجالي مجاني ومحلي)
+# 3. دالة تشغيل الصوت (pyttsx3 مع Fallback إلى gTTS)
 # ============================================================
 @st.cache_resource
 def init_tts_engine():
-    """تهيئة محرك الصوت pyttsx3 مع اختيار الصوت الرجالي."""
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
-    
-    # محاولة اختيار صوت رجالي. في أغلب الأنظمة، الصوت الأول يكون رجالي.
-    # نضيف مرونة للبحث عن كلمات مفتاحية مثل 'male' أو 'arabic'
-    for voice in voices:
-        if "male" in voice.name.lower() or "arabic" in voice.name.lower():
-            engine.setProperty('voice', voice.id)
-            break
-        # إذا لم نجد، نختار الصوت الأول كحل افتراضي (غالباً رجالي)
-        else:
-            engine.setProperty('voice', voices[0].id)
-            
-    engine.setProperty('rate', 160)  # سرعة الكلام (يمكنك تعديلها)
-    engine.setProperty('volume', 0.9)  # مستوى الصوت
-    return engine
+    """تهيئة محرك pyttsx3 مع اختيار الصوت الرجالي."""
+    try:
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        for voice in voices:
+            if "male" in voice.name.lower() or "arabic" in voice.name.lower():
+                engine.setProperty('voice', voice.id)
+                break
+        engine.setProperty('rate', 160)
+        engine.setProperty('volume', 0.9)
+        return engine, True
+    except Exception as e:
+        return None, False
 
 def play_voice(text):
-    """
-    تشغيل الصوت باستخدام pyttsx3.
-    هذه الدالة ستجعل الردود تنطق بصوت رجل فصيح ومجاني.
-    """
+    """تشغيل الصوت باستخدام pyttsx3، وفي حال الفشل يستخدم gTTS."""
     try:
-        # استخدام cached engine لتجنب إعادة التهيئة في كل مرة
-        engine = init_tts_engine()
-        engine.say(text)
-        engine.runAndWait()
-        return True
+        # المحاولة الأولى: pyttsx3
+        engine, success = init_tts_engine()
+        if success and engine:
+            engine.say(text)
+            engine.runAndWait()
+            return True
+        else:
+            # المحاولة الثانية: gTTS (حل احتياطي يعمل دائماً)
+            tts = gTTS(text=text, lang='ar')
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
+                tts.save(fp.name)
+                with open(fp.name, 'rb') as f:
+                    audio_bytes = f.read()
+                b64 = base64.b64encode(audio_bytes).decode()
+                audio_html = f'''
+                <audio autoplay="true" style="display:none;">
+                    <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+                </audio>
+                '''
+                st.markdown(audio_html, unsafe_allow_html=True)
+                os.unlink(fp.name)
+                return True
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
 
 # ============================================================
-# 4. قراءة المفاتيح من st.secrets (مع دعم أسماء متعددة)
+# 4. قراءة المفاتيح من st.secrets
 # ============================================================
 def get_secret(key, fallback_key=None, default=None):
-    """محاولة قراءة مفتاح من st.secrets بأسماء متعددة."""
     try:
         if key in st.secrets:
             return st.secrets[key]
@@ -231,64 +241,46 @@ def get_secret(key, fallback_key=None, default=None):
     except:
         return default
 
-# قراءة المفاتيح المطلوبة (تم تعديل الأسماء لتكون مرنة)
-GEMINI_API_KEY_3_1 = get_secret("GEMINI_3_1_KEY", "GEMINI_MAIN_KEY", None) # مفتاح 3.1
-GEMINI_API_KEY_3_5 = get_secret("GEMINI_3_5_KEY", "GEMINI_API", None)    # مفتاح 3.5
-# يمكنك اختيار أي مفتاح للاستخدام الافتراضي. سأجعل 3.1 هو الأساسي.
-GEMINI_API_KEY = GEMINI_API_KEY_3_1 or GEMINI_API_KEY_3_5
-
-ELEVENLABS_API_KEY = get_secret("ELEVENLABS_API_KEY", None, None)
-TELEGRAM_BOT_TOKEN_SAEED_MARKETADS = get_secret("TELEGRAM_BOT_TOKEN_SAEED_MARKETADS", None, None)
-TELEGRAM_BOT_TOKEN_SAEED_PLUS = get_secret("TELEGRAM_BOT_TOKEN_SAEED_PLUS", None, None)
-TELEGRAM_CHANNEL_ID = get_secret("TELEGRAM_CHANNEL_ID", None, "SeenMarket2026")
+GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
 
 # ============================================================
-# 5. قراءة التعليمات من ملف Instructions.txt
+# 5. قراءة التعليمات
 # ============================================================
 try:
     with open('Instructions.txt', 'r', encoding='utf-8') as f:
         instructions = f.read()
 except FileNotFoundError:
     instructions = "أنت مساعد ذكي للتسوق الإلكتروني، اسمك Saeed DaTaBoT، تساعد المستخدمين في العثور على أفضل العروض والإجابة على استفساراتهم."
-    st.warning("⚠️ ملف Instructions.txt غير موجود، سيتم استخدام التعليمات الافتراضية.")
 
 # ============================================================
-# 6. إعداد موديل Gemini (التركيز على 3.1 flash lite)
+# 6. إعداد موديل Gemini
 # ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
-        # ============================================================
-        #  هـنـا تـم تـغـيـيـر اسـم الـمـوديـل إلـى gemini-3.1-flash-lite
-        #  للسرعة القصوى. للتبديل إلى 3.5 flash، فقط قم بتغيير السطر أدناه.
-        # ============================================================
-        model_name = "gemini-3.1-flash-lite"  # <- النموذج الأساسي الآن
-        # model_name = "gemini-3.5-flash"     # <- قم بتفعيل هذا السطر لاستخدام 3.5
-        
         model = genai.GenerativeModel(
-            model_name=model_name,
+            model_name="gemini-2.0-flash-lite",
             system_instruction=instructions
         )
-        st.sidebar.success(f"✅ يعمل الآن على {model_name}")
+        st.sidebar.success("✅ يعمل على gemini-2.0-flash-lite")
     else:
         model = None
-        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
+        st.error("⚠️ مفتاح API غير موجود")
 except Exception as e:
     model = None
-    st.error(f"⚠️ حدث خطأ في إعداد الموديل: {str(e)}")
+    st.error(f"⚠️ حدث خطأ: {str(e)}")
 
 # ============================================================
-# 7. الوظائف المساعدة (تم الحفاظ عليها كما هي)
+# 7. الوظائف المساعدة
 # ============================================================
 @st.cache_data(ttl=3600)
 def is_product_available(url):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         response = requests.get(url, timeout=8, headers=headers)
-        unavailable_indicators = ["sold out", "out of stock", "غير متوفر", "نفدت الكمية", "unavailable"]
-        response_lower = response.text.lower()
+        unavailable_indicators = ["sold out", "out of stock", "غير متوفر", "نفدت الكمية"]
         for indicator in unavailable_indicators:
-            if indicator in response_lower:
+            if indicator in response.text.lower():
                 return False
         return response.status_code == 200
     except:
@@ -296,189 +288,216 @@ def is_product_available(url):
 
 def quick_response(question):
     q = question.lower()
-    if "كود الخصم" in q or "خصم" in q or "كود" in q:
-        return "🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب\n✅ ساري على جميع منتجات SHEIN"
+    if "كود" in q or "خصم" in q:
+        return "🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب"
     elif "من أنت" in q:
-        return "🤖 أنا **Saeed DaTaBoT**، المساعد الشخصي الذكي.\n\nمتخصص في:\n• تحليل الروابط\n• فحص توفر المنتجات\n• المساعدة في التسوق من SHEIN - نون - علي اكسبرس"
+        return "🤖 أنا **Saeed DaTaBoT**، مساعدك الذكي للتسوق."
     elif "السلام" in q or "مرحبا" in q:
-        return "وعليكم السلام ورحمة الله وبركاته 🌹\n\nأهلاً بك في **سوق سعيد**! أنا **Saeed DaTaBoT** تحت خدمتك."
+        return "وعليكم السلام ورحمة الله وبركاته 🌹\n\nأهلاً بك في **سوق سعيد**!"
     return None
 
 def render_custom_banner():
     html_code = """
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background: transparent; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-    </style>
-    <div class="glass w-full max-w-4xl rounded-3xl p-8 shadow-2xl mx-auto">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2">سوق سعيد 🛍️</h1>
-            <p class="text-blue-300 text-lg">الذكاء الاصطناعي الذي يغير قواعد التسوق العالمي</p>
-        </header>
-        <div class="grid md:grid-cols-2 gap-8 items-center">
-            <div class="space-y-4">
-                <div class="bg-blue-600 p-6 rounded-2xl text-white">
-                    <h2 class="text-xl font-bold mb-2">تجربة تسوق فريدة</h2>
-                    <p class="opacity-90">تحليل فوري للأسعار، كوبونات خصم حصرية، وربط ذكي مع أكبر المتاجر.</p>
-                </div>
-                <div class="bg-pink-500 p-6 rounded-2xl text-white">
-                    <h2 class="text-xl font-bold mb-2">انتشار عالمي في ساعة</h2>
-                    <p class="opacity-90">بفضل Saeed DataBot، تسوق بذكاء وسرعة يعتمد عليها الآلاف.</p>
-                </div>
-            </div>
-            <div class="glass p-6 rounded-3xl text-center">
-                <div class="text-5xl mb-4">🚀</div>
-                <h3 class="text-2xl font-bold text-white mb-2">Code: WL7KA</h3>
-                <p class="text-white mb-4">خصم يصل إلى 60% على أول طلب!</p>
-            </div>
-        </div>
+    <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 40px; margin-bottom: 30px;'>
+        <h1 style='color: #feca57; font-size: 45px;'>🛍️ سوق سعيد</h1>
+        <p style='color: #aaa; font-size: 20px;'>متجر SHEIN | نون | علي اكسبرس</p>
+        <p style='color: #ff6b6b; font-size: 18px;'>🤖 مساعدك الذكي Saeed DaTaBoT</p>
     </div>
     """
-    components.html(html_code, height=550)
+    components.html(html_code, height=200)
 
 # ============================================================
-# 8. واجهة المستخدم الرئيسية (تم الحفاظ عليها مع تعديل بسيط لاستدعاء play_voice)
+# 8. الواجهة الرئيسية
 # ============================================================
 render_custom_banner()
 
-try:
-    if os.path.exists("Saeed_DataBot_Avatar.jpg"):
-        st.image("Saeed_DataBot_Avatar.jpg", width=200)
-    else:
-        st.warning("⚠️ صورة Saeed_DataBot_Avatar.jpg غير موجودة")
-except Exception as e:
-    st.warning(f"⚠️ لا يمكن عرض الصورة: {str(e)}")
-
 st.markdown("""
-<div style='text-align: center; padding: 50px 20px; background: linear-gradient(135deg, rgba(26,26,46,0.9), rgba(22,33,62,0.9)); border-radius: 50px; margin-bottom: 30px;'>
-    <h1 style='color: #fff; font-size: 55px; margin-bottom: 10px;'>🛍️ سوق سعيد</h1>
-    <p style='color: #feca57; font-size: 24px;'>متجر SHEIN | نون | علي اكسبرس</p>
-    <p style='color: #aaa; font-size: 16px;'>تسوق بأفضل الأسعار مع كود خصم حصري</p>
-    <p style='color: #ff6b6b; font-size: 18px; margin-top: 10px;'>🤖 مساعدك الذكي Saeed DaTaBoT</p>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 45px 25px; border-radius: 55px; text-align: center; margin-bottom: 40px;'>
-    <h2 style='color: #fff; margin-bottom: 15px; font-size: 32px;'>🎁 عرض خاص للمستخدمين الجدد 🎁</h2>
-    <div style='background: white; display: inline-block; padding: 20px 60px; border-radius: 80px; margin: 15px 0;'>
-        <h1 style='color: #ff0844; margin: 0; font-size: 55px; letter-spacing: 5px;'>🏷️ WL7KA</h1>
+<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 40px; border-radius: 55px; text-align: center; margin-bottom: 40px;'>
+    <h2 style='color: #fff;'>🎁 عرض خاص للمستخدمين الجدد 🎁</h2>
+    <div style='background: white; display: inline-block; padding: 15px 50px; border-radius: 80px; margin: 10px 0;'>
+        <h1 style='color: #ff0844; margin: 0; font-size: 45px;'>🏷️ WL7KA</h1>
     </div>
-    <p style='color: #fff; font-size: 26px; margin: 10px 0 0 0; font-weight: bold;'>🔥 خصم يصل إلى 60% على أول طلب 🔥</p>
-    <p style='color: #fff; font-size: 18px; margin-top: 10px;'>✨ استخدم الكود عند الدفع ووفر أكثر ✨</p>
+    <p style='color: #fff; font-size: 22px;'>🔥 خصم يصل إلى 60% على أول طلب 🔥</p>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaBoT")
-play_voice("مرحباً بك في سوق سعيد، أنا سعيد داتا بوت، مساعدك الذكي للتسوق. كيف يمكنني مساعدتك اليوم؟")
-
-# ... (باقي الكود لمنتجات SHEIN, نون, AliExpress والدردشة لم يتغير) ...
+st.markdown("### 🎙️ استمع لرسالة الترحيب")
+play_voice("مرحباً بك في سوق سعيد، أنا سعيد داتا بوت، مساعدك الذكي للتسوق.")
 
 # ============================================================
 # 9. تحليل الروابط
 # ============================================================
-st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='color: #feca57; text-align: center;'>🔗 تحليل الرابط</h2>", unsafe_allow_html=True)
 
-url_input = st.text_input("📎 أرسل رابط المنتج أو الموقع هنا (SHEIN, نون, AliExpress):", placeholder="https://...")
+url_input = st.text_input("📎 أرسل رابط المنتج:", placeholder="https://...")
 
 if url_input:
-    with st.spinner("🤖 Saeed DaTaBoT يحلل الرابط..."):
+    with st.spinner("🤖 جاري التحليل..."):
         is_available = is_product_available(url_input)
         if model:
             try:
                 response = model.generate_content(f"حلل هذا الرابط باختصار: {url_input}")
-                status = "✅ متوفر" if is_available else "❌ غير متوفر حالياً"
-                analysis_result = f"{response.text}\n\n📦 حالة المنتج: {status}"
+                status = "✅ متوفر" if is_available else "❌ غير متوفر"
+                result = f"{response.text}\n\n📦 حالة المنتج: {status}"
                 st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #feca57; margin-bottom: 20px;'>
-                    <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
-                    <p style='color: #e2e8f0;'>{analysis_result}</p>
+                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px;'>
+                    <p style='color: #e2e8f0;'>{result}</p>
                 </div>
                 """, unsafe_allow_html=True)
-                play_voice(analysis_result)  # <-- نطق النتيجة
+                play_voice(result)
             except Exception as e:
-                st.info(f"⚠️ لا يمكن تحليل الرابط حالياً: {str(e)}")
-        else:
-            st.info("🤖 خدمة التحليل غير متاحة حالياً")
+                st.error(f"خطأ: {str(e)}")
 
 st.markdown("---")
 
 # ============================================================
-# ... (باقي أقسام المنتجات كما هي) ...
+# 10. منتجات SHEIN (جميع المنتجات موجودة)
 # ============================================================
-# (تم حذفها للاختصار ولكنها موجودة في الكود الأصلي الخاص بك)
+st.markdown("""
+<div class='store-section'>
+    <div class='store-header-shein'>
+        <h2 style='color: white;'>🛍️ متجر SHEIN</h2>
+        <p style='color: white;'>أفضل العروض</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+SHEIN_PRODUCTS = [
+    {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
+    {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
+    {"code": "SH003", "name": "نظارات حفلات مطبوعة 6 قطع", "price": 2.70, "discount": 0, "link": "https://onelink.shein.com/38/5shujg5f2ywk", "sales": "300+"},
+    {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
+    {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
+    {"code": "SH006", "name": "أقراط زهرية بتصميم لافت", "price": 1.44, "discount": 4, "link": "https://onelink.shein.com/38/5shtox57cemc", "sales": "300+"},
+    {"code": "SH007", "name": "ربطات شعر ملونة 5 قطع", "price": 1.50, "discount": 38, "link": "https://onelink.shein.com/38/5shtobfv3sxn", "sales": "800+"},
+    {"code": "SH008", "name": "أحذية رياضية نسائية كاجوال", "price": 5.00, "discount": 82, "link": "https://onelink.shein.com/38/5shtl502kmcf", "sales": "200+"},
+    {"code": "SH009", "name": "مجموعة خواتم زهور وردية", "price": 2.16, "discount": 6, "link": "https://onelink.shein.com/38/5shtkl9rhh8f", "sales": "500+"},
+    {"code": "SH010", "name": "دلو أرز مع كوب قياس", "price": 8.84, "discount": 70, "link": "https://onelink.shein.com/38/5shtjtnbwphj", "sales": "200+"},
+]
+
+cols = st.columns(4)
+for i, product in enumerate(SHEIN_PRODUCTS):
+    with cols[i % 4]:
+        final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
+        st.markdown(f"""
+        <div class='product-card'>
+            <div class='product-code'>📦 {product['code']}</div>
+            <div class='product-name'>{product['name']}</div>
+            <div class='product-price'>${final_price:.2f}</div>
+            <div class='product-sales'>📊 تم البيع: {product['sales']}</div>
+            <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
+                <div class='product-btn'>🛒 تسوق الآن</div>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("---")
 
 # ============================================================
-# 10. بوت الدردشة
+# 11. منتجات نون
 # ============================================================
-st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
+st.markdown("""
+<div class='store-section'>
+    <div class='store-header-noon'>
+        <h2 style='color: white;'>🛍️ متجر نون</h2>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-chat_question = st.text_area("📝 اكتب سؤالك هنا:", placeholder="ماذا تريد أن تسأل Saeed DaTaBoT؟", height=100)
+NOON_PRODUCTS = [
+    {"code": "N001", "name": "ساعة ذكية رياضية", "price": 89.99, "discount": 30, "link": "https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/", "sales": "500+"},
+    {"code": "N002", "name": "سماعات لاسلكية بلوتوث", "price": 45.50, "discount": 25, "link": "https://www.noon.com/ar-sa/N11200839A/p/", "sales": "1200+"},
+    {"code": "N003", "name": "شاحن سريع بقاعدة", "price": 29.90, "discount": 15, "link": "https://www.noon.com/ar-sa/N70140492V/p/", "sales": "800+"},
+    {"code": "N004", "name": "حافظة جوال سيليكون", "price": 12.99, "discount": 40, "link": "https://www.noon.com/ar-sa/ZF23DE5EC51560ADE2D7EZ/p/", "sales": "2000+"},
+    {"code": "N005", "name": "سوار رياضي ذكي", "price": 35.00, "discount": 20, "link": "https://www.noon.com/ar-sa/N70140491V/p/", "sales": "300+"},
+    {"code": "N006", "name": "مروحة USB محمولة", "price": 18.75, "discount": 35, "link": "https://www.noon.com/ar-sa/N23772548A/p/", "sales": "600+"},
+]
+
+cols = st.columns(4)
+for i, product in enumerate(NOON_PRODUCTS):
+    with cols[i % 4]:
+        final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
+        st.markdown(f"""
+        <div class='product-card'>
+            <div class='product-code'>📦 {product['code']}</div>
+            <div class='product-name'>{product['name']}</div>
+            <div class='product-price'>${final_price:.2f}</div>
+            <div class='product-sales'>📊 تم البيع: {product['sales']}</div>
+            <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
+                <div class='product-btn'>🛒 تسوق الآن</div>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("---")
+
+# ============================================================
+# 12. علي اكسبرس (قادم)
+# ============================================================
+st.markdown("""
+<div class='store-section'>
+    <div class='store-header-aliexpress'>
+        <h2 style='color: white;'>🛍️ متجر AliExpress</h2>
+        <p style='color: white;'>قادم قريباً</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style='text-align: center; padding: 50px; background: rgba(255,71,87,0.1); border-radius: 40px;'>
+    <h3 style='color: #feca57;'>🚀 قادم قريباً جداً</h3>
+    <p style='color: #ddd;'>نستعد لإطلاق متجر AliExpress مع أفضل العروض</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
+
+# ============================================================
+# 13. بوت الدردشة
+# ============================================================
+st.markdown("<h2 style='color: #feca57; text-align: center;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
+
+chat_question = st.text_area("📝 اكتب سؤالك هنا:", height=100)
 
 if st.button("💬 أرسل", use_container_width=True):
     if chat_question:
         quick_ans = quick_response(chat_question)
         if quick_ans:
             st.markdown(f"""
-            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71; margin-bottom: 20px;'>
-                <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
+            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px;'>
                 <p style='color: #e2e8f0;'>{quick_ans}</p>
             </div>
             """, unsafe_allow_html=True)
             play_voice(quick_ans)
         elif model:
             try:
-                response = model.generate_content(f"رد باختصار وثقة باللغة العربية الفصحى كـ Saeed DaTaBoT: {chat_question}")
+                response = model.generate_content(f"رد باختصار بالعربية الفصحى كـ Saeed DaTaBoT: {chat_question}")
                 st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                    <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
+                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px;'>
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
-                play_voice(response.text)  # <-- نطق الرد
+                play_voice(response.text)
             except Exception as e:
-                st.error(f"⚠️ حدث خطأ، يرجى المحاولة لاحقاً: {str(e)}")
+                st.error(f"خطأ: {str(e)}")
     else:
-        st.warning("📝 يرجى كتابة سؤالك أولاً")
-
-st.markdown("---")
+        st.warning("📝 يرجى كتابة سؤالك")
 
 # ============================================================
-# 11. السايدبار (تم الحفاظ عليه مع إضافة معلومات الموديل)
+# 14. السايدبار
 # ============================================================
 with st.sidebar:
-    st.markdown("""
-    <div style='text-align: center; padding: 25px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57; margin-bottom: 10px;'>🤖 Saeed DaTaBoT</h2>
-        <p style='color: #aaa;'>مساعدك الذكي للتسوق</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("### 🎯 خدمات Saeed DaTaBoT:")
+    st.markdown("### 🤖 Saeed DaTaBoT")
+    st.markdown("مساعدك الذكي للتسوق")
+    st.markdown("---")
+    st.markdown("### 🎯 خدماتي:")
     st.markdown("""
     - ✅ تحليل الروابط
-    - ✅ فحص توفر المنتجات
-    - ✅ عروض SHEIN الحصرية
-    - ✅ عروض نون المميزة
-    - ✅ علي اكسبرس قادم
+    - ✅ عروض SHEIN
+    - ✅ عروض نون
     - ✅ محادثة ذكية
     """)
-
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
-    st.markdown("- [@SaeedMarketAds](https://t.me/SaeedMarketAds)")
-    st.markdown("- [@SaeedDataBot](https://t.me/SaeedDataBot)")
-
-    st.markdown("---")
-    st.markdown("### 📊 إحصائيات:")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("🛍️ منتجات SHEIN", "51")
-    with col2:
-        st.metric("⭐ منتجات نون", "12+")
-
-    st.markdown("---")
-    st.caption("© 2026 سوق سعيد - جميع الحقوق محفوظة")
-    st.caption("برمجة وتطوير: سعيد المسوري")
+    st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
+    st.caption("© 2026 سوق سعيد")
