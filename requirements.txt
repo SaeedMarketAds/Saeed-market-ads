@@ -4,6 +4,6 @@ gtts
 google-generativeai
 Requests
 beautifulsoup4
-
+pyttsx3==2.90
 
 
