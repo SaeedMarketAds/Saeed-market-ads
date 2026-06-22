@@ -1,13 +1,13 @@
+
 import streamlit as st
 import google.generativeai as genai
 import requests
 import os
 import base64
 import streamlit.components.v1 as components
-import pyttsx3
-from gtts import gTTS
-import io
+import edge_tts  # <- المكتبة الجديدة للصوت الرجالي
 import tempfile
+import asyncio
 
 # ============================================================
 # 1. إعدادات الصفحة
@@ -178,49 +178,42 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (pyttsx3 مع Fallback إلى gTTS)
+# 3. دالة تشغيل الصوت (باستخدام edge-tts لصوت رجالي فصيح)
 # ============================================================
-@st.cache_resource
-def init_tts_engine():
-    """تهيئة محرك pyttsx3 مع اختيار الصوت الرجالي."""
+async def generate_audio(text, voice="ar-SA-HamedNeural"):
+    """توليد ملف صوتي بصوت رجالي عربي باستخدام edge-tts."""
     try:
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        for voice in voices:
-            if "male" in voice.name.lower() or "arabic" in voice.name.lower():
-                engine.setProperty('voice', voice.id)
-                break
-        engine.setProperty('rate', 160)
-        engine.setProperty('volume', 0.9)
-        return engine, True
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
+            output_file = tmp_file.name
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_file)
+        with open(output_file, 'rb') as f:
+            audio_bytes = f.read()
+        os.unlink(output_file)
+        return audio_bytes
     except Exception as e:
-        return None, False
+        st.warning(f"⚠️ خطأ في توليد الصوت: {str(e)}")
+        return None
 
 def play_voice(text):
-    """تشغيل الصوت باستخدام pyttsx3، وفي حال الفشل يستخدم gTTS."""
+    """تشغيل الصوت في المتصفح."""
     try:
-        # المحاولة الأولى: pyttsx3
-        engine, success = init_tts_engine()
-        if success and engine:
-            engine.say(text)
-            engine.runAndWait()
+        # تشغيل الدالة غير المتزامنة
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        audio_bytes = loop.run_until_complete(generate_audio(text))
+        loop.close()
+        if audio_bytes:
+            b64 = base64.b64encode(audio_bytes).decode()
+            audio_html = f'''
+            <audio autoplay="true" style="display:none;">
+                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+            '''
+            st.markdown(audio_html, unsafe_allow_html=True)
             return True
         else:
-            # المحاولة الثانية: gTTS (حل احتياطي يعمل دائماً)
-            tts = gTTS(text=text, lang='ar')
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
-                tts.save(fp.name)
-                with open(fp.name, 'rb') as f:
-                    audio_bytes = f.read()
-                b64 = base64.b64encode(audio_bytes).decode()
-                audio_html = f'''
-                <audio autoplay="true" style="display:none;">
-                    <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-                </audio>
-                '''
-                st.markdown(audio_html, unsafe_allow_html=True)
-                os.unlink(fp.name)
-                return True
+            return False
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
@@ -253,16 +246,16 @@ except FileNotFoundError:
     instructions = "أنت مساعد ذكي للتسوق الإلكتروني، اسمك Saeed DaTaBoT، تساعد المستخدمين في العثور على أفضل العروض والإجابة على استفساراتهم."
 
 # ============================================================
-# 6. إعداد موديل Gemini
+# 6. إعداد موديل Gemini (استخدم gemini-2.0-flash-lite للأسرع)
 # ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-3.1-flash-lite",
+            model_name="gemini-3.01flash-lite",
             system_instruction=instructions
         )
-        st.sidebar.success("✅ يعمل على gemini-3.5-flash-lite")
+        st.sidebar.success("✅ يعمل على gemini-2.0-flash-lite")
     else:
         model = None
         st.error("⚠️ مفتاح API غير موجود")
@@ -290,10 +283,16 @@ def quick_response(question):
     q = question.lower()
     if "كود" in q or "خصم" in q:
         return "🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب"
-    elif "من أنت" in q:
-        return "🤖 أنا **Saeed DaTaBoT**، مساعدك الذكي للتسوق."
+    elif "من أنت" in q or "من برمج" in q or "المطور" in q:
+        return (
+            "🤖 أنا **Saeed DaTaBoT**، مساعدك الذكي للتسوق.\n\n"
+            "المطور والعقل المدبر وراء هذه المنصة هو **سعيد المسوري**، مؤسس **SaeedMarketAds**.\n\n"
+            "سعيد المسوري هو رائد أعمال ومطور برمجيات متخصص في الذكاء الاصطناعي، يتمتع بخبرة واسعة في تطوير تطبيقات الويب والأنظمة الذكية. "
+            "يؤمن بأن التكنولوجيا يجب أن تكون في خدمة الجميع، ويسعى دائماً لتقديم حلول مبتكرة تسهل حياة الناس. "
+            "من خلال منصة SaeedMarketAds، يقدم تجربة تسوق فريدة تعتمد على الذكاء الاصطناعي لتحليل المنتجات وتوفير أفضل العروض."
+        )
     elif "السلام" in q or "مرحبا" in q:
-        return "وعليكم السلام ورحمة الله وبركاته 🌹\n\nأهلاً بك في **سوق سعيد**!"
+        return "وعليكم السلام ورحمة الله وبركاته 🌹\n\nمرحباً بكم في **SaeedMarketAds**، المنصة الرائدة مع تقنية الذكاء الاصطناعي."
     return None
 
 def render_custom_banner():
@@ -311,6 +310,11 @@ def render_custom_banner():
 # ============================================================
 render_custom_banner()
 
+# رسالة الترحيب الجديدة
+welcome_msg = "مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي."
+st.markdown(f"### 🎙️ {welcome_msg}")
+play_voice(welcome_msg)
+
 st.markdown("""
 <div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 40px; border-radius: 55px; text-align: center; margin-bottom: 40px;'>
     <h2 style='color: #fff;'>🎁 عرض خاص للمستخدمين الجدد 🎁</h2>
@@ -320,9 +324,6 @@ st.markdown("""
     <p style='color: #fff; font-size: 22px;'>🔥 خصم يصل إلى 60% على أول طلب 🔥</p>
 </div>
 """, unsafe_allow_html=True)
-
-st.markdown("### 🎙️ استمع لرسالة الترحيب")
-play_voice("مرحباً بك في سوق سعيد، أنا سعيد داتا بوت، مساعدك الذكي للتسوق.")
 
 # ============================================================
 # 9. تحليل الروابط
@@ -351,7 +352,7 @@ if url_input:
 st.markdown("---")
 
 # ============================================================
-# 10. منتجات SHEIN (جميع المنتجات موجودة)
+# 10. منتجات SHEIN
 # ============================================================
 st.markdown("""
 <div class='store-section'>
