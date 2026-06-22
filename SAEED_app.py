@@ -219,13 +219,35 @@ def play_voice(filename="new_voice.mp3"):
         return False
 
 # ============================================================
-# 4. قراءة المفاتيح والتعليمات
+# 4. قراءة المفاتيح من st.secrets (مع دعم أسماء متعددة)
 # ============================================================
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API"]
-except:
-    GEMINI_API_KEY = None
+def get_secret(key, fallback_key=None, default=None):
+    """محاولة قراءة مفتاح من st.secrets بأسماء متعددة."""
+    try:
+        # حاول الاسم الأساسي
+        if key in st.secrets:
+            return st.secrets[key]
+        # حاول الاسم البديل
+        if fallback_key and fallback_key in st.secrets:
+            return st.secrets[fallback_key]
+        # ابحث عن أي مفتاح يحتوي على جزء من الاسم (مرونة)
+        for k in st.secrets.keys():
+            if key.lower() in k.lower() or (fallback_key and fallback_key.lower() in k.lower()):
+                return st.secrets[k]
+        return default
+    except:
+        return default
 
+# قراءة المفاتيح المطلوبة
+GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
+ELEVENLABS_API_KEY = get_secret("ELEVENLABS_API_KEY", None, None)
+TELEGRAM_BOT_TOKEN_SAEED_MARKETADS = get_secret("TELEGRAM_BOT_TOKEN_SAEED_MARKETADS", None, None)
+TELEGRAM_BOT_TOKEN_SAEED_PLUS = get_secret("TELEGRAM_BOT_TOKEN_SAEED_PLUS", None, None)
+TELEGRAM_CHANNEL_ID = get_secret("TELEGRAM_CHANNEL_ID", None, "SeenMarket2026")
+
+# ============================================================
+# 5. قراءة التعليمات من ملف Instructions.txt
+# ============================================================
 try:
     with open('Instructions.txt', 'r', encoding='utf-8') as f:
         instructions = f.read()
@@ -234,24 +256,24 @@ except FileNotFoundError:
     st.warning("⚠️ ملف Instructions.txt غير موجود، سيتم استخدام التعليمات الافتراضية.")
 
 # ============================================================
-# 5. إعداد موديل Gemini
+# 6. إعداد موديل Gemini
 # ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-3.5-flash",
+            model_name="gemini-3.5-flash",  # كما طلبت استخدام هذا الموديل
             system_instruction=instructions
         )
     else:
         model = None
-        st.error("⚠️ مفتاح API غير موجود، يرجى إضافته في secrets.toml")
+        st.error("⚠️ مفتاح API غير موجود في secrets.toml (ابحث عن GEMINI_MAIN_KEY أو GEMINI_API)")
 except Exception as e:
     model = None
     st.error(f"⚠️ حدث خطأ في إعداد الموديل: {str(e)}")
 
 # ============================================================
-# 6. الوظائف المساعدة
+# 7. الوظائف المساعدة
 # ============================================================
 @st.cache_data(ttl=3600)
 def is_product_available(url):
@@ -312,7 +334,7 @@ def render_custom_banner():
     components.html(html_code, height=550)
 
 # ============================================================
-# 7. واجهة المستخدم الرئيسية
+# 8. واجهة المستخدم الرئيسية
 # ============================================================
 render_custom_banner()
 
@@ -348,7 +370,7 @@ st.markdown("### 🎙️ استمع لرسالة الترحيب من Saeed DaTaB
 play_voice()
 
 # ============================================================
-# 8. تحليل الروابط
+# 9. تحليل الروابط
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>🔗 تحليل الرابط مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -378,7 +400,7 @@ if url_input:
 st.markdown("---")
 
 # ============================================================
-# 9. منتجات SHEIN
+# 10. منتجات SHEIN
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -436,7 +458,7 @@ for i, product in enumerate(SHEIN_PRODUCTS[:20]):
 st.markdown("---")
 
 # ============================================================
-# 10. منتجات نون
+# 11. منتجات نون
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -486,7 +508,7 @@ for i, product in enumerate(NOON_PRODUCTS):
 st.markdown("---")
 
 # ============================================================
-# 11. منتجات AliExpress
+# 12. منتجات AliExpress (قادم)
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -508,7 +530,7 @@ st.markdown("""
 st.markdown("---")
 
 # ============================================================
-# 12. بوت الدردشة
+# 13. بوت الدردشة
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center; font-size: 32px; margin-bottom: 20px;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -543,7 +565,7 @@ if st.button("💬 أرسل", use_container_width=True):
 st.markdown("---")
 
 # ============================================================
-# 13. السايدبار
+# 14. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
