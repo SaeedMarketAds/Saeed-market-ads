@@ -246,10 +246,10 @@ try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",  # <- هذا الموديل المتاح لمفتاحك
+            model_name="gemini-3.5-flash",  # <- هذا الموديل المتاح لمفتاحك
             system_instruction=instructions
         )
-        st.sidebar.success("✅ يعمل على gemini-1.5-flash")
+        st.sidebar.success("✅ يعمل على gemini-3.1-flash")
     else:
         model = None
         st.error("⚠️ مفتاح API غير موجود في secrets.toml")
