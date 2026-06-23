@@ -1,13 +1,11 @@
-
 import streamlit as st
 import google.generativeai as genai
 import requests
 import os
 import base64
 import streamlit.components.v1 as components
-import edge_tts  # <- المكتبة الجديدة للصوت الرجالي
+from gtts import gTTS
 import tempfile
-import asyncio
 
 # ============================================================
 # 1. إعدادات الصفحة
@@ -178,32 +176,16 @@ hr {
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (باستخدام edge-tts لصوت رجالي فصيح)
+# 3. دالة تشغيل الصوت (باستخدام gTTS - صوت رجالي فصيح)
 # ============================================================
-async def generate_audio(text, voice="ar-SA-HamedNeural"):
-    """توليد ملف صوتي بصوت رجالي عربي باستخدام edge-tts."""
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
-            output_file = tmp_file.name
-        communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(output_file)
-        with open(output_file, 'rb') as f:
-            audio_bytes = f.read()
-        os.unlink(output_file)
-        return audio_bytes
-    except Exception as e:
-        st.warning(f"⚠️ خطأ في توليد الصوت: {str(e)}")
-        return None
-
 def play_voice(text):
-    """تشغيل الصوت في المتصفح."""
+    """تشغيل الصوت باستخدام gTTS (يعمل على Streamlit Cloud بدون مشاكل)."""
     try:
-        # تشغيل الدالة غير المتزامنة
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        audio_bytes = loop.run_until_complete(generate_audio(text))
-        loop.close()
-        if audio_bytes:
+        tts = gTTS(text=text, lang='ar', slow=False)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
+            tts.save(fp.name)
+            with open(fp.name, 'rb') as f:
+                audio_bytes = f.read()
             b64 = base64.b64encode(audio_bytes).decode()
             audio_html = f'''
             <audio autoplay="true" style="display:none;">
@@ -211,9 +193,8 @@ def play_voice(text):
             </audio>
             '''
             st.markdown(audio_html, unsafe_allow_html=True)
+            os.unlink(fp.name)
             return True
-        else:
-            return False
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
@@ -237,28 +218,41 @@ def get_secret(key, fallback_key=None, default=None):
 GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
 
 # ============================================================
-# 5. قراءة التعليمات
+# 5. قراءة التعليمات من ملف Instructions.txt (إن وجد)
 # ============================================================
 try:
     with open('Instructions.txt', 'r', encoding='utf-8') as f:
         instructions = f.read()
 except FileNotFoundError:
-    instructions = "أنت مساعد ذكي للتسوق الإلكتروني، اسمك Saeed DaTaBoT، تساعد المستخدمين في العثور على أفضل العروض والإجابة على استفساراتهم."
+    instructions = """
+    أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد.
+    
+    هويتك:
+    - أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
+    - المطور والمؤسس هو سعيد المسوري، العقل المدبر لتأسيس منصة SaeedMarketAds و Saeed DaTaBoT.
+    - سعيد المسوري رائد أعمال ومطور أنظمة ذكاء اصطناعي، مؤسس منصة سوق سعيد، يهدف إلى تغيير مفهوم التسوق الإلكتروني في العالم العربي باستخدام أحدث تقنيات الذكاء الاصطناعي.
+    
+    ردودك:
+    - دائماً باللغة العربية الفصحى.
+    - مختصرة وواضحة وثقة.
+    - تحية البداية: "مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي."
+    - إذا سألك أحد عن المطور، قل: "سعيد المسوري هو العقل المدبر خلف هذه المنصة، مؤسس SaeedMarketAds و Saeed DaTaBoT."
+    """
 
 # ============================================================
-# 6. إعداد موديل Gemini (استخدم gemini-2.0-flash-lite للأسرع)
+# 6. إعداد موديل Gemini (gemini-1.5-flash - الموديل المدعوم)
 # ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-3.01flash-lite",
+            model_name="gemini-1.5-flash",  # <- هذا الموديل المتاح لمفتاحك
             system_instruction=instructions
         )
-        st.sidebar.success("✅ يعمل على gemini-2.0-flash-lite")
+        st.sidebar.success("✅ يعمل على gemini-1.5-flash")
     else:
         model = None
-        st.error("⚠️ مفتاح API غير موجود")
+        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
 except Exception as e:
     model = None
     st.error(f"⚠️ حدث خطأ: {str(e)}")
@@ -283,7 +277,7 @@ def quick_response(question):
     q = question.lower()
     if "كود" in q or "خصم" in q:
         return "🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب"
-    elif "من أنت" in q or "من برمج" in q or "المطور" in q:
+    elif "من أنت" in q or "من برمج" in q or "المطور" in q or "سعيد" in q:
         return (
             "🤖 أنا **Saeed DaTaBoT**، مساعدك الذكي للتسوق.\n\n"
             "المطور والعقل المدبر وراء هذه المنصة هو **سعيد المسوري**، مؤسس **SaeedMarketAds**.\n\n"
@@ -310,8 +304,8 @@ def render_custom_banner():
 # ============================================================
 render_custom_banner()
 
-# رسالة الترحيب الجديدة
-welcome_msg = "مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي."
+# رسالة الترحيب الجديدة (بدون "وعليكم السلام")
+welcome_msg = "مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي. أنا سعيد داتا بوت، تحت خدمتكم."
 st.markdown(f"### 🎙️ {welcome_msg}")
 play_voice(welcome_msg)
 
@@ -465,7 +459,8 @@ if st.button("💬 أرسل", use_container_width=True):
         quick_ans = quick_response(chat_question)
         if quick_ans:
             st.markdown(f"""
-            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px;'>
+            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
                 <p style='color: #e2e8f0;'>{quick_ans}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -474,23 +469,28 @@ if st.button("💬 أرسل", use_container_width=True):
             try:
                 response = model.generate_content(f"رد باختصار بالعربية الفصحى كـ Saeed DaTaBoT: {chat_question}")
                 st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px;'>
+                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                    <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
                     <p style='color: #e2e8f0;'>{response.text}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 play_voice(response.text)
             except Exception as e:
-                st.error(f"خطأ: {str(e)}")
+                st.error(f"⚠️ حدث خطأ: {str(e)}")
     else:
-        st.warning("📝 يرجى كتابة سؤالك")
+        st.warning("📝 يرجى كتابة سؤالك أولاً")
 
 # ============================================================
 # 14. السايدبار
 # ============================================================
 with st.sidebar:
-    st.markdown("### 🤖 Saeed DaTaBoT")
-    st.markdown("مساعدك الذكي للتسوق")
-    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
+        <h2 style='color: #feca57;'>🤖 Saeed DaTaBoT</h2>
+        <p style='color: #aaa;'>مساعدك الذكي للتسوق</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("### 🎯 خدماتي:")
     st.markdown("""
     - ✅ تحليل الروابط
@@ -501,4 +501,13 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
+    st.markdown("---")
+    st.markdown("### 📊 إحصائيات:")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("🛍️ منتجات SHEIN", "10+")
+    with col2:
+        st.metric("⭐ منتجات نون", "6+")
+    st.markdown("---")
     st.caption("© 2026 سوق سعيد")
+    st.caption("برمجة وتطوير: سعيد المسوري")
