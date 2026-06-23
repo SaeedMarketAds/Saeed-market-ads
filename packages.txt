@@ -1,2 +1,2 @@
-espeak
-libespeak-dev
+espeak-ng
+libespeak-ng1
