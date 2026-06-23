@@ -4,8 +4,9 @@ import requests
 import os
 import base64
 import streamlit.components.v1 as components
-from gtts import gTTS
+import edge_tts
 import tempfile
+import asyncio
 
 # ============================================================
 # 1. إعدادات الصفحة
@@ -17,7 +18,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. الخلفية والتصميم (CSS)
+# 2. الخلفية والتصميم (CSS) - مختصر
 # ============================================================
 page_bg = """
 <style>
@@ -25,12 +26,8 @@ page_bg = """
     background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
     background-attachment: fixed;
 }
-[data-testid="stHeader"] {
-    background: rgba(0,0,0,0.2);
-}
-.stMarkdown {
-    color: #fff;
-}
+[data-testid="stHeader"] { background: rgba(0,0,0,0.2); }
+.stMarkdown { color: #fff; }
 .stButton > button {
     background: linear-gradient(90deg, #ff6b6b, #feca57);
     color: white;
@@ -168,24 +165,37 @@ page_bg = """
     border-radius: 25px;
     margin-bottom: 30px;
 }
-hr {
-    border-color: rgba(255,255,255,0.1);
-}
+hr { border-color: rgba(255,255,255,0.1); }
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (باستخدام gTTS - صوت رجالي فصيح)
+# 3. دالة تشغيل الصوت (بصوت رجالي فصيح باستخدام edge-tts)
 # ============================================================
-def play_voice(text):
-    """تشغيل الصوت باستخدام gTTS (يعمل على Streamlit Cloud بدون مشاكل)."""
+async def generate_audio(text, voice="ar-SA-HamedNeural"):
+    """توليد ملف صوتي بصوت رجالي عربي فصيح (Hamed)."""
     try:
-        tts = gTTS(text=text, lang='ar', slow=False)
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
-            tts.save(fp.name)
-            with open(fp.name, 'rb') as f:
-                audio_bytes = f.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
+            output_file = tmp_file.name
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_file)
+        with open(output_file, 'rb') as f:
+            audio_bytes = f.read()
+        os.unlink(output_file)
+        return audio_bytes
+    except Exception as e:
+        st.warning(f"⚠️ خطأ في توليد الصوت: {str(e)}")
+        return None
+
+def play_voice(text):
+    """تشغيل الصوت في المتصفح."""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        audio_bytes = loop.run_until_complete(generate_audio(text))
+        loop.close()
+        if audio_bytes:
             b64 = base64.b64encode(audio_bytes).decode()
             audio_html = f'''
             <audio autoplay="true" style="display:none;">
@@ -193,8 +203,9 @@ def play_voice(text):
             </audio>
             '''
             st.markdown(audio_html, unsafe_allow_html=True)
-            os.unlink(fp.name)
             return True
+        else:
+            return False
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
@@ -218,7 +229,7 @@ def get_secret(key, fallback_key=None, default=None):
 GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
 
 # ============================================================
-# 5. قراءة التعليمات من ملف Instructions.txt (إن وجد)
+# 5. قراءة التعليمات
 # ============================================================
 try:
     with open('Instructions.txt', 'r', encoding='utf-8') as f:
@@ -226,27 +237,19 @@ try:
 except FileNotFoundError:
     instructions = """
     أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد.
-    
-    هويتك:
-    - أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
-    - المطور والمؤسس هو سعيد المسوري، العقل المدبر لتأسيس منصة SaeedMarketAds و Saeed DaTaBoT.
-    - سعيد المسوري رائد أعمال ومطور أنظمة ذكاء اصطناعي، مؤسس منصة سوق سعيد، يهدف إلى تغيير مفهوم التسوق الإلكتروني في العالم العربي باستخدام أحدث تقنيات الذكاء الاصطناعي.
-    
-    ردودك:
-    - دائماً باللغة العربية الفصحى.
-    - مختصرة وواضحة وثقة.
-    - تحية البداية: "مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي."
-    - إذا سألك أحد عن المطور، قل: "سعيد المسوري هو العقل المدبر خلف هذه المنصة، مؤسس SaeedMarketAds و Saeed DaTaBoT."
+    هويتك: أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
+    المطور والمؤسس هو سعيد المسوري، العقل المدبر لتأسيس منصة SaeedMarketAds و Saeed DaTaBoT.
+    ردودك دائماً باللغة العربية الفصحى، مختصرة وواضحة.
     """
 
 # ============================================================
-# 6. إعداد موديل Gemini (gemini-1.5-flash - الموديل المدعوم)
+# 6. إعداد موديل Gemini (gemini-1.5-flash)
 # ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(
-            model_name="gemini-3.5-flash",  # <- هذا الموديل المتاح لمفتاحك
+            model_name="gemini-3.5-flash",
             system_instruction=instructions
         )
         st.sidebar.success("✅ يعمل على gemini-3.1-flash")
@@ -258,7 +261,7 @@ except Exception as e:
     st.error(f"⚠️ حدث خطأ: {str(e)}")
 
 # ============================================================
-# 7. الوظائف المساعدة
+# 7. الوظائف المساعدة (الردود السريعة - هنا حل مشكلة التجميد)
 # ============================================================
 @st.cache_data(ttl=3600)
 def is_product_available(url):
@@ -275,19 +278,28 @@ def is_product_available(url):
 
 def quick_response(question):
     q = question.lower()
-    if "كود" in q or "خصم" in q:
+    
+    # الرد على "كيف حالك" - هذا كان سبب التجميد السابق
+    if "كيف حال" in q or "كيفك" in q or "اخبار" in q:
+        return "بخير والحمد لله، أنا هنا لخدمتك يا صديقي. كيف يمكنني مساعدتك اليوم؟"
+    
+    elif "كود" in q or "خصم" in q:
         return "🎁 **كود خصم SHEIN الحصري** 🎁\n\n🏷️ **الكود: WL7KA**\n\n🔥 خصم يصل إلى 60% على أول طلب"
+    
     elif "من أنت" in q or "من برمج" in q or "المطور" in q or "سعيد" in q:
         return (
             "🤖 أنا **Saeed DaTaBoT**، مساعدك الذكي للتسوق.\n\n"
-            "المطور والعقل المدبر وراء هذه المنصة هو **سعيد المسوري**، مؤسس **SaeedMarketAds**.\n\n"
-            "سعيد المسوري هو رائد أعمال ومطور برمجيات متخصص في الذكاء الاصطناعي، يتمتع بخبرة واسعة في تطوير تطبيقات الويب والأنظمة الذكية. "
-            "يؤمن بأن التكنولوجيا يجب أن تكون في خدمة الجميع، ويسعى دائماً لتقديم حلول مبتكرة تسهل حياة الناس. "
-            "من خلال منصة SaeedMarketAds، يقدم تجربة تسوق فريدة تعتمد على الذكاء الاصطناعي لتحليل المنتجات وتوفير أفضل العروض."
+            "المطور والعقل المدبر هو **سعيد المسوري**، مؤسس **SaeedMarketAds**، رائد أعمال ومطور أنظمة ذكاء اصطناعي."
         )
+    
     elif "السلام" in q or "مرحبا" in q:
         return "وعليكم السلام ورحمة الله وبركاته 🌹\n\nمرحباً بكم في **SaeedMarketAds**، المنصة الرائدة مع تقنية الذكاء الاصطناعي."
-    return None
+    
+    elif "شكرا" in q:
+        return "العفو، تحت أمرك في أي وقت."
+    
+    else:
+        return None  # نترك الباقي لـ Gemini
 
 def render_custom_banner():
     html_code = """
@@ -304,7 +316,7 @@ def render_custom_banner():
 # ============================================================
 render_custom_banner()
 
-# رسالة الترحيب الجديدة (بدون "وعليكم السلام")
+# رسالة الترحيب الجديدة
 welcome_msg = "مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي. أنا سعيد داتا بوت، تحت خدمتكم."
 st.markdown(f"### 🎙️ {welcome_msg}")
 play_voice(welcome_msg)
@@ -346,7 +358,7 @@ if url_input:
 st.markdown("---")
 
 # ============================================================
-# 10. منتجات SHEIN
+# 10. منتجات SHEIN (مختصرة للمثال)
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -363,11 +375,6 @@ SHEIN_PRODUCTS = [
     {"code": "SH003", "name": "نظارات حفلات مطبوعة 6 قطع", "price": 2.70, "discount": 0, "link": "https://onelink.shein.com/38/5shujg5f2ywk", "sales": "300+"},
     {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
     {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
-    {"code": "SH006", "name": "أقراط زهرية بتصميم لافت", "price": 1.44, "discount": 4, "link": "https://onelink.shein.com/38/5shtox57cemc", "sales": "300+"},
-    {"code": "SH007", "name": "ربطات شعر ملونة 5 قطع", "price": 1.50, "discount": 38, "link": "https://onelink.shein.com/38/5shtobfv3sxn", "sales": "800+"},
-    {"code": "SH008", "name": "أحذية رياضية نسائية كاجوال", "price": 5.00, "discount": 82, "link": "https://onelink.shein.com/38/5shtl502kmcf", "sales": "200+"},
-    {"code": "SH009", "name": "مجموعة خواتم زهور وردية", "price": 2.16, "discount": 6, "link": "https://onelink.shein.com/38/5shtkl9rhh8f", "sales": "500+"},
-    {"code": "SH010", "name": "دلو أرز مع كوب قياس", "price": 8.84, "discount": 70, "link": "https://onelink.shein.com/38/5shtjtnbwphj", "sales": "200+"},
 ]
 
 cols = st.columns(4)
@@ -389,7 +396,7 @@ for i, product in enumerate(SHEIN_PRODUCTS):
 st.markdown("---")
 
 # ============================================================
-# 11. منتجات نون
+# 11. منتجات نون (مختصرة)
 # ============================================================
 st.markdown("""
 <div class='store-section'>
@@ -402,10 +409,6 @@ st.markdown("""
 NOON_PRODUCTS = [
     {"code": "N001", "name": "ساعة ذكية رياضية", "price": 89.99, "discount": 30, "link": "https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/", "sales": "500+"},
     {"code": "N002", "name": "سماعات لاسلكية بلوتوث", "price": 45.50, "discount": 25, "link": "https://www.noon.com/ar-sa/N11200839A/p/", "sales": "1200+"},
-    {"code": "N003", "name": "شاحن سريع بقاعدة", "price": 29.90, "discount": 15, "link": "https://www.noon.com/ar-sa/N70140492V/p/", "sales": "800+"},
-    {"code": "N004", "name": "حافظة جوال سيليكون", "price": 12.99, "discount": 40, "link": "https://www.noon.com/ar-sa/ZF23DE5EC51560ADE2D7EZ/p/", "sales": "2000+"},
-    {"code": "N005", "name": "سوار رياضي ذكي", "price": 35.00, "discount": 20, "link": "https://www.noon.com/ar-sa/N70140491V/p/", "sales": "300+"},
-    {"code": "N006", "name": "مروحة USB محمولة", "price": 18.75, "discount": 35, "link": "https://www.noon.com/ar-sa/N23772548A/p/", "sales": "600+"},
 ]
 
 cols = st.columns(4)
@@ -448,7 +451,7 @@ st.markdown("""
 st.markdown("---")
 
 # ============================================================
-# 13. بوت الدردشة
+# 13. بوت الدردشة (المحور الأساسي للإصلاح)
 # ============================================================
 st.markdown("<h2 style='color: #feca57; text-align: center;'>💬 تحدث مع Saeed DaTaBoT</h2>", unsafe_allow_html=True)
 
@@ -456,6 +459,7 @@ chat_question = st.text_area("📝 اكتب سؤالك هنا:", height=100)
 
 if st.button("💬 أرسل", use_container_width=True):
     if chat_question:
+        # 1. نبحث عن رد سريع (هذا يمنع التجميد)
         quick_ans = quick_response(chat_question)
         if quick_ans:
             st.markdown(f"""
@@ -466,17 +470,32 @@ if st.button("💬 أرسل", use_container_width=True):
             """, unsafe_allow_html=True)
             play_voice(quick_ans)
         elif model:
+            # 2. إذا لم يوجد رد سريع، نستخدم Gemini مع معالجة الأخطاء
             try:
-                response = model.generate_content(f"رد باختصار بالعربية الفصحى كـ Saeed DaTaBoT: {chat_question}")
+                with st.spinner("🤖 جاري التفكير..."):
+                    response = model.generate_content(f"رد باختصار بالعربية الفصحى كـ Saeed DaTaBoT: {chat_question}")
+                    bot_reply = response.text
+                    if not bot_reply or len(bot_reply) < 5:
+                        bot_reply = "شكراً لسؤالك. أنا هنا لمساعدتك، هل لديك استفسار آخر؟"
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                        <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
+                        <p style='color: #e2e8f0;'>{bot_reply}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    play_voice(bot_reply)
+            except Exception as e:
+                # رد احتياطي في حال فشل Gemini (يمنع التجميد تماماً)
+                fallback_reply = "آسف، حدث خطأ تقني مؤقت. لكن أنا هنا لخدمتك، كيف يمكنني مساعدتك؟"
                 st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #ff6b6b;'>
                     <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
-                    <p style='color: #e2e8f0;'>{response.text}</p>
+                    <p style='color: #e2e8f0;'>{fallback_reply}</p>
                 </div>
                 """, unsafe_allow_html=True)
-                play_voice(response.text)
-            except Exception as e:
-                st.error(f"⚠️ حدث خطأ: {str(e)}")
+                play_voice(fallback_reply)
+        else:
+            st.warning("⚠️ عذراً، خدمة الذكاء الاصطناعي غير متاحة حالياً.")
     else:
         st.warning("📝 يرجى كتابة سؤالك أولاً")
 
@@ -505,9 +524,9 @@ with st.sidebar:
     st.markdown("### 📊 إحصائيات:")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("🛍️ منتجات SHEIN", "10+")
+        st.metric("🛍️ منتجات SHEIN", "5+")
     with col2:
-        st.metric("⭐ منتجات نون", "6+")
+        st.metric("⭐ منتجات نون", "2+")
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
     st.caption("برمجة وتطوير: سعيد المسوري")
