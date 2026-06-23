@@ -1,6 +1,4 @@
 streamlit
 google-generativeai
 requests
-pyttsx3==2.90
 gTTS
-
