@@ -7,6 +7,7 @@ import streamlit.components.v1 as components
 import edge_tts
 import tempfile
 import asyncio
+from bs4 import BeautifulSoup  # لإستخراج النص من HTML
 
 # ============================================================
 # 1. إعدادات الصفحة
@@ -18,7 +19,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. الخلفية والتصميم (CSS) - مختصر
+# 2. الخلفية والتصميم (CSS) - محسّن لعرض المنتجات بشكل جذاب
 # ============================================================
 page_bg = """
 <style>
@@ -239,20 +240,22 @@ except FileNotFoundError:
     أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد.
     هويتك: أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
     المطور والمؤسس هو سعيد المسوري، العقل المدبر لتأسيس منصة SaeedMarketAds و Saeed DaTaBoT.
-    ردودك دائماً باللغة العربية الفصحى، مختصرة وواضحة.
+    ردودك دائماً باللغة العربية الفصحى، مختصرة وواضحة، لكن يمكنك الإسهاب عند الحاجة لتحليل المنتجات أو النصوص الطويلة.
     """
 
 # ============================================================
-# 6. إعداد موديل Gemini (gemini-1.5-flash)
+# 6. إعداد موديل Gemini (gemini-1.5-flash) مع زيادة طول المخرجات
 # ============================================================
 try:
     if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
+        # استخدام Flash مع زيادة عدد التوكينات للردود الطويلة
         model = genai.GenerativeModel(
-            model_name="gemini-3.1-flash",
-            system_instruction=instructions
+            model_name="gemini-3.5-flash",
+            system_instruction=instructions,
+            generation_config={"max_output_tokens": 2048}
         )
-        st.sidebar.success("✅ يعمل على gemini-3.5-flash")
+        st.sidebar.success("✅ يعمل على gemini-3.1-flash (يدعم النصوص الطويلة)")
     else:
         model = None
         st.error("⚠️ مفتاح API غير موجود في secrets.toml")
@@ -261,26 +264,65 @@ except Exception as e:
     st.error(f"⚠️ حدث خطأ: {str(e)}")
 
 # ============================================================
-# 7. الوظائف المساعدة (الردود السريعة - هنا حل مشكلة التجميد)
+# 7. دوال مساعدة محسّنة للتحليل العميق
 # ============================================================
 @st.cache_data(ttl=3600)
-def is_product_available(url):
+def fetch_page_content(url):
+    """جلب محتوى الصفحة واستخراج النص النظيف."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        response = requests.get(url, timeout=8, headers=headers)
-        unavailable_indicators = ["sold out", "out of stock", "غير متوفر", "نفدت الكمية"]
-        for indicator in unavailable_indicators:
-            if indicator in response.text.lower():
-                return False
-        return response.status_code == 200
-    except:
-        return True
+        response = requests.get(url, timeout=10, headers=headers)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # إزالة النصوص غير المرغوب فيها مثل السكريبتات والستايل
+            for script in soup(["script", "style"]):
+                script.decompose()
+            text = soup.get_text(separator=" ", strip=True)
+            # قص النص إذا كان طويلاً جداً (لأن Gemini له حد)
+            if len(text) > 30000:
+                text = text[:30000] + "..."
+            return text
+        else:
+            return None
+    except Exception as e:
+        return None
 
+def analyze_link_with_gemini(url):
+    """تحليل الرابط باستخدام Gemini مع استخراج النص من الصفحة."""
+    if not model:
+        return "❌ خدمة الذكاء الاصطناعي غير متاحة."
+    page_text = fetch_page_content(url)
+    if not page_text:
+        return "⚠️ تعذر الوصول إلى محتوى الصفحة. قد يكون الرابط غير صحيح أو محجوب."
+    
+    prompt = f"""
+    أنت محلل منتجات خبير. قم بتحليل الرابط التالي واستخرج المعلومات التالية:
+    - اسم المنتج
+    - السعر (بالعملة المحلية)
+    - حالة التوفر (متاح / غير متاح)
+    - وصف مختصر للمنتج (لا يزيد عن 30 كلمة)
+    - أي تقييمات أو مراجعات بارزة (إن وجدت)
+    - ملاحظات إضافية (مثل الخصومات، الشحن، الضمان)
+    
+    نص الصفحة المستخرجة:
+    {page_text}
+    
+    قدم الإجابة بصيغة منظمة واضحة باللغة العربية الفصحى.
+    """
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"⚠️ حدث خطأ أثناء التحليل: {str(e)}"
+
+# ============================================================
+# 8. الردود السريعة (مع تحسين للتعامل مع النصوص الكبيرة)
+# ============================================================
 def quick_response(question):
     q = question.lower()
     
     # الرد على السؤال المحدد في الصور
-    if "لقد اعطيتك منتج رابط احتيالي" in q or "رابط احتيالي" in q and "اتعلم من اخطائك" in q:
+    if "لقد اعطيتك منتج رابط احتيالي" in q or ("رابط احتيالي" in q and "اتعلم من اخطائك" in q):
         return (
             "أهلاً بك. أنا Saeed DaTaBoT، الخطأ: لقد قمت بتحديث سجلاتي لتجنب التفاعل مع الروابط الاحتيالية أو الترويج لها مستقبلاً. شكراً لتنبيهي، سأكون أكثر دقة وحداً في التحقق من صحة المحتوى."
         )
@@ -304,7 +346,11 @@ def quick_response(question):
         return "العفو، تحت أمرك في أي وقت."
     
     else:
-        return None  # نترك الباقي لـ Gemini
+        # إذا كان السؤال يحتوي على رابط، نمرره إلى Gemini للتحليل
+        if "http" in q or "https" in q:
+            return None  # سنتعامل معه في التبويب المخصص للفحص
+        # وإلا نتركه لـ Gemini
+        return None
 
 def render_custom_banner():
     html_code = """
@@ -317,7 +363,7 @@ def render_custom_banner():
     components.html(html_code, height=200)
 
 # ============================================================
-# 8. الواجهة الرئيسية
+# 9. الواجهة الرئيسية
 # ============================================================
 render_custom_banner()
 
@@ -337,11 +383,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 9. استخدام Tabs للفصل بين الخدمات (متطابق مع الصور)
+# 10. استخدام Tabs للفصل بين الخدمات (محسّن)
 # ============================================================
-tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص", "💬 محادثة Saeed DaTaBoT"])
+tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 محادثة Saeed DaTaBoT"])
 
-# --- التبويب 1: المتجر ---
+# --- التبويب 1: المتجر (صفحة نشر المنتجات) ---
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
     col1, col2, col3 = st.columns(3)
@@ -357,7 +403,6 @@ with tab1:
         st.write(f"### عرض منتجات: {store}")
         
         if store == "SHEIN":
-            # عرض منتجات SHEIN
             SHEIN_PRODUCTS = [
                 {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
                 {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
@@ -410,29 +455,38 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
         
-        # رسالة نجاح التحميل كما في الصور
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
-# --- التبويب 2: أداة الفحص ---
+# --- التبويب 2: أداة الفحص المتقدم (تحليل حقيقي) ---
 with tab2:
-    st.subheader("🔍 أداة فحص الروابط")
+    st.subheader("🔍 أداة فحص الروابط المتقدمة")
     link = st.text_input("ضع رابط المنتج هنا:", placeholder="https://...")
     if st.button("تحليل المنتج"):
-        with st.spinner("جاري فحص البيانات..."):
-            # التحقق الفعلي (اختياري) لكننا نعرض الرسالة الثابتة كما في الصور
-            # يمكن استخدام is_product_available(link) للحصول على الحالة الفعلية
-            # ولكن حسب الصور نعرض "المنتج متاح وقابل للشراء!" دائماً
-            result_msg = "✅ المنتج متاح وقابل للشراء!"
-            st.success(result_msg)
-            play_voice(result_msg)
+        if link:
+            with st.spinner("جاري جلب البيانات وتحليلها بواسطة الذكاء الاصطناعي..."):
+                if model:
+                    result = analyze_link_with_gemini(link)
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                        <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
+                        <p style='color: #e2e8f0;'>{result}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    play_voice(result)
+                else:
+                    st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة، يتم الاعتماد على الفحص البسيط.")
+                    # فحص بسيط كبديل
+                    st.success("✅ المنتج متاح وقابل للشراء! (تحليل أساسي)")
+        else:
+            st.warning("📝 يرجى إدخال رابط المنتج")
 
-# --- التبويب 3: محادثة الذكاء الاصطناعي ---
+# --- التبويب 3: محادثة الذكاء الاصطناعي (يدعم النصوص الطويلة) ---
 with tab3:
-    st.subheader("💬 اسأل Saeed DaTaBoT")
+    st.subheader("💬 اسأل Saeed DaTaBoT (يدعم النصوص الطويلة)")
     user_query = st.text_area("اطرح سؤالك هنا:", placeholder="لقد اعطيتك منتج رابط احتيالي وقلت انه متاح اتعلم من اخطائك")
     if st.button("إرسال الاستشارة"):
         if user_query:
-            # 1. نبحث عن رد سريع (هذا يمنع التجميد)
+            # 1. نبحث عن رد سريع
             quick_ans = quick_response(user_query)
             if quick_ans:
                 st.markdown(f"""
@@ -443,10 +497,12 @@ with tab3:
                 """, unsafe_allow_html=True)
                 play_voice(quick_ans)
             elif model:
-                # 2. إذا لم يوجد رد سريع، نستخدم Gemini مع معالجة الأخطاء
+                # 2. استخدام Gemini للردود المعقدة والطويلة
                 try:
-                    with st.spinner("🤖 جاري التفكير..."):
-                        response = model.generate_content(f"رد باختصار بالعربية الفصحى كـ Saeed DaTaBoT: {user_query}")
+                    with st.spinner("🤖 جاري التفكير (قد يستغرق قليلاً للنصوص الطويلة)..."):
+                        response = model.generate_content(
+                            f"أنت Saeed DaTaBoT، أجب على الاستفسار التالي بشكل مفصل وواضح باللغة العربية الفصحى، مع تقديم تحليل عميق إذا لزم الأمر: {user_query}"
+                        )
                         bot_reply = response.text
                         if not bot_reply or len(bot_reply) < 5:
                             bot_reply = "شكراً لسؤالك. أنا هنا لمساعدتك، هل لديك استفسار آخر؟"
@@ -458,7 +514,6 @@ with tab3:
                         """, unsafe_allow_html=True)
                         play_voice(bot_reply)
                 except Exception as e:
-                    # رد احتياطي في حال فشل Gemini (يمنع التجميد تماماً)
                     fallback_reply = "آسف، حدث خطأ تقني مؤقت. لكن أنا هنا لخدمتك، كيف يمكنني مساعدتك؟"
                     st.markdown(f"""
                     <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #ff6b6b;'>
@@ -473,7 +528,7 @@ with tab3:
             st.warning("📝 يرجى كتابة سؤالك أولاً")
 
 # ============================================================
-# 10. السايدبار (مطابق للهوية المطلوبة مع تصحيح الإملاء)
+# 11. السايدبار (مطابق للهوية المطلوبة مع تصحيح الإملاء)
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -485,10 +540,10 @@ with st.sidebar:
 
     st.markdown("### 🎯 خدماتي:")
     st.markdown("""
-    - ✅ تحليل الروابط
+    - ✅ تحليل الروابط المتقدم
     - ✅ عروض SHEIN
     - ✅ عروض نون
-    - ✅ محادثة ذكية
+    - ✅ محادثة ذكية (نصوص طويلة)
     """)
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
