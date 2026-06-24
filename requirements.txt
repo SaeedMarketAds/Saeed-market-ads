@@ -4,3 +4,9 @@ google-generativeai
 pandas
 requests
 streamlit
+cloudscraper>=1.2.71
+beautifulsoup4>=4.12.2
+requests>=2.31.0
+edge-tts>=6.1.8
+google-generativeai>=0.3.0
+streamlit>=1.28.0
