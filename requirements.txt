@@ -3,3 +3,4 @@ google-generativeai
 requests
 gTTS
 edge_tts
+pip install beautifulsoup4 edge-tts google-generativeai streamlit requests
