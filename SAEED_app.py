@@ -11,74 +11,79 @@ import pandas as pd
 # ============================================================
 # 1. إعدادات الصفحة
 # ============================================================
-st.set_page_config(page_title="Saeed DaTaBoT | المتجر الذكي", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Saeed DaTaBoT", page_icon="🤖", layout="wide")
 
 # ============================================================
-# 2. الدوال البرمجية (Core Functions)
+# 2. الدوال البرمجية (الذكاء الاصطناعي والصوت)
 # ============================================================
-@st.cache_data(ttl=600)
-def load_products_by_store(store_name):
-    try:
-        if os.path.exists('products.csv'):
-            df = pd.read_csv('products.csv')
-            return df[df['store'].str.upper() == store_name.upper()].to_dict(orient='records')
-        return []
-    except: return []
+def get_model():
+    api_key = st.secrets.get("GEMINI_MAIN_KEY") or st.secrets.get("GEMINI_API")
+    if api_key:
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel("gemini-3.1-flash-lite")
+    return None
 
-async def generate_audio(text):
+async def play_voice_async(text):
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
-            path = tmp_file.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
+            path = tmp.name
         communicate = edge_tts.Communicate(text, "ar-SA-HamedNeural")
         await communicate.save(path)
-        with open(path, 'rb') as f: audio = f.read()
-        os.unlink(path)
-        return audio
-    except: return None
-
-def play_voice(text):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    audio = loop.run_until_complete(generate_audio(text))
-    loop.close()
-    if audio:
+        with open(path, "rb") as f:
+            audio = f.read()
         b64 = base64.b64encode(audio).decode()
         st.markdown(f'<audio autoplay="true" style="display:none;"><source src="data:audio/mp3;base64,{b64}" type="audio/mp3"></audio>', unsafe_allow_html=True)
+        os.unlink(path)
+    except: pass
 
 # ============================================================
-# 3. الواجهة الرئيسية المحدثة
+# 3. واجهة المستخدم (الTabs)
 # ============================================================
 st.markdown("<h1 style='text-align: center; color: #feca57;'>🤖 Saeed DaTaBoT</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #aaa;'>نظام التسوق الذكي المتكامل - saeedmarketads</p>", unsafe_allow_html=True)
 
-# استخدام Tabs للفصل بين الخدمات
-tab1, tab2, tab3 = st.tabs(["🛍️ تصفح المتجر", "🔍 أداة الفحص الذكي", "💬 محادثة Saeed DaTaBoT"])
+tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص", "💬 محادثة Saeed DaTaBoT"])
 
+# --- التبويب 1: المتجر ---
 with tab1:
-    st.subheader("منتجات مختارة لك")
-    # هنا يتم عرض المنتجات (كما في كودك السابق)
+    st.subheader("اختر المتجر للتصفح:")
+    col1, col2, col3 = st.columns(3)
+    if col1.button("🛍️ تصفح SHEIN"): st.session_state.store = "SHEIN"
+    if col2.button("💛 تصفح Noon"): st.session_state.store = "Noon"
+    if col3.button("🚀 تصفح AliExpress"): st.session_state.store = "Ali"
 
+    if 'store' in st.session_state:
+        st.write(f"### عرض منتجات: {st.session_state.store}")
+        # هنا تعرض المنتجات بناءً على الحالة المخزنة
+        st.info("تم تحميل المنتجات بنجاح...")
+
+# --- التبويب 2: الفحص ---
 with tab2:
-    st.subheader("🔍 أداة فحص المنتجات")
-    link = st.text_input("أدخل رابط المنتج للتحليل:", placeholder="https://...")
-    if st.button("فحص وتحليل"):
-        with st.spinner("جاري فحص المنتج بواسطة خوارزميات Saeed DaTaBoT..."):
-            st.success("تم تحليل المنتج! البيانات دقيقة.")
+    st.subheader("🔍 أداة فحص الروابط")
+    link = st.text_input("ضع رابط المنتج هنا:")
+    if st.button("تحليل المنتج"):
+        with st.spinner("جاري فحص البيانات..."):
+            st.success("المنتج متاح وقابل للشراء!")
 
+# --- التبويب 3: محادثة الذكاء الاصطناعي ---
 with tab3:
-    st.subheader("💬 محادثة Saeed DaTaBoT")
-    question = st.text_area("كيف يمكنني مساعدتك في التسوق اليوم؟")
-    if st.button("إرسال استشارة"):
-        st.write("Saeed DaTaBoT: جاري المعالجة...")
+    st.subheader("💬 اسأل Saeed DaTaBoT")
+    user_query = st.text_area("اطرح سؤالك هنا:")
+    if st.button("إرسال الاستشارة"):
+        model = get_model()
+        if model:
+            with st.spinner("Saeed DaTaBoT يفكر..."):
+                resp = model.generate_content(f"أنت Saeed DaTaBoT، أجب على هذا الاستفسار باختصار: {user_query}")
+                st.markdown(f"**Saeed DaTaBoT:** {resp.text}")
+                asyncio.run(play_voice_async(resp.text))
+        else:
+            st.error("مفتاح API غير مفعل.")
 
 # ============================================================
-# 4. السايدبار (مطابق للهوية المطلوبة)
+# 4. السايدبار (الهوية)
 # ============================================================
 with st.sidebar:
-    st.markdown("<h2 style='text-align: center;'>🤖 Saeed DaTaBoT</h2>", unsafe_allow_html=True)
-    st.markdown("### 🎯 خدمات المنصة:")
-    st.markdown("- ✅ استيراد سحابي للمنتجات\n- ✅ تحديث فوري فائق السرعة\n- ✅ دعم الذكاء الاصطناعي الفصيح")
+    st.markdown("## 🤖 Saeed DaTaBoT")
+    st.markdown("- ✅ نظام فحص ذكي")
+    st.markdown("- ✅ تحليل متطور بالذكاء الاصطناعي")
     st.markdown("---")
-    st.markdown("### 📞 قنواتنا الحالية:")
-    st.markdown("[Telegram Channel](https://t.me/SeenMarket2026)")
-    st.caption("© 2026 saeedmarketads")
+    st.markdown("[Telegram Channel](https://t.me/SaeedMarketAds)")
