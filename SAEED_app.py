@@ -251,11 +251,11 @@ try:
         genai.configure(api_key=GEMINI_API_KEY)
         # استخدام Flash مع زيادة عدد التوكينات للردود الطويلة
         model = genai.GenerativeModel(
-            model_name="gemini-3.5-flash",
+            model_name="gemini-3.1-flash",
             system_instruction=instructions,
             generation_config={"max_output_tokens": 2048}
         )
-        st.sidebar.success("✅ يعمل على gemini-3.1-flash (يدعم النصوص الطويلة)")
+        st.sidebar.success("✅ يعمل على gemini-3.5-flash (يدعم النصوص الطويلة)")
     else:
         model = None
         st.error("⚠️ مفتاح API غير موجود في secrets.toml")
