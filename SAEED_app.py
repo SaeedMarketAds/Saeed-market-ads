@@ -1,12 +1,14 @@
 import streamlit as st
+import shein_products  # تأكد أن ملف shein_products.py موجود في نفس المجلد
 
+# إعداد الصفحة
 st.set_page_config(page_title="Saeed Market - العروض الموحدة", layout="wide")
 
-# العنوان الرئيسي مع لمسة احترافية
+# العنوان الرئيسي
 st.title("🛍️ Saeed Market | وجهتك الموحدة لأفضل العروض")
 st.markdown("---")
 
-# إنشاء أعمدة لعرض المتاجر الثلاثة بشكل متوازي
+# إنشاء الأعمدة للمتاجر
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -31,8 +33,19 @@ st.markdown("---")
 
 # عرض المحتوى بناءً على اختيار المستخدم
 if 'store' in st.session_state:
-    st.header(f"أنت الآن تتصفح عروض: {st.session_state.store}")
-    # هنا سيتم ربط كل متجر بملف البيانات الخاص به (مثل shein_products.py)
-    st.info(f"جاري تحميل أحدث المنتجات من {st.session_state.store}...")
+    if st.session_state.store == "SHEIN":
+        st.header("أحدث عروض SHEIN")
+        for product in shein_products.products:
+            st.write(f"### {product['name']}")
+            st.write(f"السعر: {product['price']}")
+            st.link_button("شراء الآن", product['link'])
+
+    elif st.session_state.store == "AliExpress":
+        st.header("أحدث عروض AliExpress")
+        st.write("قسم AliExpress قيد التجهيز...")
+
+    elif st.session_state.store == "Noon":
+        st.header("أحدث عروض Noon")
+        st.write("قسم Noon قيد التجهيز...")
 else:
     st.write("يرجى اختيار أحد المتاجر أعلاه للبدء بالتسوق.")
