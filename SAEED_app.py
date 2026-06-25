@@ -249,7 +249,7 @@ except FileNotFoundError:
 # ============================================================
 # 6. إعداد موديل Gemini (اختيار النموذج من السايدبار)
 # ============================================================
-def init_model(api_key, model_name="gemini-1.5-flash"):
+def init_model(api_key, model_name="gemini-3.1-flash"):
     """تهيئة النموذج مع إعدادات مناسبة."""
     try:
         genai.configure(api_key=api_key)
