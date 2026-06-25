@@ -249,7 +249,7 @@ except FileNotFoundError:
 # ============================================================
 # 6. إعداد موديل Gemini (اختيار النموذج من السايدبار)
 # ============================================================
-def init_model(api_key, model_name="gemini-3.1-flash"):
+def init_model(api_key, model_name="gemini-1.5-flash"):
     """تهيئة النموذج مع إعدادات مناسبة."""
     try:
         genai.configure(api_key=api_key)
@@ -407,8 +407,8 @@ def render_custom_banner():
 # ============================================================
 render_custom_banner()
 
-# رسالة الترحيب الجديدة (مع الرد الصحيح على السلام)
-welcome_msg = "وعليكم السلام ورحمة الله وبركاته. مرحباً بكم في SaeedMarketAds، المنصة الرائدة مع تقنية الذكاء الاصطناعي. أنا سعيد داتا بوت، تحت خدمتكم."
+# رسالة الترحيب الجديدة (تم تعديلها حسب الطلب)
+welcome_msg = "مرحبا بكم في منصة saeedmarketads الرائدة المدعومة بالذكاء الاصطناعي"
 st.markdown(f"### 🎙️ {welcome_msg}")
 play_voice(welcome_msg)
 
