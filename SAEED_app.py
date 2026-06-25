@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper  # بديل قوي لـ requests
+import requests      # تمت إضافته للاستخدام في fallback
 import os
 import base64
 import streamlit.components.v1 as components
@@ -354,6 +355,9 @@ def analyze_link_with_gemini(url, model):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
+        # عرض الخطأ الحقيقي للمستخدم كما هو مطلوب في الصور
+        error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
+        st.error(error_msg)  # عرض باللون الأحمر في الواجهة
         return f"⚠️ حدث خطأ أثناء التحليل بواسطة الذكاء الاصطناعي: {str(e)}"
 
 # ============================================================
@@ -599,7 +603,10 @@ with tab3:
                         """, unsafe_allow_html=True)
                         play_voice(bot_reply)
                 except Exception as e:
-                    fallback_reply = "آسف، حدث خطأ تقني مؤقت. لكن أنا هنا لخدمتك، كيف يمكنني مساعدتك؟"
+                    # عرض الخطأ الحقيقي كما هو مطلوب في الصور
+                    error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
+                    st.error(error_msg)
+                    fallback_reply = f"آسف، حدث خطأ تقني. التفاصيل: {str(e)}"
                     st.markdown(f"""
                     <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #ff6b6b;'>
                         <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
