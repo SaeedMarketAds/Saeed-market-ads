@@ -1,7 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
-import cloudscraper  # بديل قوي لـ requests
-import requests      # تمت إضافته للاستخدام في fallback
+import cloudscraper
+import requests
 import os
 import base64
 import streamlit.components.v1 as components
@@ -247,7 +247,69 @@ except FileNotFoundError:
     """
 
 # ============================================================
-# 6. إعداد موديل Gemini (اختيار النموذج من السايدبار)
+# 6. دوال جلب المحتوى - نسخة محسّنة (بدون تخزين مؤقت)
+# ============================================================
+def fetch_page_content(url):
+    """جلب محتوى الصفحة باستخدام cloudscraper مع محاولة بديلة."""
+    try:
+        scraper = cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
+            interpreter='nodejs'
+        )
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'ar,en;q=0.9,en-US;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+        }
+        response = scraper.get(url, timeout=30, headers=headers, allow_redirects=True)
+        if response.status_code == 200:
+            return extract_text_from_html(response.text)
+        else:
+            return fetch_page_content_fallback(url)
+    except Exception:
+        return fetch_page_content_fallback(url)
+
+def fetch_page_content_fallback(url):
+    """محاولة جلب المحتوى باستخدام requests مع جلسة متطورة."""
+    try:
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'ar,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        })
+        response = session.get(url, timeout=30, allow_redirects=True, verify=False)
+        if response.status_code == 200:
+            return extract_text_from_html(response.text)
+        else:
+            return None
+    except Exception:
+        return None
+
+def extract_text_from_html(html):
+    """استخراج النص من HTML وتنظيفه."""
+    soup = BeautifulSoup(html, 'html.parser')
+    for script in soup(["script", "style", "noscript", "meta", "link"]):
+        script.decompose()
+    text = soup.get_text(separator=" ", strip=True)
+    text = re.sub(r'\s+', ' ', text).strip()
+    if len(text) > 50000:
+        text = text[:50000] + "..."
+    return text
+
+# ============================================================
+# 7. إعداد موديل Gemini
 # ============================================================
 def init_model(api_key, model_name="gemini-3.5-flash"):
     """تهيئة النموذج مع إعدادات مناسبة."""
@@ -257,7 +319,7 @@ def init_model(api_key, model_name="gemini-3.5-flash"):
             model_name=model_name,
             system_instruction=instructions,
             generation_config={
-                "max_output_tokens": 4096,   # دعم النصوص الطويلة
+                "max_output_tokens": 4096,
                 "temperature": 0.7,
                 "top_p": 0.95
             }
@@ -268,63 +330,8 @@ def init_model(api_key, model_name="gemini-3.5-flash"):
         return None
 
 # ============================================================
-# 7. دوال مساعدة محسّنة للتحليل العميق (باستخدام cloudscraper)
+# 8. تحليل الرابط باستخدام Gemini
 # ============================================================
-@st.cache_data(ttl=3600)
-def fetch_page_content(url):
-    """جلب محتوى الصفحة باستخدام cloudscraper لتجاوز الحماية."""
-    try:
-        scraper = cloudscraper.create_scraper(
-            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
-        )
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        response = scraper.get(url, timeout=15, headers=headers)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # إزالة العناصر غير المرغوب فيها
-            for script in soup(["script", "style", "noscript", "meta", "link"]):
-                script.decompose()
-            # استخراج النص
-            text = soup.get_text(separator=" ", strip=True)
-            # تنظيف النص من المسافات الزائدة والأسطر الفارغة
-            text = re.sub(r'\s+', ' ', text).strip()
-            # قص النص إذا كان طويلاً جداً
-            if len(text) > 50000:
-                text = text[:50000] + "..."
-            return text
-        else:
-            # محاولة بديلة باستخدام requests العادي مع User-Agent محدث
-            return fetch_page_content_fallback(url)
-    except Exception as e:
-        # محاولة بديلة
-        return fetch_page_content_fallback(url)
-
-def fetch_page_content_fallback(url):
-    """محاولة جلب المحتوى باستخدام requests العادي مع محاكاة متصفح."""
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'ar,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-        }
-        response = requests.get(url, timeout=15, headers=headers)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            for script in soup(["script", "style", "noscript", "meta", "link"]):
-                script.decompose()
-            text = soup.get_text(separator=" ", strip=True)
-            text = re.sub(r'\s+', ' ', text).strip()
-            if len(text) > 50000:
-                text = text[:50000] + "..."
-            return text
-        else:
-            return None
-    except Exception as e:
-        return None
-
 def analyze_link_with_gemini(url, model):
     """تحليل الرابط باستخدام Gemini مع استخراج النص من الصفحة."""
     if not model:
@@ -336,7 +343,6 @@ def analyze_link_with_gemini(url, model):
     if not page_text:
         return "⚠️ تعذر الوصول إلى محتوى الصفحة. قد يكون الرابط غير صحيح أو محجوب. تأكد من صحة الرابط وحاول مرة أخرى."
     
-    # تحليل النص المستخرج
     prompt = f"""
     أنت محلل منتجات خبير. قم بتحليل الرابط التالي واستخرج المعلومات التالية بدقة:
     - اسم المنتج (إذا وجد)
@@ -346,31 +352,26 @@ def analyze_link_with_gemini(url, model):
     - أي تقييمات أو مراجعات بارزة (إن وجدت)
     - ملاحظات إضافية (مثل الخصومات، الشحن، الضمان)
     
+    قدم الإجابة بصيغة منظمة وواضحة باللغة العربية الفصحى.
+    
     نص الصفحة المستخرجة:
     {page_text}
-    
-    قدم الإجابة بصيغة منظمة وواضحة باللغة العربية الفصحى.
     """
     try:
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # عرض الخطأ الحقيقي للمستخدم كما هو مطلوب في الصور
         error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
-        st.error(error_msg)  # عرض باللون الأحمر في الواجهة
+        st.error(error_msg)
         return f"⚠️ حدث خطأ أثناء التحليل بواسطة الذكاء الاصطناعي: {str(e)}"
 
 # ============================================================
-# 8. الردود السريعة (مع تحسين الرد على السلام) - تم إزالة العلامات **
+# 9. الردود السريعة
 # ============================================================
 def quick_response(question):
     q = question.lower()
-    
-    # --- الرد على التحية بالضبط كما يطلب المستخدم ---
     if "السلام" in q or "مرحبا" in q or "هلا" in q:
         return "وعليكم السلام ورحمة الله وبركاته"
-    
-    # --- باقي الردود السريعة ---
     elif "لقد اعطيتك منتج رابط احتيالي" in q or ("رابط احتيالي" in q and "اتعلم من اخطائك" in q):
         return (
             "أهلاً بك. أنا Saeed DaTaBoT، لقد قمت بتحديث سجلاتي لتجنب التفاعل مع الروابط الاحتيالية أو الترويج لها مستقبلاً. شكراً لتنبيهي، سأكون أكثر دقة في التحقق من صحة المحتوى."
@@ -387,7 +388,6 @@ def quick_response(question):
     elif "شكرا" in q:
         return "العفو، تحت أمرك في أي وقت."
     else:
-        # إذا كان السؤال يحتوي على رابط، نمرره إلى Gemini للتحليل
         if "http" in q or "https" in q:
             return None
         return None
@@ -403,11 +403,10 @@ def render_custom_banner():
     components.html(html_code, height=200)
 
 # ============================================================
-# 9. الواجهة الرئيسية
+# 10. الواجهة الرئيسية
 # ============================================================
 render_custom_banner()
 
-# رسالة الترحيب الجديدة (تم تعديلها حسب الطلب)
 welcome_msg = "مرحبا بكم في منصة saeedmarketads الرائدة المدعومة بالذكاء الاصطناعي"
 st.markdown(f"### 🎙️ {welcome_msg}")
 play_voice(welcome_msg)
@@ -423,7 +422,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 10. السايدبار - الإعدادات والنماذج (تم التحديث إلى 3.5 و 3.1 فقط)
+# 11. السايدبار - الإعدادات والنماذج
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -433,19 +432,16 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # اختيار النموذج - استخدام gemini-3.5-flash و gemini-3.1-flash-lite فقط
     model_choice = st.selectbox(
         "اختر نموذج الذكاء الاصطناعي:",
         ["gemini-3.5-flash (سريع)", "gemini-3.1-flash-lite (خفيف)"],
         index=0
     )
-    # تعيين النموذج المختار
     if model_choice.startswith("gemini-3.5"):
         selected_model = "gemini-3.5-flash"
     else:
         selected_model = "gemini-3.1-flash-lite"
     
-    # تهيئة النموذج
     if GEMINI_API_KEY:
         model = init_model(GEMINI_API_KEY, selected_model)
         if model:
@@ -479,11 +475,11 @@ with st.sidebar:
     st.caption("برمجة وتطوير: سعيد المسوري")
 
 # ============================================================
-# 11. استخدام Tabs للفصل بين الخدمات (محسّن)
+# 12. استخدام Tabs للفصل بين الخدمات
 # ============================================================
 tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 محادثة Saeed DaTaBoT"])
 
-# --- التبويب 1: المتجر (صفحة نشر المنتجات) ---
+# --- التبويب 1: المتجر ---
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
     col1, col2, col3 = st.columns(3)
@@ -553,7 +549,7 @@ with tab1:
         
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
-# --- التبويب 2: أداة الفحص المتقدم (تحليل حقيقي) ---
+# --- التبويب 2: أداة الفحص المتقدم ---
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
     link = st.text_input("ضع رابط المنتج هنا:", placeholder="https://...")
@@ -573,13 +569,12 @@ with tab2:
         else:
             st.warning("📝 يرجى إدخال رابط المنتج")
 
-# --- التبويب 3: محادثة الذكاء الاصطناعي (يدعم النصوص الطويلة) ---
+# --- التبويب 3: محادثة الذكاء الاصطناعي ---
 with tab3:
     st.subheader("💬 اسأل Saeed DaTaBoT (يدعم النصوص الطويلة)")
     user_query = st.text_area("اطرح سؤالك هنا:", placeholder="لقد اعطيتك منتج رابط احتيالي وقلت انه متاح اتعلم من اخطائك")
     if st.button("إرسال الاستشارة"):
         if user_query:
-            # 1. نبحث عن رد سريع
             quick_ans = quick_response(user_query)
             if quick_ans:
                 st.markdown(f"""
@@ -590,7 +585,6 @@ with tab3:
                 """, unsafe_allow_html=True)
                 play_voice(quick_ans)
             elif model:
-                # 2. استخدام Gemini للردود المعقدة والطويلة
                 try:
                     with st.spinner("🤖 جاري التفكير (قد يستغرق قليلاً للنصوص الطويلة)..."):
                         response = model.generate_content(
@@ -607,7 +601,6 @@ with tab3:
                         """, unsafe_allow_html=True)
                         play_voice(bot_reply)
                 except Exception as e:
-                    # عرض الخطأ الحقيقي كما هو مطلوب في الصور
                     error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
                     st.error(error_msg)
                     fallback_reply = f"آسف، حدث خطأ تقني. التفاصيل: {str(e)}"
