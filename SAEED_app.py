@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. الخلفية والتصميم (CSS) - محسّن لعرض المنتجات بشكل جذاب
+# 2. الخلفية والتصميم (CSS) - محسّن
 # ============================================================
 page_bg = """
 <style>
@@ -175,10 +175,9 @@ hr { border-color: rgba(255,255,255,0.1); }
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت (بصوت رجالي فصيح باستخدام edge-tts)
+# 3. دالة تشغيل الصوت
 # ============================================================
 async def generate_audio(text, voice="ar-SA-HamedNeural"):
-    """توليد ملف صوتي بصوت رجالي عربي فصيح (Hamed)."""
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
             output_file = tmp_file.name
@@ -193,7 +192,6 @@ async def generate_audio(text, voice="ar-SA-HamedNeural"):
         return None
 
 def play_voice(text):
-    """تشغيل الصوت في المتصفح."""
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -208,8 +206,7 @@ def play_voice(text):
             '''
             st.markdown(audio_html, unsafe_allow_html=True)
             return True
-        else:
-            return False
+        return False
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
         return False
@@ -233,24 +230,30 @@ def get_secret(key, fallback_key=None, default=None):
 GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
 
 # ============================================================
-# 5. قراءة التعليمات
+# 5. قراءة التعليمات (محسّنة للأسواق الخليجية)
 # ============================================================
 try:
     with open('Instructions.txt', 'r', encoding='utf-8') as f:
         instructions = f.read()
 except FileNotFoundError:
     instructions = """
-    أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد.
+    أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد، المتخصص في الأسواق الخليجية (السعودية، الإمارات، الكويت، قطر، عمان، البحرين).
     هويتك: أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
     المطور والمؤسس هو سعيد المسوري، العقل المدبر لتأسيس منصة SaeedMarketAds و Saeed DaTaBoT.
     ردودك دائماً باللغة العربية الفصحى، مختصرة وواضحة، لكن يمكنك الإسهاب عند الحاجة لتحليل المنتجات أو النصوص الطويلة.
+    عند تحليل المنتجات، ركز على:
+    - ذكر السعر بالعملة المحلية للدولة المختارة (ريال سعودي، درهم إماراتي، دينار كويتي، ريال قطري، ريال عماني، دينار بحريني).
+    - توفر المنتج في دول الخليج.
+    - تقييمات المستخدمين من المنطقة.
+    - خصومات وعروض خاصة.
+    - تجنب ذكر الشحن لليمن إلا إذا طلب المستخدم ذلك صراحة.
     """
 
 # ============================================================
-# 6. دوال جلب المحتوى - نسخة محسّنة (بدون تخزين مؤقت)
+# 6. دوال جلب المحتوى (محسّنة للسرعة)
 # ============================================================
 def fetch_page_content(url):
-    """جلب محتوى الصفحة باستخدام cloudscraper مع محاولة بديلة."""
+    """جلب محتوى الصفحة بسرعة باستخدام cloudscraper."""
     try:
         scraper = cloudscraper.create_scraper(
             browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
@@ -258,18 +261,14 @@ def fetch_page_content(url):
         )
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'ar,en;q=0.9,en-US;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'ar,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
             'Cache-Control': 'max-age=0',
         }
-        response = scraper.get(url, timeout=30, headers=headers, allow_redirects=True)
+        response = scraper.get(url, timeout=20, headers=headers, allow_redirects=True)
         if response.status_code == 200:
             return extract_text_from_html(response.text)
         else:
@@ -278,7 +277,7 @@ def fetch_page_content(url):
         return fetch_page_content_fallback(url)
 
 def fetch_page_content_fallback(url):
-    """محاولة جلب المحتوى باستخدام requests مع جلسة متطورة."""
+    """محاولة بديلة باستخدام requests."""
     try:
         session = requests.Session()
         session.headers.update({
@@ -289,16 +288,14 @@ def fetch_page_content_fallback(url):
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
         })
-        response = session.get(url, timeout=30, allow_redirects=True, verify=False)
+        response = session.get(url, timeout=20, allow_redirects=True, verify=False)
         if response.status_code == 200:
             return extract_text_from_html(response.text)
-        else:
-            return None
+        return None
     except Exception:
         return None
 
 def extract_text_from_html(html):
-    """استخراج النص من HTML وتنظيفه."""
     soup = BeautifulSoup(html, 'html.parser')
     for script in soup(["script", "style", "noscript", "meta", "link"]):
         script.decompose()
@@ -312,7 +309,6 @@ def extract_text_from_html(html):
 # 7. إعداد موديل Gemini
 # ============================================================
 def init_model(api_key, model_name="gemini-3.5-flash"):
-    """تهيئة النموذج مع إعدادات مناسبة."""
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
@@ -330,10 +326,9 @@ def init_model(api_key, model_name="gemini-3.5-flash"):
         return None
 
 # ============================================================
-# 8. تحليل الرابط باستخدام Gemini
+# 8. تحليل الرابط (ذكي وسريع مع مراعاة الدولة)
 # ============================================================
-def analyze_link_with_gemini(url, model):
-    """تحليل الرابط باستخدام Gemini مع استخراج النص من الصفحة."""
+def analyze_link_with_gemini(url, model, country="السعودية"):
     if not model:
         return "❌ خدمة الذكاء الاصطناعي غير متاحة."
     
@@ -343,17 +338,31 @@ def analyze_link_with_gemini(url, model):
     if not page_text:
         return "⚠️ تعذر الوصول إلى محتوى الصفحة. قد يكون الرابط غير صحيح أو محجوب. تأكد من صحة الرابط وحاول مرة أخرى."
     
+    # خريطة العملات حسب الدولة
+    currency_map = {
+        "السعودية": "ريال سعودي (SAR)",
+        "الإمارات": "درهم إماراتي (AED)",
+        "الكويت": "دينار كويتي (KWD)",
+        "قطر": "ريال قطري (QAR)",
+        "عمان": "ريال عماني (OMR)",
+        "البحرين": "دينار بحريني (BHD)"
+    }
+    currency = currency_map.get(country, "ريال سعودي (SAR)")
+    
     prompt = f"""
-    أنت محلل منتجات خبير. قم بتحليل الرابط التالي واستخرج المعلومات التالية بدقة:
-    - اسم المنتج (إذا وجد)
-    - السعر (بالعملة المحلية، مع ذكر العملة)
-    - حالة التوفر (متاح / غير متاح / غير معروف)
-    - وصف مختصر للمنتج (لا يزيد عن 30 كلمة)
-    - أي تقييمات أو مراجعات بارزة (إن وجدت)
-    - ملاحظات إضافية (مثل الخصومات، الشحن، الضمان)
-    
-    قدم الإجابة بصيغة منظمة وواضحة باللغة العربية الفصحى.
-    
+    أنت محلل منتجات خبير ومتخصص في الأسواق الخليجية. قم بتحليل الرابط التالي واستخرج المعلومات التالية بدقة عالية:
+
+    1. اسم المنتج (إذا وجد).
+    2. السعر بالعملة المحلية للدولة المحددة: {country}، واستخدم العملة {currency}. إذا وجد السعر بعملة أخرى، قم بتحويله تقريبياً إلى العملة المطلوبة.
+    3. حالة التوفر (متاح / غير متاح / غير معروف) مع الإشارة إلى توفر المنتج في دول الخليج.
+    4. وصف مختصر للمنتج (لا يزيد عن 30 كلمة).
+    5. التقييمات والمراجعات البارزة (إن وجدت).
+    6. ملاحظات إضافية مثل الخصومات، عروض الشحن (للمنطقة الخليجية)، الضمان، إلخ.
+
+    **هام**: لا تذكر الشحن لليمن إلا إذا طلب المستخدم ذلك صراحة. ركز على دول الخليج العربي.
+
+    قدم الإجابة بصيغة منظمة وواضحة باللغة العربية الفصحى، مع عناوين فرعية لكل نقطة.
+
     نص الصفحة المستخرجة:
     {page_text}
     """
@@ -366,7 +375,7 @@ def analyze_link_with_gemini(url, model):
         return f"⚠️ حدث خطأ أثناء التحليل بواسطة الذكاء الاصطناعي: {str(e)}"
 
 # ============================================================
-# 9. الردود السريعة
+# 9. الردود السريعة (محسّنة)
 # ============================================================
 def quick_response(question):
     q = question.lower()
@@ -422,7 +431,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 11. السايدبار - الإعدادات والنماذج
+# 11. السايدبار - الإعدادات (مع إضافة اختيار الدولة)
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -431,6 +440,13 @@ with st.sidebar:
         <p style='color: #aaa;'>مساعدك الذكي للتسوق</p>
     </div>
     """, unsafe_allow_html=True)
+
+    # اختيار الدولة
+    country = st.selectbox(
+        "🌍 اختر دولتك:",
+        ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"],
+        index=0
+    )
 
     model_choice = st.selectbox(
         "اختر نموذج الذكاء الاصطناعي:",
@@ -455,10 +471,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🎯 خدماتي:")
     st.markdown("""
-    - ✅ تحليل الروابط المتقدم
+    - ✅ تحليل الروابط المتقدم (مع مراعاة دولتك)
     - ✅ عروض SHEIN
     - ✅ عروض نون
-    - ✅ محادثة ذكية (نصوص طويلة)
+    - ✅ محادثة ذكية
     """)
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
@@ -556,10 +572,11 @@ with tab2:
     if st.button("تحليل المنتج"):
         if link:
             if model:
-                result = analyze_link_with_gemini(link, model)
+                # تمرير الدولة المختارة
+                result = analyze_link_with_gemini(link, model, country)
                 st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                    <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
+                    <h4 style='color: #feca57;'>📊 نتيجة التحليل (حسب الدولة: {country}):</h4>
                     <p style='color: #e2e8f0;'>{result}</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -588,7 +605,7 @@ with tab3:
                 try:
                     with st.spinner("🤖 جاري التفكير (قد يستغرق قليلاً للنصوص الطويلة)..."):
                         response = model.generate_content(
-                            f"أنت Saeed DaTaBoT، أجب على الاستفسار التالي بشكل مفصل وواضح باللغة العربية الفصحى، مع تقديم تحليل عميق إذا لزم الأمر: {user_query}"
+                            f"أنت Saeed DaTaBoT، أجب على الاستفسار التالي بشكل مفصل وواضح باللغة العربية الفصحى، مع تقديم تحليل عميق إذا لزم الأمر. ركز على الأسواق الخليجية ولا تذكر اليمن إلا إذا طلب المستخدم: {user_query}"
                         )
                         bot_reply = response.text
                         if not bot_reply or len(bot_reply) < 5:
