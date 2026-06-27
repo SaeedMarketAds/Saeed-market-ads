@@ -78,6 +78,54 @@ page_bg = """
     transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(0,0,0,0.25);
 }
+.product-code {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    direction: ltr;
+}
+.product-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1e293b;
+    margin-bottom: 12px;
+    min-height: 50px;
+    padding-right: 60px;
+}
+.product-price {
+    color: #ff4757;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.product-sales {
+    color: #2ecc71;
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+.product-btn {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 40px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    border: none;
+}
+.product-btn:hover {
+    background: linear-gradient(90deg, #764ba2, #667eea);
+    transform: scale(1.02);
+}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
@@ -87,15 +135,15 @@ st.markdown(page_bg, unsafe_allow_html=True)
 # ============================================================
 async def generate_audio(text, voice="ar-SA-HamedNeural"):
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
             output_file = tmp_file.name
         communicate = edge_tts.Communicate(text, voice)
         await communicate.save(output_file)
-        with open(output_file, "rb") as f:
+        with open(output_file, 'rb') as f:
             audio_bytes = f.read()
         os.unlink(output_file)
         return audio_bytes
-    except Exception:
+    except Exception as e:
         return None
 
 def play_voice(text):
@@ -129,7 +177,7 @@ def get_secret(key, fallback_key=None, default=None):
 GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
 
 try:
-    with open("Instructions.txt", "r", encoding="utf-8") as f:
+    with open('Instructions.txt', 'r', encoding='utf-8') as f:
         instructions = f.read()
 except FileNotFoundError:
     instructions = "أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد. المؤسس سعيد المسوري."
@@ -156,6 +204,7 @@ def init_model(api_key, model_name):
 def analyze_link_with_gemini(url, model):
     if not model: return "خدمة الذكاء الاصطناعي غير متاحة."
     
+    # تبسيط الاستدعاء للتأكد من الاستقرار
     try:
         prompt = f"قم بتحليل هذا المنتج: {url} وقدم تفاصيل عن السعر والاسم والملاحظات."
         response = model.generate_content(prompt)
@@ -164,7 +213,7 @@ def analyze_link_with_gemini(url, model):
         return f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
 
 # ============================================================
-# 7. الردود السريعة
+# 7. الردود السريعة (بدون نجوم)
 # ============================================================
 def quick_response(question):
     q = question.lower()
@@ -185,7 +234,7 @@ st.markdown(f"### 🎙️ {welcome_msg}")
 play_voice(welcome_msg)
 
 # ============================================================
-# 9. السايدبار
+# 9. السايدبار (نماذج 3.1 و 3.5 فقط)
 # ============================================================
 with st.sidebar:
     st.header("إعدادات البوت")
@@ -227,3 +276,5 @@ with tab3:
                 response = model.generate_content(user_query)
                 st.markdown(f"<div>Saeed DaTaBoT يرد: {response.text}</div>", unsafe_allow_html=True)
                 play_voice(response.text)
+
+```
