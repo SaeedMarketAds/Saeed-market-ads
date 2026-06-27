@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. الخلفية والتصميم (CSS) - محسّن
+# 2. الخلفية والتصميم (CSS)
 # ============================================================
 page_bg = """
 <style>
@@ -247,13 +247,19 @@ except FileNotFoundError:
     - تقييمات المستخدمين من المنطقة.
     - خصومات وعروض خاصة.
     - تجنب ذكر الشحن لليمن إلا إذا طلب المستخدم ذلك صراحة.
+    - كن دقيقاً ومباشراً، لا تضع افتراضات أو تخمينات.
     """
 
 # ============================================================
-# 6. دوال جلب المحتوى (محسّنة للسرعة)
+# 6. دوال جلب المحتوى وتحليل حالة الرابط
 # ============================================================
-def fetch_page_content(url):
-    """جلب محتوى الصفحة بسرعة باستخدام cloudscraper."""
+def check_link_status(url):
+    """
+    التحقق من حالة الرابط وإرجاع:
+    - 'متاح' إذا كان الرابط يعمل ويعود بمحتوى.
+    - 'غير موجود' إذا كان الرابط معطلاً (404، 410، timeout، إلخ).
+    - 'غير موثوق / احتيالي' إذا كان الرابط مشبوهاً (سيتم تنفيذه لاحقاً).
+    """
     try:
         scraper = cloudscraper.create_scraper(
             browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
@@ -269,14 +275,20 @@ def fetch_page_content(url):
             'Cache-Control': 'max-age=0',
         }
         response = scraper.get(url, timeout=20, headers=headers, allow_redirects=True)
+        
         if response.status_code == 200:
-            return extract_text_from_html(response.text)
+            return 'متاح', response.text
+        elif response.status_code in [404, 410]:
+            return 'غير موجود', None
         else:
-            return fetch_page_content_fallback(url)
+            # محاولة بديلة باستخدام requests
+            return check_link_status_fallback(url)
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+        return 'غير موجود', None
     except Exception:
-        return fetch_page_content_fallback(url)
+        return 'غير موجود', None
 
-def fetch_page_content_fallback(url):
+def check_link_status_fallback(url):
     """محاولة بديلة باستخدام requests."""
     try:
         session = requests.Session()
@@ -290,10 +302,15 @@ def fetch_page_content_fallback(url):
         })
         response = session.get(url, timeout=20, allow_redirects=True, verify=False)
         if response.status_code == 200:
-            return extract_text_from_html(response.text)
-        return None
+            return 'متاح', response.text
+        elif response.status_code in [404, 410]:
+            return 'غير موجود', None
+        else:
+            return 'غير موجود', None
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+        return 'غير موجود', None
     except Exception:
-        return None
+        return 'غير موجود', None
 
 def extract_text_from_html(html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -326,56 +343,70 @@ def init_model(api_key, model_name="gemini-3.5-flash"):
         return None
 
 # ============================================================
-# 8. تحليل الرابط (ذكي وسريع مع مراعاة الدولة)
+# 8. تحليل الرابط (ذكي ومباشر حسب الحالة)
 # ============================================================
 def analyze_link_with_gemini(url, model, country="السعودية"):
     if not model:
         return "❌ خدمة الذكاء الاصطناعي غير متاحة."
     
-    with st.spinner("جاري جلب محتوى الصفحة..."):
-        page_text = fetch_page_content(url)
+    with st.spinner("جاري التحقق من الرابط..."):
+        status, html_content = check_link_status(url)
     
-    if not page_text:
-        return "⚠️ تعذر الوصول إلى محتوى الصفحة. قد يكون الرابط غير صحيح أو محجوب. تأكد من صحة الرابط وحاول مرة أخرى."
+    # إذا كان الرابط غير موجود
+    if status == 'غير موجود':
+        return f"📌 حالة الرابط: **غير موجود**\n\nالرابط الذي أدخلته لا يعمل أو غير متاح حالياً. يرجى التحقق من صحته والمحاولة مرة أخرى."
     
-    # خريطة العملات حسب الدولة
-    currency_map = {
-        "السعودية": "ريال سعودي (SAR)",
-        "الإمارات": "درهم إماراتي (AED)",
-        "الكويت": "دينار كويتي (KWD)",
-        "قطر": "ريال قطري (QAR)",
-        "عمان": "ريال عماني (OMR)",
-        "البحرين": "دينار بحريني (BHD)"
-    }
-    currency = currency_map.get(country, "ريال سعودي (SAR)")
+    # إذا كان الرابط مشبوهاً (يمكن تفعيله لاحقاً مع API أمان)
+    if status == 'غير موثوق / احتيالي':
+        return f"📌 حالة الرابط: **غير موثوق / احتيالي**\n\nهذا الرابط قد يكون غير آمن. ننصح بعدم استخدامه."
     
-    prompt = f"""
-    أنت محلل منتجات خبير ومتخصص في الأسواق الخليجية. قم بتحليل الرابط التالي واستخرج المعلومات التالية بدقة عالية:
+    # إذا كان الرابط متاحاً
+    if status == 'متاح' and html_content:
+        page_text = extract_text_from_html(html_content)
+        if not page_text:
+            return "⚠️ تم الوصول إلى الصفحة ولكن لم يتم استخراج أي محتوى نصي. قد تكون الصفحة تعتمد على JavaScript بشكل كامل."
+        
+        currency_map = {
+            "السعودية": "ريال سعودي (SAR)",
+            "الإمارات": "درهم إماراتي (AED)",
+            "الكويت": "دينار كويتي (KWD)",
+            "قطر": "ريال قطري (QAR)",
+            "عمان": "ريال عماني (OMR)",
+            "البحرين": "دينار بحريني (BHD)"
+        }
+        currency = currency_map.get(country, "ريال سعودي (SAR)")
+        
+        prompt = f"""
+        أنت محلل منتجات خبير ومتخصص في الأسواق الخليجية. قم بتحليل الرابط التالي واستخرج المعلومات التالية بدقة عالية:
 
-    1. اسم المنتج (إذا وجد).
-    2. السعر بالعملة المحلية للدولة المحددة: {country}، واستخدم العملة {currency}. إذا وجد السعر بعملة أخرى، قم بتحويله تقريبياً إلى العملة المطلوبة.
-    3. حالة التوفر (متاح / غير متاح / غير معروف) مع الإشارة إلى توفر المنتج في دول الخليج.
-    4. وصف مختصر للمنتج (لا يزيد عن 30 كلمة).
-    5. التقييمات والمراجعات البارزة (إن وجدت).
-    6. ملاحظات إضافية مثل الخصومات، عروض الشحن (للمنطقة الخليجية)، الضمان، إلخ.
+        1. اسم المنتج (إذا وجد).
+        2. السعر بالعملة المحلية للدولة المحددة: {country}، واستخدم العملة {currency}. إذا وجد السعر بعملة أخرى، قم بتحويله تقريبياً إلى العملة المطلوبة.
+        3. حالة التوفر (متاح / غير متاح / غير معروف) مع الإشارة إلى توفر المنتج في دول الخليج.
+        4. وصف مختصر للمنتج (لا يزيد عن 30 كلمة).
+        5. التقييمات والمراجعات البارزة (إن وجدت).
+        6. ملاحظات إضافية مثل الخصومات، عروض الشحن (للمنطقة الخليجية)، الضمان، إلخ.
 
-    **هام**: لا تذكر الشحن لليمن إلا إذا طلب المستخدم ذلك صراحة. ركز على دول الخليج العربي.
+        **هام جداً**:
+        - لا تذكر الشحن لليمن أو أي دولة خارج الخليج إلا إذا طلب المستخدم ذلك صراحة.
+        - ركز حصرياً على دول الخليج العربي.
+        - كن دقيقاً ومباشراً، لا تضع افتراضات أو تخمينات. إذا لم تجد معلومة، اذكر أنها غير متوفرة.
 
-    قدم الإجابة بصيغة منظمة وواضحة باللغة العربية الفصحى، مع عناوين فرعية لكل نقطة.
-
-    نص الصفحة المستخرجة:
-    {page_text}
-    """
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
-        st.error(error_msg)
-        return f"⚠️ حدث خطأ أثناء التحليل بواسطة الذكاء الاصطناعي: {str(e)}"
+        نص الصفحة المستخرجة:
+        {page_text}
+        """
+        try:
+            response = model.generate_content(prompt)
+            # إضافة حالة الرابط في البداية
+            return f"📌 حالة الرابط: **متاح**\n\n{response.text}"
+        except Exception as e:
+            error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
+            st.error(error_msg)
+            return f"⚠️ حدث خطأ أثناء التحليل بواسطة الذكاء الاصطناعي: {str(e)}"
+    
+    return "⚠️ حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى."
 
 # ============================================================
-# 9. الردود السريعة (محسّنة)
+# 9. الردود السريعة
 # ============================================================
 def quick_response(question):
     q = question.lower()
@@ -431,7 +462,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 11. السايدبار - الإعدادات (مع إضافة اختيار الدولة)
+# 11. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -441,7 +472,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # اختيار الدولة
     country = st.selectbox(
         "🌍 اختر دولتك:",
         ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"],
@@ -491,7 +521,7 @@ with st.sidebar:
     st.caption("برمجة وتطوير: سعيد المسوري")
 
 # ============================================================
-# 12. استخدام Tabs للفصل بين الخدمات
+# 12. استخدام Tabs
 # ============================================================
 tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 محادثة Saeed DaTaBoT"])
 
@@ -572,12 +602,11 @@ with tab2:
     if st.button("تحليل المنتج"):
         if link:
             if model:
-                # تمرير الدولة المختارة
                 result = analyze_link_with_gemini(link, model, country)
                 st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
                     <h4 style='color: #feca57;'>📊 نتيجة التحليل (حسب الدولة: {country}):</h4>
-                    <p style='color: #e2e8f0;'>{result}</p>
+                    <p style='color: #e2e8f0; white-space: pre-wrap;'>{result}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 play_voice(result)
