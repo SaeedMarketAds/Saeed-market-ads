@@ -6,4 +6,28 @@ SHEIN,SH004,حقيبة مستلزمات سفر مقاومة للماء,3.90,17,h
 SHEIN,SH005,معطف رجالي كاجوال سادة,25.67,24,https://onelink.shein.com/38/5shui8qqn60h,200+
 Noon,N001,ساعة ذكية رياضية,89.99,30,https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/,500+
 Noon,N002,سماعات لاسلكية بلوتوث,45.50,25,https://www.noon.com/ar-sa/N11200839A/p/,1200+
+import pandas as pd
+import pandas as pd
 
+# رابط ملف الـ CSV الخاص بك من GitHub (يجب أن يكون رابط RAW)
+# تأكد أن الرابط يبدأ بـ raw.githubusercontent.com
+url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
+
+# 1. قراءة البيانات من GitHub
+df = pd.read_csv(url)
+
+# 2. إجراء العمليات الحسابية
+df['final_price'] = (df['price'] * (1 - df['discount'] / 100)).round(2)
+
+# 3. ترتيب المنتجات حسب الخصم (من الأعلى للأقل)
+df_sorted = df.sort_values(by='discount', ascending=False)
+
+# 4. استخراج العروض الذهبية (خصم 50% فأكثر)
+gold_deals = df_sorted[df_sorted['discount'] >= 50]
+
+# 5. عرض النتائج
+print("--- جميع المنتجات مرتبة حسب الخصم ---")
+print(df_sorted[['name', 'discount', 'final_price', 'store']])
+
+print("\n--- العروض الذهبية فقط ---")
+print(gold_deals[['name', 'discount', 'final_price']])
