@@ -34,9 +34,6 @@ import pandas as pd
 # تأكد أن الرابط يبدأ بـ raw.githubusercontent.com
 url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
 import pandas as pd
-
-# 1. قائمة المنتجات
-products_data = [
     {'name': 'Casual Black Shorts', 'price': 5.35, 'discount': 36},
     {'name': 'Contrast Color Waistband Shorts', 'price': 11.41, 'discount': 4},
     {'name': 'Versatile Women Blouse', 'price': 16.75, 'discount': 34},
@@ -90,9 +87,7 @@ products_data = [
     {'name': 'Posture Corrector', 'price': 5.04, 'discount': 37},
     {'name': 'Double Layer Sweatshirt', 'price': 21.12, 'discount': 39},
     {'name': 'Vintage 2-Piece Set', 'price': 11.30, 'discount': 38},
-    {'name': 'Rainbow Striped Chiffon Top', 'price': 17.79, 'discount': 32}
-]
-
+    {'name': 'Rainbow Striped Chiffon Top', 'price': 17.79, 'discount': 32}ك
 # 2. إنشاء الجدول وإضافة كود الخصم لجميع المنتجات دفعة واحدة
 df = pd.DataFrame(products_data)
 df = df.drop_duplicates()
