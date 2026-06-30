@@ -8,7 +8,6 @@ Noon,N001,ساعة ذكية رياضية,89.99,30,https://www.noon.com/ar-sa/Z09
 Noon,N002,سماعات لاسلكية بلوتوث,45.50,25,https://www.noon.com/ar-sa/N11200839A/p/,1200+
 import pandas as pd
 import pandas as pd
-
 # رابط ملف الـ CSV الخاص بك من GitHub (يجب أن يكون رابط RAW)
 # تأكد أن الرابط يبدأ بـ raw.githubusercontent.com
 url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
