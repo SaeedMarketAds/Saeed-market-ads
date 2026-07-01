@@ -34,6 +34,7 @@ def get_system_instructions():
         return """
         أنت مساعد ذكي متخصص في الأسواق الخليجية.
         ردودك دائماً باللغة العربية الفصحى.
+        لا تذكر أي اسم علم أو ماركة في ردودك.
         """
 
 # ==========================================
@@ -180,35 +181,8 @@ page_bg = """
     background: linear-gradient(90deg, #764ba2, #667eea);
     transform: scale(1.02);
 }
-.store-section {
-    background: rgba(255,255,255,0.05);
-    border-radius: 30px;
-    padding: 25px;
-    margin-bottom: 40px;
-    backdrop-filter: blur(5px);
-}
-.store-header-shein {
-    background: linear-gradient(135deg, #ff6b6b, #feca57);
-    text-align: center;
-    padding: 20px;
-    border-radius: 25px;
-    margin-bottom: 30px;
-}
-.store-header-noon {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    text-align: center;
-    padding: 20px;
-    border-radius: 25px;
-    margin-bottom: 30px;
-}
-.store-header-aliexpress {
-    background: linear-gradient(135deg, #ff4757, #ff6b81);
-    text-align: center;
-    padding: 20px;
-    border-radius: 25px;
-    margin-bottom: 30px;
-}
 hr { border-color: rgba(255,255,255,0.1); }
+
 /* تنسيق الغلاف العلوي */
 .hero-section {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
@@ -247,6 +221,32 @@ hr { border-color: rgba(255,255,255,0.1); }
     margin: 0;
     font-size: 45px;
     font-weight: bold;
+}
+
+.shein-section {
+    background: linear-gradient(135deg, rgba(255,107,107,0.1), rgba(254,202,87,0.1));
+    border-radius: 30px;
+    padding: 25px;
+    margin: 20px 0;
+    border: 2px solid rgba(254,202,87,0.3);
+}
+.shein-header {
+    background: linear-gradient(135deg, #ff6b6b, #feca57);
+    border-radius: 20px;
+    padding: 15px 25px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+.shein-header h2 {
+    color: #fff;
+    margin: 0;
+    font-size: 28px;
+}
+.shein-header p {
+    color: #fff;
+    margin: 5px 0 0 0;
+    font-size: 16px;
+    opacity: 0.9;
 }
 </style>
 """
@@ -312,19 +312,25 @@ def get_golden_deals_from_csv():
     return []
 
 # ============================================================
-# 8. بيانات الغلات الثابتة (احتياطي)
+# 8. بيانات المنتجات
 # ============================================================
+SHEIN_PRODUCTS = [
+    {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
+    {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
+    {"code": "SH003", "name": "نظارات حفلات مطبوعة 6 قطع", "price": 2.70, "discount": 0, "link": "https://onelink.shein.com/38/5shujg5f2ywk", "sales": "300+"},
+    {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
+    {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
+]
+
 GOLDEN_DEALS = [
     {"name": "Men Ice Silk Polo Shirt", "price": 4.71, "discount": 60, "link": "#", "sales": "500+"},
     {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
     {"name": "Shower Curtain Set", "price": 4.47, "discount": 70, "link": "#", "sales": "200+"},
     {"name": "Sports Waist Belt", "price": 5.12, "discount": 61, "link": "#", "sales": "400+"},
-    {"name": "Men Sports Set", "price": 33.98, "discount": 56, "link": "#", "sales": "150+"},
-    {"name": "Outdoor Folding Bed", "price": 23.91, "discount": 60, "link": "#", "sales": "100+"},
 ]
 
 # ============================================================
-# 9. دوال تحليل الرابط
+# 9. دوال تحليل الرابط (بدون أسماء وبدون نجوم)
 # ============================================================
 def check_link_status(url):
     try:
@@ -371,8 +377,19 @@ def extract_text_from_html(html):
         text = text[:50000] + "..."
     return text
 
+def get_currency(country):
+    currency_map = {
+        "السعودية": "ريال سعودي",
+        "الإمارات": "درهم إماراتي",
+        "الكويت": "دينار كويتي",
+        "قطر": "ريال قطري",
+        "عمان": "ريال عماني",
+        "البحرين": "دينار بحريني"
+    }
+    return currency_map.get(country, "ريال سعودي")
+
 # ============================================================
-# 10. دوال الردود السريعة (بالعربية الفصحى فقط)
+# 10. دوال الردود السريعة
 # ============================================================
 def quick_response(question):
     q = question.lower()
@@ -382,8 +399,6 @@ def quick_response(question):
         return "بخير والحمد لله، أنا هنا لخدمتك."
     elif "كود" in q or "خصم" in q:
         return "كود الخصم الحصري هو: N73QS"
-    elif "من أنت" in q or "المطور" in q:
-        return "أنا مساعد ذكي للتسوق، صممت لأقدم لكم أفضل العروض والخدمات."
     elif "شكرا" in q:
         return "العفو، أنا في خدمتك."
     else:
@@ -411,12 +426,49 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# رسالة ترحيبية صوتية
 welcome_msg = "مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات."
 play_voice(welcome_msg)
 
 # ============================================================
-# 12. السايدبار
+# 12. عرض منتجات SHEIN في الصفحة الرئيسية
+# ============================================================
+st.markdown("""
+<div class='shein-section'>
+    <div class='shein-header'>
+        <h2>🛍️ أحدث منتجات SHEIN</h2>
+        <p>تشكيلة مميزة من أفضل المنتجات بأسعار رائعة</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+cols = st.columns(4)
+for i, product in enumerate(SHEIN_PRODUCTS):
+    with cols[i % 4]:
+        final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
+        st.markdown(f"""
+        <div class='product-card'>
+            <div class='product-code'>📦 {product['code']}</div>
+            <div class='product-name'>{product['name']}</div>
+            <div class='product-price'>${final_price:.2f}</div>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <span class='product-discount'>-{product['discount']}%</span>
+                <span class='product-sales'>📊 تم البيع: {product['sales']}</span>
+            </div>
+            <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
+                <div class='product-btn'>🛒 تسوق الآن</div>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("""
+<div style='text-align: center; margin: 20px 0;'>
+    <span style='color: #feca57; font-size: 14px;'>✨ استخدم كود الخصم N73QS للحصول على خصم إضافي</span>
+</div>
+<hr>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# 13. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -432,7 +484,6 @@ with st.sidebar:
         index=0
     )
 
-    # تهيئة الموديل
     model = init_gemini()
     if model:
         st.success(f"✅ يعمل على {CURRENT_MODEL}")
@@ -441,7 +492,6 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # العروض المميزة في السايدبار
     st.markdown("### 🔥 العروض المميزة")
     if st.button("🔥 عرض الغلات الآن", use_container_width=True):
         st.session_state.show_golden = True
@@ -479,12 +529,12 @@ with st.sidebar:
     st.caption("© 2026 سوق سعيد")
 
 # ============================================================
-# 13. استخدام Tabs
+# 14. استخدام Tabs
 # ============================================================
 tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية"])
 
 # ============================================================
-# 14. التبويب 1: المتجر مع الغلات
+# 15. التبويب 1: متجر المنتجات
 # ============================================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
@@ -502,7 +552,6 @@ with tab1:
         st.session_state.show_golden = True
         st.session_state.store = None
 
-    # عرض الغلات
     if st.session_state.get('show_golden', False):
         st.markdown("""
         <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
@@ -512,9 +561,8 @@ with tab1:
         </div>
         """, unsafe_allow_html=True)
         
-        # زر تشغيل الصوت للغلات
         if st.button("🔊 استمع لعروض الغلات"):
-            golden_message = "مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة. استخدم كود الخصم N73QS للحصول على خصم إضافي."
+            golden_message = "مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة."
             play_voice(golden_message)
         
         golden_products = get_golden_deals_from_csv()
@@ -543,20 +591,11 @@ with tab1:
                 """, unsafe_allow_html=True)
         st.info("✅ تم تحميل الغلات بنجاح...")
 
-    # عرض المتاجر
     elif 'store' in st.session_state and st.session_state.store:
         store = st.session_state.store
         st.write(f"### عرض منتجات: {store}")
         
         if store == "SHEIN":
-            # عرض جميع منتجات SHEIN كاملة
-            SHEIN_PRODUCTS = [
-                {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
-                {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
-                {"code": "SH003", "name": "نظارات حفلات مطبوعة 6 قطع", "price": 2.70, "discount": 0, "link": "https://onelink.shein.com/38/5shujg5f2ywk", "sales": "300+"},
-                {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
-                {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
-            ]
             cols = st.columns(4)
             for i, product in enumerate(SHEIN_PRODUCTS):
                 with cols[i % 4]:
@@ -605,7 +644,7 @@ with tab1:
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
 # ============================================================
-# 15. التبويب 2: أداة الفحص المتقدم
+# 16. التبويب 2: أداة الفحص المتقدم (بدون أسماء وبدون نجوم)
 # ============================================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
@@ -618,21 +657,40 @@ with tab2:
                     status, html_content = check_link_status(link)
                     if status == 'متاح' and html_content:
                         page_text = extract_text_from_html(html_content)
+                        currency = get_currency(country)
                         prompt = f"""
-                        قم بتحليل هذا المنتج بدقة باللغة العربية الفصحى:
-                        النص: {page_text[:5000]}
-                        الدولة: {country}
-                        استخرج: السعر، الاسم، التقييمات، التوفر.
+                        قم بتحليل هذا المنتج بدقة باللغة العربية الفصحى.
+                        استخرج المعلومات التالية:
+                        1. اسم المنتج
+                        2. السعر المتوقع بالعملة المحلية: {currency}
+                        3. التقييمات والمراجعات إن وجدت
+                        4. حالة التوفر
+                        
+                        نص الصفحة:
+                        {page_text[:5000]}
+                        
+                        تنبيهات مهمة:
+                        - لا تذكر أي اسم علم أو ماركة في ردك
+                        - استخدم العملة {currency} فقط
+                        - كن مختصراً وواضحاً
                         """
                         try:
                             response = model.generate_content(prompt)
+                            # تنظيف الناتج من الأسماء والنجوم
+                            clean_response = response.text
+                            clean_response = re.sub(r'[⭐]', '', clean_response)
+                            clean_response = re.sub(r'Saeed\s*DaTaBoT', '', clean_response, flags=re.IGNORECASE)
+                            clean_response = re.sub(r'SaeedMarketAds', '', clean_response, flags=re.IGNORECASE)
+                            clean_response = re.sub(r'saeedmarketads', '', clean_response, flags=re.IGNORECASE)
+                            clean_response = re.sub(r'\s+', ' ', clean_response).strip()
+                            
                             st.markdown(f"""
                             <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
                                 <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
-                                <p style='color: #e2e8f0;'>{response.text}</p>
+                                <p style='color: #e2e8f0; white-space: pre-wrap;'>{clean_response}</p>
                             </div>
                             """, unsafe_allow_html=True)
-                            play_voice(response.text[:200])
+                            play_voice(clean_response[:200])
                         except Exception as e:
                             st.error(f"خطأ: {str(e)}")
                     else:
@@ -643,7 +701,7 @@ with tab2:
             st.warning("📝 يرجى إدخال رابط المنتج")
 
 # ============================================================
-# 16. التبويب 3: المحادثة الذكية
+# 17. التبويب 3: المحادثة الذكية
 # ============================================================
 with tab3:
     st.subheader("💬 المحادثة الذكية")
@@ -663,14 +721,28 @@ with tab3:
             elif model:
                 try:
                     with st.spinner("🤖 جاري التفكير..."):
-                        response = model.generate_content(f"أجب على هذا السؤال باللغة العربية الفصحى: {user_query}")
+                        response = model.generate_content(f"""
+                        أجب على هذا السؤال باللغة العربية الفصحى:
+                        {user_query}
+                        
+                        تنبيهات:
+                        - لا تذكر أي اسم علم أو ماركة في ردك
+                        - كن مختصراً وواضحاً
+                        """)
+                        clean_response = response.text
+                        clean_response = re.sub(r'[⭐]', '', clean_response)
+                        clean_response = re.sub(r'Saeed\s*DaTaBoT', '', clean_response, flags=re.IGNORECASE)
+                        clean_response = re.sub(r'SaeedMarketAds', '', clean_response, flags=re.IGNORECASE)
+                        clean_response = re.sub(r'saeedmarketads', '', clean_response, flags=re.IGNORECASE)
+                        clean_response = re.sub(r'\s+', ' ', clean_response).strip()
+                        
                         st.markdown(f"""
                         <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
                             <h4 style='color: #feca57;'>🤖 الرد:</h4>
-                            <p style='color: #e2e8f0;'>{response.text}</p>
+                            <p style='color: #e2e8f0;'>{clean_response}</p>
                         </div>
                         """, unsafe_allow_html=True)
-                        play_voice(response.text[:200])
+                        play_voice(clean_response[:200])
                 except Exception as e:
                     st.error(f"خطأ: {str(e)}")
             else:
