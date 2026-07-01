@@ -11,9 +11,52 @@ import asyncio
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
+import pandas as pd
+from io import StringIO
+
+# ==========================================
+# 1. إعدادات الموديل (قم بإلغاء تعليق الموديل الذي تريده)
+# ==========================================
+# الخيار الأول: الموديل الأقوى والأحدث
+CURRENT_MODEL = "gemini-3.5-flash" 
+# الخيار الثاني: الموديل السريع والخفيف (مناسب لـ Flash Lite)
+# CURRENT_MODEL = "gemini-3.1-flash-lite" 
+
+# ==========================================
+# 2. دالة دمج التعليمات (تقرأ الملفات التي قسمناها)
+# ==========================================
+def get_system_instructions():
+    try:
+        with open('identity.txt', 'r', encoding='utf-8') as f1:
+            identity = f1.read()
+        with open('rules.txt', 'r', encoding='utf-8') as f2:
+            rules = f2.read()
+        return f"{identity}\n\n[القواعد والالتزامات]:\n{rules}"
+    except Exception as e:
+        return """
+        أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد، المتخصص في الأسواق الخليجية.
+        هويتك: أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
+        المطور والمؤسس هو سعيد المسوري.
+        ردودك دائماً باللغة العربية الفصحى.
+        """
+
+# ==========================================
+# 3. تهيئة الموديل (مع مراعاة الأمان في Streamlit)
+# ==========================================
+def init_gemini():
+    if "GEMINI_MAIN_KEY" in st.secrets:
+        genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
+        model = genai.GenerativeModel(
+            model_name=CURRENT_MODEL,
+            system_instruction=get_system_instructions()
+        )
+        return model
+    else:
+        st.error("خطأ: مفتاح API غير موجود في إعدادات Streamlit secrets.")
+        return None
 
 # ============================================================
-# 1. إعدادات الصفحة
+# 4. إعدادات الصفحة
 # ============================================================
 st.set_page_config(
     page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس",
@@ -22,7 +65,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. الخلفية والتصميم (CSS)
+# 5. الخلفية والتصميم (CSS)
 # ============================================================
 page_bg = """
 <style>
@@ -175,7 +218,7 @@ hr { border-color: rgba(255,255,255,0.1); }
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ============================================================
-# 3. دالة تشغيل الصوت
+# 6. دالة تشغيل الصوت
 # ============================================================
 async def generate_audio(text, voice="ar-SA-HamedNeural"):
     try:
@@ -212,54 +255,43 @@ def play_voice(text):
         return False
 
 # ============================================================
-# 4. قراءة المفاتيح من st.secrets
+# 7. دوال جلب المنتجات من CSV
 # ============================================================
-def get_secret(key, fallback_key=None, default=None):
+@st.cache_data(ttl=3600)
+def load_products_from_csv():
     try:
-        if key in st.secrets:
-            return st.secrets[key]
-        if fallback_key and fallback_key in st.secrets:
-            return st.secrets[fallback_key]
-        for k in st.secrets.keys():
-            if key.lower() in k.lower() or (fallback_key and fallback_key.lower() in k.lower()):
-                return st.secrets[k]
-        return default
+        url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
+        response = requests.get(url)
+        if response.status_code == 200:
+            df = pd.read_csv(StringIO(response.text))
+            return df
+        return None
     except:
-        return default
+        return None
 
-GEMINI_API_KEY = get_secret("GEMINI_MAIN_KEY", "GEMINI_API", None)
-
-# ============================================================
-# 5. قراءة التعليمات (محسّنة للأسواق الخليجية)
-# ============================================================
-try:
-    with open('Instructions.txt', 'r', encoding='utf-8') as f:
-        instructions = f.read()
-except FileNotFoundError:
-    instructions = """
-    أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد، المتخصص في الأسواق الخليجية (السعودية، الإمارات، الكويت، قطر، عمان، البحرين).
-    هويتك: أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
-    المطور والمؤسس هو سعيد المسوري، العقل المدبر لتأسيس منصة SaeedMarketAds و Saeed DaTaBoT.
-    ردودك دائماً باللغة العربية الفصحى، مختصرة وواضحة، لكن يمكنك الإسهاب عند الحاجة لتحليل المنتجات أو النصوص الطويلة.
-    عند تحليل المنتجات، ركز على:
-    - ذكر السعر بالعملة المحلية للدولة المختارة (ريال سعودي، درهم إماراتي، دينار كويتي، ريال قطري، ريال عماني، دينار بحريني).
-    - توفر المنتج في دول الخليج.
-    - تقييمات المستخدمين من المنطقة.
-    - خصومات وعروض خاصة.
-    - تجنب ذكر الشحن لليمن إلا إذا طلب المستخدم ذلك صراحة.
-    - كن دقيقاً ومباشراً، لا تضع افتراضات أو تخمينات.
-    """
+def get_golden_deals_from_csv():
+    df = load_products_from_csv()
+    if df is not None and 'discount' in df.columns:
+        golden = df[df['discount'] >= 50]
+        return golden.to_dict('records')
+    return []
 
 # ============================================================
-# 6. دوال جلب المحتوى وتحليل حالة الرابط
+# 8. بيانات الغلات الثابتة (احتياطي)
+# ============================================================
+GOLDEN_DEALS = [
+    {"name": "Men Ice Silk Polo Shirt", "price": 4.71, "discount": 60, "link": "#", "sales": "500+"},
+    {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
+    {"name": "Shower Curtain Set", "price": 4.47, "discount": 70, "link": "#", "sales": "200+"},
+    {"name": "Sports Waist Belt", "price": 5.12, "discount": 61, "link": "#", "sales": "400+"},
+    {"name": "Men Sports Set", "price": 33.98, "discount": 56, "link": "#", "sales": "150+"},
+    {"name": "Outdoor Folding Bed", "price": 23.91, "discount": 60, "link": "#", "sales": "100+"},
+]
+
+# ============================================================
+# 9. دوال تحليل الرابط
 # ============================================================
 def check_link_status(url):
-    """
-    التحقق من حالة الرابط وإرجاع:
-    - 'متاح' إذا كان الرابط يعمل ويعود بمحتوى.
-    - 'غير موجود' إذا كان الرابط معطلاً (404، 410، timeout، إلخ).
-    - 'غير موثوق / احتيالي' إذا كان الرابط مشبوهاً (سيتم تنفيذه لاحقاً).
-    """
     try:
         scraper = cloudscraper.create_scraper(
             browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False},
@@ -269,47 +301,29 @@ def check_link_status(url):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'ar,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0',
         }
         response = scraper.get(url, timeout=20, headers=headers, allow_redirects=True)
-        
         if response.status_code == 200:
             return 'متاح', response.text
         elif response.status_code in [404, 410]:
             return 'غير موجود', None
         else:
-            # محاولة بديلة باستخدام requests
             return check_link_status_fallback(url)
-    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-        return 'غير موجود', None
-    except Exception:
+    except:
         return 'غير موجود', None
 
 def check_link_status_fallback(url):
-    """محاولة بديلة باستخدام requests."""
     try:
         session = requests.Session()
         session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'ar,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
         })
         response = session.get(url, timeout=20, allow_redirects=True, verify=False)
         if response.status_code == 200:
             return 'متاح', response.text
-        elif response.status_code in [404, 410]:
-            return 'غير موجود', None
         else:
             return 'غير موجود', None
-    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-        return 'غير موجود', None
-    except Exception:
+    except:
         return 'غير موجود', None
 
 def extract_text_from_html(html):
@@ -323,161 +337,26 @@ def extract_text_from_html(html):
     return text
 
 # ============================================================
-# 7. إعداد موديل Gemini
-# ============================================================
-def init_model(api_key, model_name="gemini-3.5-flash"):
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=instructions,
-            generation_config={
-                "max_output_tokens": 4096,
-                "temperature": 0.7,
-                "top_p": 0.95
-            }
-        )
-        return model
-    except Exception as e:
-        st.error(f"⚠️ خطأ في تهيئة النموذج: {str(e)}")
-        return None
-# ============================================================
-# 8. تحليل الرابط مع إعادة المحاولة التلقائية ومعالجة 429
-# ============================================================
-def analyze_link_with_gemini(url, model, country="السعودية", retries=2):
-    """
-    تحليل الرابط مع إعادة المحاولة في حال تجاوز الحد (429).
-    - يحاول أولاً باستخدام النموذج الأساسي.
-    - إذا حصل 429، ينتظر المدة المطلوبة ثم يعيد المحاولة.
-    - بعد فشل المحاولات، يستخدم النموذج البديل (gemini-3.1-flash-lite).
-    """
-    if not model:
-        return "❌ خدمة الذكاء الاصطناعي غير متاحة."
-    
-    # التحقق من حالة الرابط أولاً
-    with st.spinner("جاري التحقق من الرابط..."):
-        status, html_content = check_link_status(url)
-    
-    if status == 'غير موجود':
-        return f"📌 حالة الرابط: **غير موجود**\n\nالرابط الذي أدخلته لا يعمل أو غير متاح حالياً. يرجى التحقق من صحته والمحاولة مرة أخرى."
-    if status == 'غير موثوق / احتيالي':
-        return f"📌 حالة الرابط: **غير موثوق / احتيالي**\n\nهذا الرابط قد يكون غير آمن. ننصح بعدم استخدامه."
-    if not html_content:
-        return "⚠️ تم الوصول إلى الصفحة ولكن لم يتم استخراج أي محتوى نصي. قد تكون الصفحة تعتمد على JavaScript بشكل كامل."
-    
-    page_text = extract_text_from_html(html_content)
-    if not page_text:
-        return "⚠️ لا يوجد محتوى نصي قابل للتحليل."
-    
-    currency_map = {
-        "السعودية": "ريال سعودي (SAR)",
-        "الإمارات": "درهم إماراتي (AED)",
-        "الكويت": "دينار كويتي (KWD)",
-        "قطر": "ريال قطري (QAR)",
-        "عمان": "ريال عماني (OMR)",
-        "البحرين": "دينار بحريني (BHD)"
-    }
-    currency = currency_map.get(country, "ريال سعودي (SAR)")
-    
-    prompt = f"""
-    أنت محلل منتجات خبير ومتخصص في الأسواق الخليجية. قم بتحليل الرابط التالي واستخرج المعلومات التالية بدقة عالية:
-
-    1. اسم المنتج (إذا وجد).
-    2. السعر بالعملة المحلية للدولة المحددة: {country}، واستخدم العملة {currency}. إذا وجد السعر بعملة أخرى، قم بتحويله تقريبياً إلى العملة المطلوبة.
-    3. حالة التوفر (متاح / غير متاح / غير معروف) مع الإشارة إلى توفر المنتج في دول الخليج.
-    4. وصف مختصر للمنتج (لا يزيد عن 30 كلمة).
-    5. التقييمات والمراجعات البارزة (إن وجدت).
-    6. ملاحظات إضافية مثل الخصومات، عروض الشحن (للمنطقة الخليجية)، الضمان، إلخ.
-
-    **هام جداً**:
-    - لا تذكر الشحن لليمن أو أي دولة خارج الخليج إلا إذا طلب المستخدم ذلك صراحة.
-    - ركز حصرياً على دول الخليج العربي.
-    - كن دقيقاً ومباشراً، لا تضع افتراضات أو تخمينات. إذا لم تجد معلومة، اذكر أنها غير متوفرة.
-
-    نص الصفحة المستخرجة:
-    {page_text}
-    """
-    
-    # دالة مساعدة لإرسال الطلب مع إعادة المحاولة
-    def send_request(model_instance, prompt_text, retry_count=0):
-        try:
-            response = model_instance.generate_content(prompt_text)
-            return response.text
-        except Exception as e:
-            error_msg = str(e)
-            # التحقق من وجود خطأ 429
-            if "429" in error_msg and "retry_delay" in error_msg:
-                # محاولة استخراج مدة الانتظار من رسالة الخطأ
-                import re
-                match = re.search(r'retry_delay\s*{\s*seconds:\s*(\d+)\s*}', error_msg, re.DOTALL)
-                if match:
-                    wait_time = int(match.group(1)) + 1  # ننتظر ثانية إضافية للتأكد
-                else:
-                    wait_time = 30  # افتراضي
-                if retry_count < 2:
-                    st.warning(f"⏳ تم تجاوز حد الاستخدام، جاري إعادة المحاولة بعد {wait_time} ثانية... (محاولة {retry_count+1}/2)")
-                    import time
-                    time.sleep(wait_time)
-                    return send_request(model_instance, prompt_text, retry_count+1)
-                else:
-                    # بعد فشل المحاولات، نستخدم النموذج البديل
-                    st.info("🔄 التبديل إلى النموذج الخفيف (gemini-3.1-flash-lite) للمتابعة...")
-                    # تهيئة النموذج البديل (نستخدم نفس المفتاح)
-                    fallback_model = init_model(GEMINI_API_KEY, "gemini-3.1-flash-lite")
-                    if fallback_model:
-                        return send_request(fallback_model, prompt_text, 0)  # إعادة المحاولة من الصفر بالنموذج الجديد
-                    else:
-                        return f"⚠️ تعذر استخدام النموذج البديل. يرجى المحاولة بعد دقيقة."
-            else:
-                # أخطاء أخرى
-                raise e
-        return None
-    
-    try:
-        with st.spinner("🤖 جاري تحليل المنتج..."):
-            result_text = send_request(model, prompt, 0)
-            if result_text:
-                return f"📌 حالة الرابط: **متاح**\n\n{result_text}"
-            else:
-                return "⚠️ حدث خطأ غير متوقع أثناء التحليل."
-    except Exception as e:
-        error_msg = str(e)
-        # إذا كان الخطأ 429 ولم نتمكن من معالجته، نعرض رسالة ودية
-        if "429" in error_msg:
-            return "⏳ تم تجاوز حد الاستخدام حالياً. يرجى الانتظار دقيقة ثم المحاولة مرة أخرى. يمكنك أيضاً تجربة النموذج الخفيف من القائمة الجانبية."
-        else:
-            st.error(f"حدث خطأ تقني: {error_msg}")
-            return f"⚠️ حدث خطأ أثناء التحليل: {error_msg}"
- 
-    
-
-# ============================================================
-# 9. الردود السريعة
+# 10. دوال الردود السريعة
 # ============================================================
 def quick_response(question):
     q = question.lower()
     if "السلام" in q or "مرحبا" in q or "هلا" in q:
         return "وعليكم السلام ورحمة الله وبركاته"
-    elif "لقد اعطيتك منتج رابط احتيالي" in q or ("رابط احتيالي" in q and "اتعلم من اخطائك" in q):
-        return (
-            "أهلاً بك. أنا Saeed DaTaBoT، لقد قمت بتحديث سجلاتي لتجنب التفاعل مع الروابط الاحتيالية أو الترويج لها مستقبلاً. شكراً لتنبيهي، سأكون أكثر دقة في التحقق من صحة المحتوى."
-        )
-    elif "كيف حال" in q or "كيفك" in q or "اخبار" in q:
-        return "بخير والحمد لله، أنا هنا لخدمتك يا صديقي. كيف يمكنني مساعدتك اليوم؟"
+    elif "كيف حال" in q or "كيفك" in q:
+        return "بخير والحمد لله، أنا هنا لخدمتك يا صديقي."
     elif "كود" in q or "خصم" in q:
-        return "🎁 كود خصم SHEIN الحصري 🎁\n\n🏷️ الكود: WL7KA\n\n🔥 خصم يصل إلى 60% على أول طلب"
-    elif "من أنت" in q or "من برمج" in q or "المطور" in q or "سعيد" in q:
-        return (
-            "🤖 أنا Saeed DaTaBoT، مساعدك الذكي للتسوق.\n\n"
-            "المطور والعقل المدبر هو سعيد المسوري، مؤسس SaeedMarketAds، رائد أعمال ومطور أنظمة ذكاء اصطناعي."
-        )
+        return "🎁 كود خصم SHEIN الحصري: N73QS"
+    elif "من أنت" in q or "المطور" in q or "سعيد" in q:
+        return "🤖 أنا Saeed DaTaBoT، مساعدك الذكي للتسوق. المطور هو سعيد المسوري، مؤسس SaeedMarketAds."
     elif "شكرا" in q:
-        return "العفو، تحت أمرك في أي وقت."
+        return "العفو، تحت أمرك."
     else:
-        if "http" in q or "https" in q:
-            return None
         return None
 
+# ============================================================
+# 11. عرض البانر
+# ============================================================
 def render_custom_banner():
     html_code = """
     <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 40px; margin-bottom: 30px;'>
@@ -489,7 +368,7 @@ def render_custom_banner():
     components.html(html_code, height=200)
 
 # ============================================================
-# 10. الواجهة الرئيسية
+# 12. الواجهة الرئيسية
 # ============================================================
 render_custom_banner()
 
@@ -501,14 +380,14 @@ st.markdown("""
 <div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 40px; border-radius: 55px; text-align: center; margin-bottom: 40px;'>
     <h2 style='color: #fff;'>🎁 عرض خاص للمستخدمين الجدد 🎁</h2>
     <div style='background: white; display: inline-block; padding: 15px 50px; border-radius: 80px; margin: 10px 0;'>
-        <h1 style='color: #ff0844; margin: 0; font-size: 45px;'>🏷️ WL7KA</h1>
+        <h1 style='color: #ff0844; margin: 0; font-size: 45px;'>🏷️ N73QS</h1>
     </div>
     <p style='color: #fff; font-size: 22px;'>🔥 خصم يصل إلى 60% على أول طلب 🔥</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 11. السايدبار
+# 13. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -524,65 +403,120 @@ with st.sidebar:
         index=0
     )
 
-    model_choice = st.selectbox(
-        "اختر نموذج الذكاء الاصطناعي:",
-        ["gemini-3.5-flash (سريع)", "gemini-3.1-flash-lite (خفيف)"],
-        index=0
-    )
-    if model_choice.startswith("gemini-3.5"):
-        selected_model = "gemini-3.5-flash"
+    # تهيئة الموديل
+    model = init_gemini()
+    if model:
+        st.success(f"✅ يعمل على {CURRENT_MODEL}")
     else:
-        selected_model = "gemini-3.1-flash-lite"
+        st.error("⚠️ فشل تهيئة النموذج")
+
+    st.markdown("---")
     
-    if GEMINI_API_KEY:
-        model = init_model(GEMINI_API_KEY, selected_model)
-        if model:
-            st.success(f"✅ يعمل على {selected_model}")
-        else:
-            st.error("⚠️ فشل تهيئة النموذج")
-    else:
-        model = None
-        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
+    # 🔥 العروض المميزة في السايدبار
+    st.markdown("### 🔥 العروض المميزة")
+    if st.button("🔥 عرض الغلات الآن", use_container_width=True):
+        st.session_state.show_golden = True
+        st.session_state.store = None
+
+    if st.session_state.get('show_golden', False):
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 20px; padding: 15px; text-align: center; margin: 10px 0;'>
+            <h4 style='color: #fff;'>🔥 العروض الذهبية</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        golden_products = get_golden_deals_from_csv()
+        if not golden_products:
+            golden_products = GOLDEN_DEALS
+        for product in golden_products[:5]:
+            final_price = product['price'] * (1 - product['discount']/100)
+            st.markdown(f"""
+            <div style='background: rgba(255,255,255,0.1); border-radius: 15px; padding: 12px; margin-bottom: 10px; border-right: 4px solid #feca57;'>
+                <p style='color: #e2e8f0; margin: 0;'><b>{product['name'][:30]}...</b></p>
+                <p style='color: #feca57; margin: 0;'>💰 ${final_price:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${product['price']:.2f}</span></p>
+                <p style='color: #2ecc71; margin: 0;'>خصم {product['discount']}%</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 🎯 خدماتي:")
-    st.markdown("""
-    - ✅ تحليل الروابط المتقدم (مع مراعاة دولتك)
-    - ✅ عروض SHEIN
-    - ✅ عروض نون
-    - ✅ محادثة ذكية
-    """)
+    st.markdown("- ✅ تحليل الروابط المتقدم")
+    st.markdown("- ✅ عروض SHEIN")
+    st.markdown("- ✅ عروض نون")
+    st.markdown("- ✅ محادثة ذكية")
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
-    st.markdown("---")
-    st.markdown("### 📊 إحصائيات:")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("🛍️ منتجات SHEIN", "5+")
-    with col2:
-        st.metric("⭐ منتجات نون", "2+")
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
     st.caption("برمجة وتطوير: سعيد المسوري")
 
 # ============================================================
-# 12. استخدام Tabs
+# 14. استخدام Tabs
 # ============================================================
 tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 محادثة Saeed DaTaBoT"])
 
-# --- التبويب 1: المتجر ---
+# ============================================================
+# 15. التبويب 1: المتجر مع الغلات
+# ============================================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     if col1.button("🛍️ تصفح SHEIN"):
         st.session_state.store = "SHEIN"
+        st.session_state.show_golden = False
     if col2.button("💛 تصفح Noon"):
         st.session_state.store = "Noon"
+        st.session_state.show_golden = False
     if col3.button("🚀 تصفح AliExpress"):
         st.session_state.store = "AliExpress"
+        st.session_state.show_golden = False
+    if col4.button("🔥 الغلات"):
+        st.session_state.show_golden = True
+        st.session_state.store = None
 
-    if 'store' in st.session_state:
+    # عرض الغلات
+    if st.session_state.get('show_golden', False):
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
+            <h2 style='color: #fff;'>🔥 عروض الغلات الحصرية 🔥</h2>
+            <p style='color: #fff; font-size: 18px;'>خصومات تصل إلى 70%</p>
+            <p style='color: #fff; font-size: 16px;'>🎁 استخدم كود الخصم: N73QS</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # زر تشغيل الصوت للغلات
+        if st.button("🔊 استمع لعروض الغلات"):
+            golden_message = "مرحباً بك في عروض الغلات الحصرية من سوق سعيد. خصومات تصل إلى سبعين بالمئة على منتجات مختارة. استخدم كود الخصم N73QS للحصول على خصم إضافي."
+            play_voice(golden_message)
+        
+        golden_products = get_golden_deals_from_csv()
+        if not golden_products:
+            golden_products = GOLDEN_DEALS
+        
+        cols = st.columns(4)
+        for i, product in enumerate(golden_products[:12]):
+            with cols[i % 4]:
+                final_price = product['price'] * (1 - product['discount']/100)
+                link = product.get('link', '#')
+                sales = product.get('sales', 'N/A')
+                st.markdown(f"""
+                <div class='product-card' style='border: 3px solid #feca57;'>
+                    <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>🔥 غلة</div>
+                    <div class='product-name'>{product['name']}</div>
+                    <div class='product-price'>${final_price:.2f}</div>
+                    <div style='display: flex; justify-content: space-between; align-items: center;'>
+                        <span class='product-discount'>-{product['discount']}%</span>
+                        <span class='product-sales'>📊 {sales}</span>
+                    </div>
+                    <a href='{link}' target='_blank' style='text-decoration: none;'>
+                        <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>🛒 احصل على العرض</div>
+                    </a>
+                </div>
+                """, unsafe_allow_html=True)
+        st.info("✅ تم تحميل الغلات بنجاح...")
+
+    # عرض المتاجر
+    elif 'store' in st.session_state and st.session_state.store:
         store = st.session_state.store
         st.write(f"### عرض منتجات: {store}")
         
@@ -641,30 +575,51 @@ with tab1:
         
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
-# --- التبويب 2: أداة الفحص المتقدم ---
+# ============================================================
+# 16. التبويب 2: أداة الفحص المتقدم
+# ============================================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
     link = st.text_input("ضع رابط المنتج هنا:", placeholder="https://...")
+    
     if st.button("تحليل المنتج"):
         if link:
             if model:
-                result = analyze_link_with_gemini(link, model, country)
-                st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                    <h4 style='color: #feca57;'>📊 نتيجة التحليل (حسب الدولة: {country}):</h4>
-                    <p style='color: #e2e8f0; white-space: pre-wrap;'>{result}</p>
-                </div>
-                """, unsafe_allow_html=True)
-                play_voice(result)
+                with st.spinner("جاري التحليل..."):
+                    status, html_content = check_link_status(link)
+                    if status == 'متاح' and html_content:
+                        page_text = extract_text_from_html(html_content)
+                        prompt = f"""
+                        قم بتحليل هذا المنتج بدقة:
+                        النص: {page_text[:5000]}
+                        الدولة: {country}
+                        استخرج: السعر، الاسم، التقييمات، التوفر.
+                        """
+                        try:
+                            response = model.generate_content(prompt)
+                            st.markdown(f"""
+                            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                                <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
+                                <p style='color: #e2e8f0;'>{response.text}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            play_voice(response.text[:200])
+                        except Exception as e:
+                            st.error(f"خطأ: {str(e)}")
+                    else:
+                        st.warning("⚠️ الرابط غير متاح أو لا يحتوي على محتوى.")
             else:
-                st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة، يرجى التحقق من مفتاح API.")
+                st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة.")
         else:
             st.warning("📝 يرجى إدخال رابط المنتج")
 
-# --- التبويب 3: محادثة الذكاء الاصطناعي ---
+# ============================================================
+# 17. التبويب 3: محادثة الذكاء الاصطناعي
+# ============================================================
 with tab3:
-    st.subheader("💬 اسأل Saeed DaTaBoT (يدعم النصوص الطويلة)")
-    user_query = st.text_area("اطرح سؤالك هنا:", placeholder="لقد اعطيتك منتج رابط احتيالي وقلت انه متاح اتعلم من اخطائك")
+    st.subheader("💬 اسأل Saeed DaTaBoT")
+    user_query = st.text_area("اطرح سؤالك هنا:", placeholder="اكتب سؤالك هنا...")
+    
     if st.button("إرسال الاستشارة"):
         if user_query:
             quick_ans = quick_response(user_query)
@@ -678,34 +633,18 @@ with tab3:
                 play_voice(quick_ans)
             elif model:
                 try:
-                    with st.spinner("🤖 جاري التفكير (قد يستغرق قليلاً للنصوص الطويلة)..."):
-                        response = model.generate_content(
-                            f"أنت Saeed DaTaBoT، أجب على الاستفسار التالي بشكل مفصل وواضح باللغة العربية الفصحى، مع تقديم تحليل عميق إذا لزم الأمر. ركز على الأسواق الخليجية ولا تذكر اليمن إلا إذا طلب المستخدم: {user_query}"
-                        )
-                        bot_reply = response.text
-                        if not bot_reply or len(bot_reply) < 5:
-                            bot_reply = "شكراً لسؤالك. أنا هنا لمساعدتك، هل لديك استفسار آخر؟"
+                    with st.spinner("🤖 جاري التفكير..."):
+                        response = model.generate_content(f"أجب على هذا السؤال بالعربية: {user_query}")
                         st.markdown(f"""
                         <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
                             <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
-                            <p style='color: #e2e8f0;'>{bot_reply}</p>
+                            <p style='color: #e2e8f0;'>{response.text}</p>
                         </div>
                         """, unsafe_allow_html=True)
-                        play_voice(bot_reply)
+                        play_voice(response.text[:200])
                 except Exception as e:
-                    error_msg = f"حدث خطأ تقني، تفاصيل الخطأ هي: {str(e)}"
-                    st.error(error_msg)
-                    fallback_reply = f"آسف، حدث خطأ تقني. التفاصيل: {str(e)}"
-                    st.markdown(f"""
-                    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #ff6b6b;'>
-                        <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
-                        <p style='color: #e2e8f0;'>{fallback_reply}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    play_voice(fallback_reply)
+                    st.error(f"خطأ: {str(e)}")
             else:
-                st.warning("⚠️ عذراً، خدمة الذكاء الاصطناعي غير متاحة حالياً.")
+                st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة.")
         else:
             st.warning("📝 يرجى كتابة سؤالك أولاً")
-
-
