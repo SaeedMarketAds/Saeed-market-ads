@@ -15,15 +15,13 @@ import pandas as pd
 from io import StringIO
 
 # ==========================================
-# 1. إعدادات الموديل (قم بإلغاء تعليق الموديل الذي تريده)
+# 1. إعدادات الموديل
 # ==========================================
-# الخيار الأول: الموديل الأقوى والأحدث
 CURRENT_MODEL = "gemini-3.5-flash" 
-# الخيار الثاني: الموديل السريع والخفيف (مناسب لـ Flash Lite)
 # CURRENT_MODEL = "gemini-3.1-flash-lite" 
 
 # ==========================================
-# 2. دالة دمج التعليمات (تقرأ الملفات التي قسمناها)
+# 2. دالة دمج التعليمات
 # ==========================================
 def get_system_instructions():
     try:
@@ -34,14 +32,12 @@ def get_system_instructions():
         return f"{identity}\n\n[القواعد والالتزامات]:\n{rules}"
     except Exception as e:
         return """
-        أنت Saeed DaTaBoT، المساعد الذكي لمنصة سوق سعيد، المتخصص في الأسواق الخليجية.
-        هويتك: أنت منصة SaeedMarketAds الرائدة مع تقنية الذكاء الاصطناعي.
-        المطور والمؤسس هو سعيد المسوري.
+        أنت مساعد ذكي متخصص في الأسواق الخليجية.
         ردودك دائماً باللغة العربية الفصحى.
         """
 
 # ==========================================
-# 3. تهيئة الموديل (مع مراعاة الأمان في Streamlit)
+# 3. تهيئة الموديل
 # ==========================================
 def init_gemini():
     if "GEMINI_MAIN_KEY" in st.secrets:
@@ -213,6 +209,45 @@ page_bg = """
     margin-bottom: 30px;
 }
 hr { border-color: rgba(255,255,255,0.1); }
+/* تنسيق الغلاف العلوي */
+.hero-section {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
+    background-size: 300% 300%;
+    animation: gradientShift 5s ease infinite;
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.hero-title {
+    color: #fff;
+    font-size: 48px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+.hero-subtitle {
+    color: #fff;
+    font-size: 22px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+.hero-code {
+    background: white;
+    display: inline-block;
+    padding: 15px 50px;
+    border-radius: 80px;
+    margin: 10px 0;
+}
+.hero-code-text {
+    color: #ff0844;
+    margin: 0;
+    font-size: 45px;
+    font-weight: bold;
+}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
@@ -337,63 +372,57 @@ def extract_text_from_html(html):
     return text
 
 # ============================================================
-# 10. دوال الردود السريعة
+# 10. دوال الردود السريعة (بالعربية الفصحى فقط)
 # ============================================================
 def quick_response(question):
     q = question.lower()
     if "السلام" in q or "مرحبا" in q or "هلا" in q:
         return "وعليكم السلام ورحمة الله وبركاته"
     elif "كيف حال" in q or "كيفك" in q:
-        return "بخير والحمد لله، أنا هنا لخدمتك يا صديقي."
+        return "بخير والحمد لله، أنا هنا لخدمتك."
     elif "كود" in q or "خصم" in q:
-        return "🎁 كود خصم SHEIN الحصري: N73QS"
-    elif "من أنت" in q or "المطور" in q or "سعيد" in q:
-        return "🤖 أنا Saeed DaTaBoT، مساعدك الذكي للتسوق. المطور هو سعيد المسوري، مؤسس SaeedMarketAds."
+        return "كود الخصم الحصري هو: N73QS"
+    elif "من أنت" in q or "المطور" in q:
+        return "أنا مساعد ذكي للتسوق، صممت لأقدم لكم أفضل العروض والخدمات."
     elif "شكرا" in q:
-        return "العفو، تحت أمرك."
+        return "العفو، أنا في خدمتك."
     else:
         return None
 
 # ============================================================
-# 11. عرض البانر
+# 11. الغلاف العلوي (المقدمة)
 # ============================================================
-def render_custom_banner():
-    html_code = """
-    <div style='text-align: center; padding: 30px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 40px; margin-bottom: 30px;'>
-        <h1 style='color: #feca57; font-size: 45px;'>🛍️ سوق سعيد</h1>
-        <p style='color: #aaa; font-size: 20px;'>متجر SHEIN | نون | علي اكسبرس</p>
-        <p style='color: #ff6b6b; font-size: 18px;'>🤖 مساعدك الذكي Saeed DaTaBoT</p>
-    </div>
-    """
-    components.html(html_code, height=200)
-
-# ============================================================
-# 12. الواجهة الرئيسية
-# ============================================================
-render_custom_banner()
-
-welcome_msg = "مرحبا بكم في منصة saeedmarketads الرائدة المدعومة بالذكاء الاصطناعي"
-st.markdown(f"### 🎙️ {welcome_msg}")
-play_voice(welcome_msg)
-
 st.markdown("""
-<div style='background: linear-gradient(135deg, #ff0844, #ffb199); padding: 40px; border-radius: 55px; text-align: center; margin-bottom: 40px;'>
-    <h2 style='color: #fff;'>🎁 عرض خاص للمستخدمين الجدد 🎁</h2>
-    <div style='background: white; display: inline-block; padding: 15px 50px; border-radius: 80px; margin: 10px 0;'>
-        <h1 style='color: #ff0844; margin: 0; font-size: 45px;'>🏷️ N73QS</h1>
+<div class='hero-section'>
+    <h1 class='hero-title'>🛍️ سوق سعيد</h1>
+    <p class='hero-subtitle'>متجر SHEIN | نون | علي اكسبرس</p>
+    <div style='margin: 20px 0;'>
+        <span style='background: #ff6b6b; color: white; padding: 10px 30px; border-radius: 30px; font-size: 18px;'>
+            🤖 مساعد ذكي للتسوق
+        </span>
     </div>
-    <p style='color: #fff; font-size: 22px;'>🔥 خصم يصل إلى 60% على أول طلب 🔥</p>
+    <div style='background: rgba(255,255,255,0.2); border-radius: 20px; padding: 20px; margin-top: 15px;'>
+        <p style='color: #fff; font-size: 20px; margin: 0;'>🎁 كود الخصم الحصري</p>
+        <div class='hero-code'>
+            <h1 class='hero-code-text'>N73QS</h1>
+        </div>
+        <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0;'>🔥 خصم يصل إلى 60% على أول طلب</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
+# رسالة ترحيبية صوتية
+welcome_msg = "مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات."
+play_voice(welcome_msg)
+
 # ============================================================
-# 13. السايدبار
+# 12. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
     <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57;'>🤖 Saeed DaTaBoT</h2>
-        <p style='color: #aaa;'>مساعدك الذكي للتسوق</p>
+        <h2 style='color: #feca57;'>🤖 المساعد الذكي</h2>
+        <p style='color: #aaa;'>للتسوق والاستشارات</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -412,7 +441,7 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # 🔥 العروض المميزة في السايدبار
+    # العروض المميزة في السايدبار
     st.markdown("### 🔥 العروض المميزة")
     if st.button("🔥 عرض الغلات الآن", use_container_width=True):
         st.session_state.show_golden = True
@@ -448,15 +477,14 @@ with st.sidebar:
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
-    st.caption("برمجة وتطوير: سعيد المسوري")
 
 # ============================================================
-# 14. استخدام Tabs
+# 13. استخدام Tabs
 # ============================================================
-tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 محادثة Saeed DaTaBoT"])
+tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية"])
 
 # ============================================================
-# 15. التبويب 1: المتجر مع الغلات
+# 14. التبويب 1: المتجر مع الغلات
 # ============================================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
@@ -486,7 +514,7 @@ with tab1:
         
         # زر تشغيل الصوت للغلات
         if st.button("🔊 استمع لعروض الغلات"):
-            golden_message = "مرحباً بك في عروض الغلات الحصرية من سوق سعيد. خصومات تصل إلى سبعين بالمئة على منتجات مختارة. استخدم كود الخصم N73QS للحصول على خصم إضافي."
+            golden_message = "مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة. استخدم كود الخصم N73QS للحصول على خصم إضافي."
             play_voice(golden_message)
         
         golden_products = get_golden_deals_from_csv()
@@ -521,6 +549,7 @@ with tab1:
         st.write(f"### عرض منتجات: {store}")
         
         if store == "SHEIN":
+            # عرض جميع منتجات SHEIN كاملة
             SHEIN_PRODUCTS = [
                 {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
                 {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
@@ -576,7 +605,7 @@ with tab1:
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
 # ============================================================
-# 16. التبويب 2: أداة الفحص المتقدم
+# 15. التبويب 2: أداة الفحص المتقدم
 # ============================================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
@@ -590,7 +619,7 @@ with tab2:
                     if status == 'متاح' and html_content:
                         page_text = extract_text_from_html(html_content)
                         prompt = f"""
-                        قم بتحليل هذا المنتج بدقة:
+                        قم بتحليل هذا المنتج بدقة باللغة العربية الفصحى:
                         النص: {page_text[:5000]}
                         الدولة: {country}
                         استخرج: السعر، الاسم، التقييمات، التوفر.
@@ -614,10 +643,10 @@ with tab2:
             st.warning("📝 يرجى إدخال رابط المنتج")
 
 # ============================================================
-# 17. التبويب 3: محادثة الذكاء الاصطناعي
+# 16. التبويب 3: المحادثة الذكية
 # ============================================================
 with tab3:
-    st.subheader("💬 اسأل Saeed DaTaBoT")
+    st.subheader("💬 المحادثة الذكية")
     user_query = st.text_area("اطرح سؤالك هنا:", placeholder="اكتب سؤالك هنا...")
     
     if st.button("إرسال الاستشارة"):
@@ -626,7 +655,7 @@ with tab3:
             if quick_ans:
                 st.markdown(f"""
                 <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                    <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
+                    <h4 style='color: #feca57;'>🤖 الرد:</h4>
                     <p style='color: #e2e8f0;'>{quick_ans}</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -634,10 +663,10 @@ with tab3:
             elif model:
                 try:
                     with st.spinner("🤖 جاري التفكير..."):
-                        response = model.generate_content(f"أجب على هذا السؤال بالعربية: {user_query}")
+                        response = model.generate_content(f"أجب على هذا السؤال باللغة العربية الفصحى: {user_query}")
                         st.markdown(f"""
                         <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                            <h4 style='color: #feca57;'>🤖 Saeed DaTaBoT يرد:</h4>
+                            <h4 style='color: #feca57;'>🤖 الرد:</h4>
                             <p style='color: #e2e8f0;'>{response.text}</p>
                         </div>
                         """, unsafe_allow_html=True)
