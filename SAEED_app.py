@@ -21,7 +21,7 @@ CURRENT_MODEL = "gemini-3.5-flash"
 # CURRENT_MODEL = "gemini-3.1-flash-lite" 
 
 # ==========================================
-# 2. دالة دمج التعليمات
+# 2. دالة دمج التعليمات (مع هوية المساعد)
 # ==========================================
 def get_system_instructions():
     try:
@@ -33,8 +33,20 @@ def get_system_instructions():
     except Exception as e:
         return """
         أنت مساعد ذكي متخصص في الأسواق الخليجية.
+        
+        هويتك:
+        اسمك: Saeed DaTaBoT
+        أنت المساعد الذكي لمنصة SaeedMarketAds.
+        المطور والمؤسس: سعيد المسوري.
+        
         ردودك دائماً باللغة العربية الفصحى.
-        لا تذكر أي اسم علم أو ماركة في ردودك.
+        
+        قواعد مهمة جداً:
+        1. عند سؤالك عن هويتك أو المطور، قل: "أنا Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds. تم تطويري بواسطة سعيد المسوري، مؤسس المنصة."
+        2. عند تحليل المنتجات، لا تذكر اسمك أو اسم المنصة إطلاقاً.
+        3. في تحليل المنتجات، كن مختصراً وواضحاً (لا يزيد عن 200 كلمة).
+        4. استخدم العملة المحلية حسب الدولة المختارة.
+        5. لا تستخدم رموزاً مثل ⭐ أو ★ في تحليل المنتجات.
         """
 
 # ==========================================
@@ -183,7 +195,6 @@ page_bg = """
 }
 hr { border-color: rgba(255,255,255,0.1); }
 
-/* تنسيق الغلاف العلوي */
 .hero-section {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
     background-size: 300% 300%;
@@ -330,7 +341,7 @@ GOLDEN_DEALS = [
 ]
 
 # ============================================================
-# 9. دوال تحليل الرابط (بدون أسماء وبدون نجوم)
+# 9. دوال تحليل الرابط
 # ============================================================
 def check_link_status(url):
     try:
@@ -389,7 +400,7 @@ def get_currency(country):
     return currency_map.get(country, "ريال سعودي")
 
 # ============================================================
-# 10. دوال الردود السريعة
+# 10. دوال الردود السريعة (مع تعريف الهوية)
 # ============================================================
 def quick_response(question):
     q = question.lower()
@@ -399,6 +410,8 @@ def quick_response(question):
         return "بخير والحمد لله، أنا هنا لخدمتك."
     elif "كود" in q or "خصم" in q:
         return "كود الخصم الحصري هو: N73QS"
+    elif "من أنت" in q or "من برمج" in q or "مين أنت" in q or "مين برمج" in q or "من صنعك" in q or "مين صنعك" in q:
+        return "أنا Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds. تم تطويري وبرمجتي بواسطة سعيد المسوري، مؤسس المنصة."
     elif "شكرا" in q:
         return "العفو، أنا في خدمتك."
     else:
@@ -644,7 +657,7 @@ with tab1:
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
 # ============================================================
-# 16. التبويب 2: أداة الفحص المتقدم (بدون أسماء وبدون نجوم)
+# 16. التبويب 2: أداة الفحص المتقدم (بدون أسماء)
 # ============================================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
@@ -660,7 +673,8 @@ with tab2:
                         currency = get_currency(country)
                         prompt = f"""
                         قم بتحليل هذا المنتج بدقة باللغة العربية الفصحى.
-                        استخرج المعلومات التالية:
+                        
+                        استخرج المعلومات التالية فقط:
                         1. اسم المنتج
                         2. السعر المتوقع بالعملة المحلية: {currency}
                         3. التقييمات والمراجعات إن وجدت
@@ -669,16 +683,18 @@ with tab2:
                         نص الصفحة:
                         {page_text[:5000]}
                         
-                        تنبيهات مهمة:
-                        - لا تذكر أي اسم علم أو ماركة في ردك
+                        تنبيهات مهمة جداً:
+                        - لا تذكر أي اسم علم في ردك (لا تذكر Saeed DaTaBoT ولا SaeedMarketAds)
+                        - لا تستخدم أي رموز مثل ⭐ أو ★
                         - استخدم العملة {currency} فقط
-                        - كن مختصراً وواضحاً
+                        - كن مختصراً وواضحاً (لا يزيد عن 200 كلمة)
+                        - اكتب النتيجة بشكل منظم ونقاط مختصرة
                         """
                         try:
                             response = model.generate_content(prompt)
                             # تنظيف الناتج من الأسماء والنجوم
                             clean_response = response.text
-                            clean_response = re.sub(r'[⭐]', '', clean_response)
+                            clean_response = re.sub(r'[⭐★✨]', '', clean_response)
                             clean_response = re.sub(r'Saeed\s*DaTaBoT', '', clean_response, flags=re.IGNORECASE)
                             clean_response = re.sub(r'SaeedMarketAds', '', clean_response, flags=re.IGNORECASE)
                             clean_response = re.sub(r'saeedmarketads', '', clean_response, flags=re.IGNORECASE)
@@ -705,6 +721,7 @@ with tab2:
 # ============================================================
 with tab3:
     st.subheader("💬 المحادثة الذكية")
+    st.info("💡 يمكنك سؤالي عن هويتي، المطور، أو أي استفسار آخر.")
     user_query = st.text_area("اطرح سؤالك هنا:", placeholder="اكتب سؤالك هنا...")
     
     if st.button("إرسال الاستشارة"):
@@ -726,14 +743,12 @@ with tab3:
                         {user_query}
                         
                         تنبيهات:
-                        - لا تذكر أي اسم علم أو ماركة في ردك
+                        - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري
+                        - إذا سأل عن تحليل منتج، لا تذكر اسمك
                         - كن مختصراً وواضحاً
                         """)
                         clean_response = response.text
-                        clean_response = re.sub(r'[⭐]', '', clean_response)
-                        clean_response = re.sub(r'Saeed\s*DaTaBoT', '', clean_response, flags=re.IGNORECASE)
-                        clean_response = re.sub(r'SaeedMarketAds', '', clean_response, flags=re.IGNORECASE)
-                        clean_response = re.sub(r'saeedmarketads', '', clean_response, flags=re.IGNORECASE)
+                        clean_response = re.sub(r'[⭐★✨]', '', clean_response)
                         clean_response = re.sub(r'\s+', ' ', clean_response).strip()
                         
                         st.markdown(f"""
