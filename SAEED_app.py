@@ -20,7 +20,8 @@ import io as io_lib
 # ==========================================
 # 1. إعدادات الموديل
 # ==========================================
-CURRENT_MODEL = "gemini-3.5-flash-exp"  # أو أي موديل تفضله
+AVAILABLE_MODELS = ["gemini-2.0-flash-exp", "gemini-1.5-pro"]
+DEFAULT_MODEL = "gemini-2.0-flash-exp"
 
 # ==========================================
 # 2. دالة دمج التعليمات (مع هوية المساعد)
@@ -54,11 +55,11 @@ def get_system_instructions():
 # ==========================================
 # 3. تهيئة الموديل
 # ==========================================
-def init_gemini():
+def init_gemini(model_name):
     if "GEMINI_MAIN_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
         model = genai.GenerativeModel(
-            model_name=CURRENT_MODEL,
+            model_name=model_name,
             system_instruction=get_system_instructions()
         )
         return model
@@ -456,7 +457,6 @@ def transcribe_audio(audio_bytes):
     """
     try:
         recognizer = sr.Recognizer()
-        # تحويل البايت إلى كائن AudioFile
         with sr.AudioFile(io_lib.BytesIO(audio_bytes)) as source:
             audio = recognizer.record(source)
         text = recognizer.recognize_google(audio, language='ar-AR')
@@ -520,8 +520,9 @@ def process_query(query, model):
 # 12. تهيئة النموذج وتخزينه في session_state
 # ============================================================
 if 'model' not in st.session_state:
-    st.session_state.model = init_gemini()
-model = st.session_state.model
+    st.session_state.model = None
+if 'model_name' not in st.session_state:
+    st.session_state.model_name = DEFAULT_MODEL
 
 # ============================================================
 # 13. الغلاف العلوي (المقدمة)
@@ -597,14 +598,33 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    # اختيار الدولة
     country = st.selectbox(
         "🌍 اختر دولتك:",
         ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"],
         index=0
     )
 
+    # اختيار الموديل (مع التحديث الفوري)
+    model_choice = st.selectbox(
+        "🧠 اختر الموديل:",
+        AVAILABLE_MODELS,
+        index=AVAILABLE_MODELS.index(st.session_state.model_name) if st.session_state.model_name in AVAILABLE_MODELS else 0
+    )
+
+    # إذا تغير الموديل، أعد تهيئته
+    if model_choice != st.session_state.model_name:
+        st.session_state.model_name = model_choice
+        st.session_state.model = init_gemini(model_choice)
+
+    # إذا كان النموذج غير مهيأ، قم بتهيئته
+    if st.session_state.model is None:
+        st.session_state.model = init_gemini(st.session_state.model_name)
+
+    model = st.session_state.model
+
     if model:
-        st.success(f"✅ يعمل على {CURRENT_MODEL}")
+        st.success(f"✅ يعمل على {st.session_state.model_name}")
     else:
         st.error("⚠️ فشل تهيئة النموذج")
 
