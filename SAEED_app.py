@@ -13,12 +13,14 @@ import re
 from urllib.parse import urlparse
 import pandas as pd
 from io import StringIO
+from streamlit_mic_recorder import mic_recorder
+import speech_recognition as sr
+import io as io_lib
 
 # ==========================================
 # 1. إعدادات الموديل
 # ==========================================
-CURRENT_MODEL = "gemini-3.5-flash" 
-# CURRENT_MODEL = "gemini-3.1-flash-lite" 
+CURRENT_MODEL = "gemini-2.0-flash-exp"  # أو أي موديل تفضله
 
 # ==========================================
 # 2. دالة دمج التعليمات (مع هوية المساعد)
@@ -30,7 +32,7 @@ def get_system_instructions():
         with open('rules.txt', 'r', encoding='utf-8') as f2:
             rules = f2.read()
         return f"{identity}\n\n[القواعد والالتزامات]:\n{rules}"
-    except Exception as e:
+    except Exception:
         return """
         أنت مساعد ذكي متخصص في الأسواق الخليجية.
         
@@ -74,7 +76,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 5. الخلفية والتصميم (CSS)
+# 5. الخلفية والتصميم (CSS) + تنسيق الميكروفون
 # ============================================================
 page_bg = """
 <style>
@@ -259,6 +261,34 @@ hr { border-color: rgba(255,255,255,0.1); }
     font-size: 16px;
     opacity: 0.9;
 }
+
+/* ===== تنسيق زر الميكروفون (شبيه بـ Gemini) ===== */
+[data-testid="stAudio"] { display: none; }  /* إخفاء مشغل الصوت الأصلي */
+
+.stMicRecorder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0;
+}
+.stMicRecorder button {
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #4285f4, #34a853) !important;
+    color: white !important;
+    font-size: 36px !important;
+    border: none !important;
+    box-shadow: 0 8px 20px rgba(66, 133, 244, 0.4) !important;
+    transition: all 0.3s ease;
+}
+.stMicRecorder button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 30px rgba(66, 133, 244, 0.6);
+}
+.stMicRecorder button:active {
+    transform: scale(0.95);
+}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
@@ -418,7 +448,83 @@ def quick_response(question):
         return None
 
 # ============================================================
-# 11. الغلاف العلوي (المقدمة)
+# 11. دوال تحويل الصوت إلى نص ومعالجة الاستعلامات (جديدة)
+# ============================================================
+def transcribe_audio(audio_bytes):
+    """
+    تحويل الصوت (بايت) إلى نص باستخدام Google Speech Recognition
+    """
+    try:
+        recognizer = sr.Recognizer()
+        # تحويل البايت إلى كائن AudioFile
+        with sr.AudioFile(io_lib.BytesIO(audio_bytes)) as source:
+            audio = recognizer.record(source)
+        text = recognizer.recognize_google(audio, language='ar-AR')
+        return text
+    except sr.UnknownValueError:
+        st.warning("⚠️ لم أستطع فهم الصوت، حاول مرة أخرى بوضوح.")
+        return None
+    except sr.RequestError as e:
+        st.error(f"خطأ في الاتصال بخدمة التعرف: {e}")
+        return None
+    except Exception as e:
+        st.error(f"حدث خطأ: {e}")
+        return None
+
+def display_and_speak(text):
+    """
+    عرض النص في صندوق جميل وتشغيله صوتياً
+    """
+    st.markdown(f"""
+    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+        <h4 style='color: #feca57;'>🤖 الرد:</h4>
+        <p style='color: #e2e8f0;'>{text}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    # تشغيل الصوت (حد الطول لتجنب مشاكل edge_tts)
+    play_voice(text[:500])
+
+def process_query(query, model):
+    """
+    معالجة الاستعلام (نص) وإظهار الرد وتشغيل الصوت
+    """
+    # التحقق من الردود السريعة أولاً
+    quick_ans = quick_response(query)
+    if quick_ans:
+        display_and_speak(quick_ans)
+        return
+
+    # إذا لم يكن رد سريع، استخدم النموذج
+    if model:
+        try:
+            with st.spinner("🤖 جاري التفكير..."):
+                response = model.generate_content(f"""
+                أجب على هذا السؤال باللغة العربية الفصحى:
+                {query}
+
+                تنبيهات:
+                - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري
+                - إذا سأل عن تحليل منتج، لا تذكر اسمك
+                - كن مختصراً وواضحاً
+                """)
+                clean_response = response.text
+                clean_response = re.sub(r'[⭐★✨]', '', clean_response)
+                clean_response = re.sub(r'\s+', ' ', clean_response).strip()
+                display_and_speak(clean_response)
+        except Exception as e:
+            st.error(f"خطأ: {str(e)}")
+    else:
+        st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة.")
+
+# ============================================================
+# 12. تهيئة النموذج وتخزينه في session_state
+# ============================================================
+if 'model' not in st.session_state:
+    st.session_state.model = init_gemini()
+model = st.session_state.model
+
+# ============================================================
+# 13. الغلاف العلوي (المقدمة)
 # ============================================================
 st.markdown("""
 <div class='hero-section'>
@@ -443,7 +549,7 @@ welcome_msg = "مرحباً بكم في سوق سعيد، منصة التسوق 
 play_voice(welcome_msg)
 
 # ============================================================
-# 12. عرض منتجات SHEIN في الصفحة الرئيسية
+# 14. عرض منتجات SHEIN في الصفحة الرئيسية
 # ============================================================
 st.markdown("""
 <div class='shein-section'>
@@ -481,7 +587,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# 13. السايدبار
+# 15. السايدبار
 # ============================================================
 with st.sidebar:
     st.markdown("""
@@ -497,7 +603,6 @@ with st.sidebar:
         index=0
     )
 
-    model = init_gemini()
     if model:
         st.success(f"✅ يعمل على {CURRENT_MODEL}")
     else:
@@ -534,7 +639,7 @@ with st.sidebar:
     st.markdown("- ✅ تحليل الروابط المتقدم")
     st.markdown("- ✅ عروض SHEIN")
     st.markdown("- ✅ عروض نون")
-    st.markdown("- ✅ محادثة ذكية")
+    st.markdown("- ✅ محادثة ذكية (نص + صوت)")
     st.markdown("---")
     st.markdown("### 📞 للتواصل:")
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
@@ -542,12 +647,12 @@ with st.sidebar:
     st.caption("© 2026 سوق سعيد")
 
 # ============================================================
-# 14. استخدام Tabs
+# 16. استخدام Tabs
 # ============================================================
 tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية"])
 
 # ============================================================
-# 15. التبويب 1: متجر المنتجات
+# 17. التبويب 1: متجر المنتجات
 # ============================================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
@@ -657,7 +762,7 @@ with tab1:
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
 # ============================================================
-# 16. التبويب 2: أداة الفحص المتقدم (بدون أسماء)
+# 18. التبويب 2: أداة الفحص المتقدم (بدون أسماء)
 # ============================================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
@@ -717,50 +822,40 @@ with tab2:
             st.warning("📝 يرجى إدخال رابط المنتج")
 
 # ============================================================
-# 17. التبويب 3: المحادثة الذكية
+# 19. التبويب 3: المحادثة الذكية (نص + صوت) – النسخة المطورة
 # ============================================================
 with tab3:
-    st.subheader("💬 المحادثة الذكية")
-    st.info("💡 يمكنك سؤالي عن هويتي، المطور، أو أي استفسار آخر.")
-    user_query = st.text_area("اطرح سؤالك هنا:", placeholder="اكتب سؤالك هنا...")
-    
-    if st.button("إرسال الاستشارة"):
-        if user_query:
-            quick_ans = quick_response(user_query)
-            if quick_ans:
-                st.markdown(f"""
-                <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                    <h4 style='color: #feca57;'>🤖 الرد:</h4>
-                    <p style='color: #e2e8f0;'>{quick_ans}</p>
-                </div>
-                """, unsafe_allow_html=True)
-                play_voice(quick_ans)
-            elif model:
-                try:
-                    with st.spinner("🤖 جاري التفكير..."):
-                        response = model.generate_content(f"""
-                        أجب على هذا السؤال باللغة العربية الفصحى:
-                        {user_query}
-                        
-                        تنبيهات:
-                        - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري
-                        - إذا سأل عن تحليل منتج، لا تذكر اسمك
-                        - كن مختصراً وواضحاً
-                        """)
-                        clean_response = response.text
-                        clean_response = re.sub(r'[⭐★✨]', '', clean_response)
-                        clean_response = re.sub(r'\s+', ' ', clean_response).strip()
-                        
-                        st.markdown(f"""
-                        <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                            <h4 style='color: #feca57;'>🤖 الرد:</h4>
-                            <p style='color: #e2e8f0;'>{clean_response}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        play_voice(clean_response[:200])
-                except Exception as e:
-                    st.error(f"خطأ: {str(e)}")
+    st.subheader("💬 المحادثة الذكية (نص + صوت)")
+    st.info("💡 يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث.")
+
+    # عمودان: أحدهما للميكروفون والآخر للنص
+    col1, col2 = st.columns([1, 3])
+
+    with col1:
+        st.markdown("#### 🎤 تحدث")
+        # زر التسجيل (يظهر كزر دائري)
+        audio = mic_recorder(
+            start_prompt="🎤 اضغط للتحدث",
+            stop_prompt="⏹️ أوقف",
+            just_once=True,
+            key='mic_recorder'
+        )
+
+        if audio:
+            # عرض مشغل الصوت للمستخدم (اختياري)
+            st.audio(audio['bytes'], format='audio/wav')
+            with st.spinner("🔄 جاري تحويل الصوت إلى نص..."):
+                user_text = transcribe_audio(audio['bytes'])
+                if user_text:
+                    st.success(f"📝 النص المُستمع: {user_text}")
+                    # إرسال النص إلى النموذج
+                    process_query(user_text, model)
+
+    with col2:
+        st.markdown("#### ✍️ أو اكتب سؤالك")
+        user_query = st.text_area("اطرح سؤالك هنا:", placeholder="اكتب سؤالك هنا...", key="text_input")
+        if st.button("إرسال", key="send_text"):
+            if user_query:
+                process_query(user_query, model)
             else:
-                st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة.")
-        else:
-            st.warning("📝 يرجى كتابة سؤالك أولاً")
+                st.warning("📝 يرجى كتابة سؤالك أولاً")
