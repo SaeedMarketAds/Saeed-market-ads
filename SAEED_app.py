@@ -20,8 +20,8 @@ import io as io_lib
 # ==========================================
 # 1. إعدادات الموديل
 # ==========================================
-AVAILABLE_MODELS = ["gemini-2.0-flash-exp", "gemini-1.5-pro"]
-DEFAULT_MODEL = "gemini-2.0-flash-exp"
+AVAILABLE_MODELS = ["gemini-3.5-flash-exp", "gemini-1.5-pro"]
+DEFAULT_MODEL = "gemini-3.1-flash-exp"
 
 # ==========================================
 # 2. دالة دمج التعليمات (مع هوية المساعد)
