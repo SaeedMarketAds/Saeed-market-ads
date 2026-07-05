@@ -4,13 +4,11 @@ import cloudscraper
 import requests
 import os
 import base64
-import streamlit.components.v1 as components
 import edge_tts
 import tempfile
 import asyncio
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urlparse
 import pandas as pd
 from io import StringIO
 from streamlit_mic_recorder import mic_recorder
@@ -18,13 +16,18 @@ import speech_recognition as sr
 import io as io_lib
 
 # ==========================================
-# 1. إعدادات الموديل
+# 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
-AVAILABLE_MODELS = ["gemini-3.5-flash-exp", "gemini-1.5-pro"]
-DEFAULT_MODEL = "gemini-3.1-flash-exp"
+# ==========================================
+AVAILABLE_MODELS = [
+    "gemini-3.5-flash",      # سريع ومناسب للمحادثة
+    "gemini-3.1-pro",        # أقوى وأدق
+    "gemini-2.0-flash-exp"   # تجريبي – أحدث
+]
+DEFAULT_MODEL = "gemini-1.5-flash"
 
 # ==========================================
-# 2. دالة دمج التعليمات (مع هوية المساعد)
+# 2. دالة التعليمات (الهوية والقواعد)
 # ==========================================
 def get_system_instructions():
     try:
@@ -36,49 +39,43 @@ def get_system_instructions():
     except Exception:
         return """
         أنت مساعد ذكي متخصص في الأسواق الخليجية.
-        
-        هويتك:
-        اسمك: Saeed DaTaBoT
-        أنت المساعد الذكي لمنصة SaeedMarketAds.
-        المطور والمؤسس: سعيد المسوري.
-        
-        ردودك دائماً باللغة العربية الفصحى.
-        
-        قواعد مهمة جداً:
-        1. عند سؤالك عن هويتك أو المطور، قل: "أنا Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds. تم تطويري بواسطة سعيد المسوري، مؤسس المنصة."
-        2. عند تحليل المنتجات، لا تذكر اسمك أو اسم المنصة إطلاقاً.
-        3. في تحليل المنتجات، كن مختصراً وواضحاً (لا يزيد عن 200 كلمة).
-        4. استخدم العملة المحلية حسب الدولة المختارة.
+        هويتك: Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds.
+        المطور: سعيد المسوري.
+        ردودك باللغة العربية الفصحى.
+        قواعد:
+        1. عند سؤالك عن هويتك أو المطور: عرف نفسك بالاسم والمطور.
+        2. عند تحليل المنتجات: لا تذكر اسمك أو اسم المنصة.
+        3. تحليل المنتجات: مختصر (≤200 كلمة).
+        4. استخدم العملة المحلية حسب الدولة.
         5. لا تستخدم رموزاً مثل ⭐ أو ★ في تحليل المنتجات.
         """
 
 # ==========================================
-# 3. تهيئة الموديل
+# 3. تهيئة الموديل مع التخزين المؤقت (تحسين الأداء)
 # ==========================================
+@st.cache_resource(ttl=3600)
 def init_gemini(model_name):
-    if "GEMINI_MAIN_KEY" in st.secrets:
-        genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
-        model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=get_system_instructions()
-        )
-        return model
-    else:
-        st.error("خطأ: مفتاح API غير موجود في إعدادات Streamlit secrets.")
+    if "GEMINI_MAIN_KEY" not in st.secrets:
+        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
         return None
+    genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
+    return genai.GenerativeModel(
+        model_name=model_name,
+        system_instruction=get_system_instructions()
+    )
 
-# ============================================================
+# ==========================================
 # 4. إعدادات الصفحة
-# ============================================================
+# ==========================================
 st.set_page_config(
     page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس",
     page_icon="🛍️",
     layout="wide"
 )
 
-# ============================================================
-# 5. الخلفية والتصميم (CSS) + تنسيق الميكروفون
-# ============================================================
+# ==========================================
+# 5. CSS (التصميم + الميكروفون)
+# ==========================================
 page_bg = """
 <style>
 [data-testid="stAppViewContainer"] {
@@ -263,8 +260,8 @@ hr { border-color: rgba(255,255,255,0.1); }
     opacity: 0.9;
 }
 
-/* ===== تنسيق زر الميكروفون (شبيه بـ Gemini) ===== */
-[data-testid="stAudio"] { display: none; }  /* إخفاء مشغل الصوت الأصلي */
+/* تنسيق زر الميكروفون (شبيه بـ Gemini) */
+[data-testid="stAudio"] { display: none; }
 
 .stMicRecorder {
     display: flex;
@@ -294,24 +291,26 @@ hr { border-color: rgba(255,255,255,0.1); }
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
-# ============================================================
-# 6. دالة تشغيل الصوت
-# ============================================================
+# ==========================================
+# 6. دوال الصوت (TTS) مع معالجة أفضل للأخطاء
+# ==========================================
 async def generate_audio(text, voice="ar-SA-HamedNeural"):
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
-            output_file = tmp_file.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
+            output = tmp.name
         communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(output_file)
-        with open(output_file, 'rb') as f:
+        await communicate.save(output)
+        with open(output, 'rb') as f:
             audio_bytes = f.read()
-        os.unlink(output_file)
+        os.unlink(output)
         return audio_bytes
     except Exception as e:
-        st.warning(f"⚠️ خطأ في توليد الصوت: {str(e)}")
+        st.warning(f"⚠️ خطأ في توليد الصوت: {e}")
         return None
 
 def play_voice(text):
+    if not text:
+        return False
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -319,43 +318,38 @@ def play_voice(text):
         loop.close()
         if audio_bytes:
             b64 = base64.b64encode(audio_bytes).decode()
-            audio_html = f'''
-            <audio autoplay="true" style="display:none;">
-                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-            </audio>
-            '''
-            st.markdown(audio_html, unsafe_allow_html=True)
+            st.markdown(
+                f'<audio autoplay style="display:none;"><source src="data:audio/mp3;base64,{b64}"></audio>',
+                unsafe_allow_html=True
+            )
             return True
-        return False
     except Exception as e:
-        st.warning(f"⚠️ حدث خطأ في تشغيل الصوت: {str(e)}")
-        return False
+        st.warning(f"⚠️ خطأ في تشغيل الصوت: {e}")
+    return False
 
-# ============================================================
-# 7. دوال جلب المنتجات من CSV
-# ============================================================
+# ==========================================
+# 7. دوال جلب المنتجات
+# ==========================================
 @st.cache_data(ttl=3600)
 def load_products_from_csv():
     try:
         url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
-        response = requests.get(url)
-        if response.status_code == 200:
-            df = pd.read_csv(StringIO(response.text))
-            return df
-        return None
+        r = requests.get(url)
+        if r.status_code == 200:
+            return pd.read_csv(StringIO(r.text))
     except:
-        return None
+        pass
+    return None
 
 def get_golden_deals_from_csv():
     df = load_products_from_csv()
     if df is not None and 'discount' in df.columns:
-        golden = df[df['discount'] >= 50]
-        return golden.to_dict('records')
+        return df[df['discount'] >= 50].to_dict('records')
     return []
 
-# ============================================================
-# 8. بيانات المنتجات
-# ============================================================
+# ==========================================
+# 8. بيانات المنتجات (ثابتة)
+# ==========================================
 SHEIN_PRODUCTS = [
     {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
     {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
@@ -371,9 +365,9 @@ GOLDEN_DEALS = [
     {"name": "Sports Waist Belt", "price": 5.12, "discount": 61, "link": "#", "sales": "400+"},
 ]
 
-# ============================================================
+# ==========================================
 # 9. دوال تحليل الرابط
-# ============================================================
+# ==========================================
 def check_link_status(url):
     try:
         scraper = cloudscraper.create_scraper(
@@ -381,14 +375,13 @@ def check_link_status(url):
             interpreter='nodejs'
         )
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'ar,en;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         }
-        response = scraper.get(url, timeout=20, headers=headers, allow_redirects=True)
-        if response.status_code == 200:
-            return 'متاح', response.text
-        elif response.status_code in [404, 410]:
+        r = scraper.get(url, timeout=20, headers=headers, allow_redirects=True)
+        if r.status_code == 200:
+            return 'متاح', r.text
+        elif r.status_code in [404, 410]:
             return 'غير موجود', None
         else:
             return check_link_status_fallback(url)
@@ -398,41 +391,33 @@ def check_link_status(url):
 def check_link_status_fallback(url):
     try:
         session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        })
-        response = session.get(url, timeout=20, allow_redirects=True, verify=False)
-        if response.status_code == 200:
-            return 'متاح', response.text
-        else:
-            return 'غير موجود', None
+        session.headers.update({'User-Agent': 'Mozilla/5.0'})
+        r = session.get(url, timeout=20, allow_redirects=True, verify=False)
+        if r.status_code == 200:
+            return 'متاح', r.text
     except:
-        return 'غير موجود', None
+        pass
+    return 'غير موجود', None
 
 def extract_text_from_html(html):
     soup = BeautifulSoup(html, 'html.parser')
-    for script in soup(["script", "style", "noscript", "meta", "link"]):
-        script.decompose()
+    for tag in soup(["script", "style", "noscript", "meta", "link"]):
+        tag.decompose()
     text = soup.get_text(separator=" ", strip=True)
     text = re.sub(r'\s+', ' ', text).strip()
-    if len(text) > 50000:
-        text = text[:50000] + "..."
-    return text
+    return text[:50000] + ("..." if len(text) > 50000 else "")
 
 def get_currency(country):
-    currency_map = {
-        "السعودية": "ريال سعودي",
-        "الإمارات": "درهم إماراتي",
-        "الكويت": "دينار كويتي",
-        "قطر": "ريال قطري",
-        "عمان": "ريال عماني",
-        "البحرين": "دينار بحريني"
+    mapping = {
+        "السعودية": "ريال سعودي", "الإمارات": "درهم إماراتي",
+        "الكويت": "دينار كويتي", "قطر": "ريال قطري",
+        "عمان": "ريال عماني", "البحرين": "دينار بحريني"
     }
-    return currency_map.get(country, "ريال سعودي")
+    return mapping.get(country, "ريال سعودي")
 
-# ============================================================
-# 10. دوال الردود السريعة (مع تعريف الهوية)
-# ============================================================
+# ==========================================
+# 10. الردود السريعة
+# ==========================================
 def quick_response(question):
     q = question.lower()
     if "السلام" in q or "مرحبا" in q or "هلا" in q:
@@ -441,92 +426,78 @@ def quick_response(question):
         return "بخير والحمد لله، أنا هنا لخدمتك."
     elif "كود" in q or "خصم" in q:
         return "كود الخصم الحصري هو: N73QS"
-    elif "من أنت" in q or "من برمج" in q or "مين أنت" in q or "مين برمج" in q or "من صنعك" in q or "مين صنعك" in q:
-        return "أنا Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds. تم تطويري وبرمجتي بواسطة سعيد المسوري، مؤسس المنصة."
+    elif any(w in q for w in ["من أنت", "من برمج", "مين أنت", "من صنعك"]):
+        return "أنا Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds. تم تطويري بواسطة سعيد المسوري، مؤسس المنصة."
     elif "شكرا" in q:
         return "العفو، أنا في خدمتك."
-    else:
-        return None
+    return None
 
-# ============================================================
-# 11. دوال تحويل الصوت إلى نص ومعالجة الاستعلامات (جديدة)
-# ============================================================
+# ==========================================
+# 11. دوال تحويل الصوت ومعالجة الاستعلامات
+# ==========================================
 def transcribe_audio(audio_bytes):
-    """
-    تحويل الصوت (بايت) إلى نص باستخدام Google Speech Recognition
-    """
     try:
         recognizer = sr.Recognizer()
         with sr.AudioFile(io_lib.BytesIO(audio_bytes)) as source:
             audio = recognizer.record(source)
-        text = recognizer.recognize_google(audio, language='ar-AR')
-        return text
+        return recognizer.recognize_google(audio, language='ar-AR')
     except sr.UnknownValueError:
         st.warning("⚠️ لم أستطع فهم الصوت، حاول مرة أخرى بوضوح.")
-        return None
     except sr.RequestError as e:
         st.error(f"خطأ في الاتصال بخدمة التعرف: {e}")
-        return None
     except Exception as e:
         st.error(f"حدث خطأ: {e}")
-        return None
+    return None
 
 def display_and_speak(text):
-    """
-    عرض النص في صندوق جميل وتشغيله صوتياً
-    """
+    if not text:
+        return
     st.markdown(f"""
     <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
         <h4 style='color: #feca57;'>🤖 الرد:</h4>
         <p style='color: #e2e8f0;'>{text}</p>
     </div>
     """, unsafe_allow_html=True)
-    # تشغيل الصوت (حد الطول لتجنب مشاكل edge_tts)
     play_voice(text[:500])
 
 def process_query(query, model):
-    """
-    معالجة الاستعلام (نص) وإظهار الرد وتشغيل الصوت
-    """
-    # التحقق من الردود السريعة أولاً
-    quick_ans = quick_response(query)
-    if quick_ans:
-        display_and_speak(quick_ans)
+    if not query:
         return
+    quick = quick_response(query)
+    if quick:
+        display_and_speak(quick)
+        return
+    if model is None:
+        st.warning("⚠️ النموذج غير مهيأ. يرجى اختيار موديل صحيح.")
+        return
+    try:
+        with st.spinner("🤖 جاري التفكير..."):
+            response = model.generate_content(f"""
+            أجب على هذا السؤال باللغة العربية الفصحى:
+            {query}
 
-    # إذا لم يكن رد سريع، استخدم النموذج
-    if model:
-        try:
-            with st.spinner("🤖 جاري التفكير..."):
-                response = model.generate_content(f"""
-                أجب على هذا السؤال باللغة العربية الفصحى:
-                {query}
+            تنبيهات:
+            - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري.
+            - إذا سأل عن تحليل منتج، لا تذكر اسمك.
+            - كن مختصراً وواضحاً.
+            """)
+            clean = re.sub(r'[⭐★✨]', '', response.text)
+            clean = re.sub(r'\s+', ' ', clean).strip()
+            display_and_speak(clean)
+    except Exception as e:
+        st.error(f"❌ خطأ أثناء معالجة الطلب: {e}")
 
-                تنبيهات:
-                - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري
-                - إذا سأل عن تحليل منتج، لا تذكر اسمك
-                - كن مختصراً وواضحاً
-                """)
-                clean_response = response.text
-                clean_response = re.sub(r'[⭐★✨]', '', clean_response)
-                clean_response = re.sub(r'\s+', ' ', clean_response).strip()
-                display_and_speak(clean_response)
-        except Exception as e:
-            st.error(f"خطأ: {str(e)}")
-    else:
-        st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة.")
-
-# ============================================================
-# 12. تهيئة النموذج وتخزينه في session_state
-# ============================================================
-if 'model' not in st.session_state:
-    st.session_state.model = None
+# ==========================================
+# 12. تهيئة النموذج في الجلسة
+# ==========================================
 if 'model_name' not in st.session_state:
     st.session_state.model_name = DEFAULT_MODEL
+if 'model' not in st.session_state or st.session_state.model is None:
+    st.session_state.model = init_gemini(st.session_state.model_name)
 
-# ============================================================
-# 13. الغلاف العلوي (المقدمة)
-# ============================================================
+# ==========================================
+# 13. الغلاف العلوي
+# ==========================================
 st.markdown("""
 <div class='hero-section'>
     <h1 class='hero-title'>🛍️ سوق سعيد</h1>
@@ -546,12 +517,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-welcome_msg = "مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات."
-play_voice(welcome_msg)
+play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
 
-# ============================================================
-# 14. عرض منتجات SHEIN في الصفحة الرئيسية
-# ============================================================
+# ==========================================
+# 14. عرض منتجات SHEIN
+# ==========================================
 st.markdown("""
 <div class='shein-section'>
     <div class='shein-header'>
@@ -562,19 +532,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 cols = st.columns(4)
-for i, product in enumerate(SHEIN_PRODUCTS):
+for i, prod in enumerate(SHEIN_PRODUCTS):
     with cols[i % 4]:
-        final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
+        final_price = prod['price'] * (1 - prod['discount']/100) if prod['discount'] > 0 else prod['price']
         st.markdown(f"""
         <div class='product-card'>
-            <div class='product-code'>📦 {product['code']}</div>
-            <div class='product-name'>{product['name']}</div>
+            <div class='product-code'>📦 {prod['code']}</div>
+            <div class='product-name'>{prod['name']}</div>
             <div class='product-price'>${final_price:.2f}</div>
             <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <span class='product-discount'>-{product['discount']}%</span>
-                <span class='product-sales'>📊 تم البيع: {product['sales']}</span>
+                <span class='product-discount'>-{prod['discount']}%</span>
+                <span class='product-sales'>📊 تم البيع: {prod['sales']}</span>
             </div>
-            <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
+            <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
                 <div class='product-btn'>🛒 تسوق الآن</div>
             </a>
         </div>
@@ -587,9 +557,9 @@ st.markdown("""
 <hr>
 """, unsafe_allow_html=True)
 
-# ============================================================
+# ==========================================
 # 15. السايدبار
-# ============================================================
+# ==========================================
 with st.sidebar:
     st.markdown("""
     <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
@@ -598,14 +568,9 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # اختيار الدولة
-    country = st.selectbox(
-        "🌍 اختر دولتك:",
-        ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"],
-        index=0
-    )
+    country = st.selectbox("🌍 اختر دولتك:", ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"], index=0)
 
-    # اختيار الموديل (مع التحديث الفوري)
+    # اختيار الموديل مع تحديث فوري
     model_choice = st.selectbox(
         "🧠 اختر الموديل:",
         AVAILABLE_MODELS,
@@ -617,19 +582,14 @@ with st.sidebar:
         st.session_state.model_name = model_choice
         st.session_state.model = init_gemini(model_choice)
 
-    # إذا كان النموذج غير مهيأ، قم بتهيئته
-    if st.session_state.model is None:
-        st.session_state.model = init_gemini(st.session_state.model_name)
-
     model = st.session_state.model
 
     if model:
         st.success(f"✅ يعمل على {st.session_state.model_name}")
     else:
-        st.error("⚠️ فشل تهيئة النموذج")
+        st.error("⚠️ فشل تهيئة النموذج (تأكد من المفتاح)")
 
     st.markdown("---")
-    
     st.markdown("### 🔥 العروض المميزة")
     if st.button("🔥 عرض الغلات الآن", use_container_width=True):
         st.session_state.show_golden = True
@@ -641,16 +601,14 @@ with st.sidebar:
             <h4 style='color: #fff;'>🔥 العروض الذهبية</h4>
         </div>
         """, unsafe_allow_html=True)
-        golden_products = get_golden_deals_from_csv()
-        if not golden_products:
-            golden_products = GOLDEN_DEALS
-        for product in golden_products[:5]:
-            final_price = product['price'] * (1 - product['discount']/100)
+        golden = get_golden_deals_from_csv() or GOLDEN_DEALS
+        for prod in golden[:5]:
+            final = prod['price'] * (1 - prod['discount']/100)
             st.markdown(f"""
             <div style='background: rgba(255,255,255,0.1); border-radius: 15px; padding: 12px; margin-bottom: 10px; border-right: 4px solid #feca57;'>
-                <p style='color: #e2e8f0; margin: 0;'><b>{product['name'][:30]}...</b></p>
-                <p style='color: #feca57; margin: 0;'>💰 ${final_price:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${product['price']:.2f}</span></p>
-                <p style='color: #2ecc71; margin: 0;'>خصم {product['discount']}%</p>
+                <p style='color: #e2e8f0; margin: 0;'><b>{prod['name'][:30]}...</b></p>
+                <p style='color: #feca57; margin: 0;'>💰 ${final:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${prod['price']:.2f}</span></p>
+                <p style='color: #2ecc71; margin: 0;'>خصم {prod['discount']}%</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -666,14 +624,14 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
 
-# ============================================================
-# 16. استخدام Tabs
-# ============================================================
+# ==========================================
+# 16. Tabs
+# ==========================================
 tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية"])
 
-# ============================================================
-# 17. التبويب 1: متجر المنتجات
-# ============================================================
+# ==========================================
+# 17. تبويب المنتجات
+# ==========================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
     col1, col2, col3, col4 = st.columns(4)
@@ -698,79 +656,70 @@ with tab1:
             <p style='color: #fff; font-size: 16px;'>🎁 استخدم كود الخصم: N73QS</p>
         </div>
         """, unsafe_allow_html=True)
-        
+
         if st.button("🔊 استمع لعروض الغلات"):
-            golden_message = "مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة."
-            play_voice(golden_message)
-        
-        golden_products = get_golden_deals_from_csv()
-        if not golden_products:
-            golden_products = GOLDEN_DEALS
-        
+            play_voice("مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة.")
+
+        golden = get_golden_deals_from_csv() or GOLDEN_DEALS
         cols = st.columns(4)
-        for i, product in enumerate(golden_products[:12]):
+        for i, prod in enumerate(golden[:12]):
             with cols[i % 4]:
-                final_price = product['price'] * (1 - product['discount']/100)
-                link = product.get('link', '#')
-                sales = product.get('sales', 'N/A')
+                final = prod['price'] * (1 - prod['discount']/100)
                 st.markdown(f"""
                 <div class='product-card' style='border: 3px solid #feca57;'>
                     <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>🔥 غلة</div>
-                    <div class='product-name'>{product['name']}</div>
-                    <div class='product-price'>${final_price:.2f}</div>
+                    <div class='product-name'>{prod['name']}</div>
+                    <div class='product-price'>${final:.2f}</div>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
-                        <span class='product-discount'>-{product['discount']}%</span>
-                        <span class='product-sales'>📊 {sales}</span>
+                        <span class='product-discount'>-{prod['discount']}%</span>
+                        <span class='product-sales'>📊 {prod.get('sales', 'N/A')}</span>
                     </div>
-                    <a href='{link}' target='_blank' style='text-decoration: none;'>
+                    <a href='{prod.get('link', '#')}' target='_blank' style='text-decoration: none;'>
                         <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>🛒 احصل على العرض</div>
                     </a>
                 </div>
                 """, unsafe_allow_html=True)
         st.info("✅ تم تحميل الغلات بنجاح...")
 
-    elif 'store' in st.session_state and st.session_state.store:
+    elif st.session_state.get('store'):
         store = st.session_state.store
         st.write(f"### عرض منتجات: {store}")
-        
         if store == "SHEIN":
             cols = st.columns(4)
-            for i, product in enumerate(SHEIN_PRODUCTS):
+            for i, prod in enumerate(SHEIN_PRODUCTS):
                 with cols[i % 4]:
-                    final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
+                    final = prod['price'] * (1 - prod['discount']/100) if prod['discount'] > 0 else prod['price']
                     st.markdown(f"""
                     <div class='product-card'>
-                        <div class='product-code'>📦 {product['code']}</div>
-                        <div class='product-name'>{product['name']}</div>
-                        <div class='product-price'>${final_price:.2f}</div>
-                        <div class='product-sales'>📊 تم البيع: {product['sales']}</div>
-                        <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
+                        <div class='product-code'>📦 {prod['code']}</div>
+                        <div class='product-name'>{prod['name']}</div>
+                        <div class='product-price'>${final:.2f}</div>
+                        <div class='product-sales'>📊 تم البيع: {prod['sales']}</div>
+                        <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
                             <div class='product-btn'>🛒 تسوق الآن</div>
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
-        
         elif store == "Noon":
             NOON_PRODUCTS = [
                 {"code": "N001", "name": "ساعة ذكية رياضية", "price": 89.99, "discount": 30, "link": "https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/", "sales": "500+"},
                 {"code": "N002", "name": "سماعات لاسلكية بلوتوث", "price": 45.50, "discount": 25, "link": "https://www.noon.com/ar-sa/N11200839A/p/", "sales": "1200+"},
             ]
             cols = st.columns(4)
-            for i, product in enumerate(NOON_PRODUCTS):
+            for i, prod in enumerate(NOON_PRODUCTS):
                 with cols[i % 4]:
-                    final_price = product['price'] * (1 - product['discount']/100) if product['discount'] > 0 else product['price']
+                    final = prod['price'] * (1 - prod['discount']/100) if prod['discount'] > 0 else prod['price']
                     st.markdown(f"""
                     <div class='product-card'>
-                        <div class='product-code'>📦 {product['code']}</div>
-                        <div class='product-name'>{product['name']}</div>
-                        <div class='product-price'>${final_price:.2f}</div>
-                        <div class='product-sales'>📊 تم البيع: {product['sales']}</div>
-                        <a href='{product['link']}' target='_blank' style='text-decoration: none;'>
+                        <div class='product-code'>📦 {prod['code']}</div>
+                        <div class='product-name'>{prod['name']}</div>
+                        <div class='product-price'>${final:.2f}</div>
+                        <div class='product-sales'>📊 تم البيع: {prod['sales']}</div>
+                        <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
                             <div class='product-btn'>🛒 تسوق الآن</div>
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
-        
         elif store == "AliExpress":
             st.markdown("""
             <div style='text-align: center; padding: 50px; background: rgba(255,71,87,0.1); border-radius: 40px;'>
@@ -778,97 +727,71 @@ with tab1:
                 <p style='color: #ddd;'>نستعد لإطلاق متجر AliExpress مع أفضل العروض</p>
             </div>
             """, unsafe_allow_html=True)
-        
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
-# ============================================================
-# 18. التبويب 2: أداة الفحص المتقدم (بدون أسماء)
-# ============================================================
+# ==========================================
+# 18. تبويب تحليل الرابط
+# ==========================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
     link = st.text_input("ضع رابط المنتج هنا:", placeholder="https://...")
-    
     if st.button("تحليل المنتج"):
-        if link:
-            if model:
-                with st.spinner("جاري التحليل..."):
-                    status, html_content = check_link_status(link)
-                    if status == 'متاح' and html_content:
-                        page_text = extract_text_from_html(html_content)
-                        currency = get_currency(country)
-                        prompt = f"""
-                        قم بتحليل هذا المنتج بدقة باللغة العربية الفصحى.
-                        
-                        استخرج المعلومات التالية فقط:
-                        1. اسم المنتج
-                        2. السعر المتوقع بالعملة المحلية: {currency}
-                        3. التقييمات والمراجعات إن وجدت
-                        4. حالة التوفر
-                        
-                        نص الصفحة:
-                        {page_text[:5000]}
-                        
-                        تنبيهات مهمة جداً:
-                        - لا تذكر أي اسم علم في ردك (لا تذكر Saeed DaTaBoT ولا SaeedMarketAds)
-                        - لا تستخدم أي رموز مثل ⭐ أو ★
-                        - استخدم العملة {currency} فقط
-                        - كن مختصراً وواضحاً (لا يزيد عن 200 كلمة)
-                        - اكتب النتيجة بشكل منظم ونقاط مختصرة
-                        """
-                        try:
-                            response = model.generate_content(prompt)
-                            # تنظيف الناتج من الأسماء والنجوم
-                            clean_response = response.text
-                            clean_response = re.sub(r'[⭐★✨]', '', clean_response)
-                            clean_response = re.sub(r'Saeed\s*DaTaBoT', '', clean_response, flags=re.IGNORECASE)
-                            clean_response = re.sub(r'SaeedMarketAds', '', clean_response, flags=re.IGNORECASE)
-                            clean_response = re.sub(r'saeedmarketads', '', clean_response, flags=re.IGNORECASE)
-                            clean_response = re.sub(r'\s+', ' ', clean_response).strip()
-                            
-                            st.markdown(f"""
-                            <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                                <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
-                                <p style='color: #e2e8f0; white-space: pre-wrap;'>{clean_response}</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            play_voice(clean_response[:200])
-                        except Exception as e:
-                            st.error(f"خطأ: {str(e)}")
-                    else:
-                        st.warning("⚠️ الرابط غير متاح أو لا يحتوي على محتوى.")
-            else:
-                st.warning("⚠️ خدمة الذكاء الاصطناعي غير متاحة.")
-        else:
+        if not link:
             st.warning("📝 يرجى إدخال رابط المنتج")
+        elif not model:
+            st.warning("⚠️ النموذج غير مهيأ.")
+        else:
+            with st.spinner("جاري التحليل..."):
+                status, html = check_link_status(link)
+                if status == 'متاح' and html:
+                    page_text = extract_text_from_html(html)
+                    currency = get_currency(country)
+                    prompt = f"""
+                    قم بتحليل هذا المنتج بدقة باللغة العربية الفصحى.
+                    استخرج: 1. اسم المنتج 2. السعر بالعملة: {currency} 3. التقييمات 4. التوفر.
+                    نص الصفحة: {page_text[:5000]}
+                    تنبيهات: لا تذكر اسم Saeed DaTaBoT أو SaeedMarketAds، لا تستخدم ⭐ أو ★، استخدم {currency} فقط، كن مختصراً ≤200 كلمة.
+                    """
+                    try:
+                        response = model.generate_content(prompt)
+                        clean = re.sub(r'[⭐★✨]', '', response.text)
+                        clean = re.sub(r'Saeed\s*DaTaBoT|SaeedMarketAds', '', clean, flags=re.IGNORECASE)
+                        clean = re.sub(r'\s+', ' ', clean).strip()
+                        st.markdown(f"""
+                        <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
+                            <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
+                            <p style='color: #e2e8f0; white-space: pre-wrap;'>{clean}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        play_voice(clean[:200])
+                    except Exception as e:
+                        st.error(f"خطأ: {e}")
+                else:
+                    st.warning("⚠️ الرابط غير متاح أو لا يحتوي على محتوى.")
 
-# ============================================================
-# 19. التبويب 3: المحادثة الذكية (نص + صوت) – النسخة المطورة
-# ============================================================
+# ==========================================
+# 19. تبويب المحادثة الذكية (نص + صوت)
+# ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية (نص + صوت)")
     st.info("💡 يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث.")
 
-    # عمودان: أحدهما للميكروفون والآخر للنص
     col1, col2 = st.columns([1, 3])
 
     with col1:
         st.markdown("#### 🎤 تحدث")
-        # زر التسجيل (يظهر كزر دائري)
         audio = mic_recorder(
             start_prompt="🎤 اضغط للتحدث",
             stop_prompt="⏹️ أوقف",
             just_once=True,
             key='mic_recorder'
         )
-
-        if audio:
-            # عرض مشغل الصوت للمستخدم (اختياري)
+        if audio and audio.get('bytes'):
             st.audio(audio['bytes'], format='audio/wav')
             with st.spinner("🔄 جاري تحويل الصوت إلى نص..."):
                 user_text = transcribe_audio(audio['bytes'])
                 if user_text:
                     st.success(f"📝 النص المُستمع: {user_text}")
-                    # إرسال النص إلى النموذج
                     process_query(user_text, model)
 
     with col2:
