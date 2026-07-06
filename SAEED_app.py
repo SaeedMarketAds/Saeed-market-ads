@@ -15,13 +15,15 @@ from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
 
+# ==========================================
 # محاولة استيراد pydub للتحويل الصوتي
+# ==========================================
 try:
     from pydub import AudioSegment
     PYDUB_AVAILABLE = True
 except ImportError:
     PYDUB_AVAILABLE = False
-    st.warning("⚠️ مكتبة pydub غير مثبتة. لتشغيل خاصية الصوت، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg.")
+    # سيتم عرض تحذير لاحقاً في الواجهة
 
 # ==========================================
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
@@ -445,23 +447,20 @@ def quick_response(question):
 def convert_audio_to_wav(audio_bytes):
     """تحويل أي صيغة صوت إلى WAV باستخدام pydub"""
     if not PYDUB_AVAILABLE:
-        st.error("مكتبة pydub غير مثبتة. الرجاء تثبيتها: pip install pydub")
+        st.error("⚠️ مكتبة pydub غير مثبتة. الرجاء تثبيتها: `pip install pydub` مع تثبيت ffmpeg.")
         return None
     try:
-        # قراءة الصوت من bytes
         audio = AudioSegment.from_file(BytesIO(audio_bytes))
-        # تصدير إلى WAV في BytesIO
         wav_io = BytesIO()
         audio.export(wav_io, format="wav")
         wav_io.seek(0)
         return wav_io.read()
     except Exception as e:
-        st.error(f"خطأ في تحويل الصوت: {e}")
+        st.error(f"⚠️ خطأ في تحويل الصوت: {e}")
         return None
 
 def transcribe_audio(audio_bytes):
     try:
-        # محاولة تحويل الصوت إلى WAV أولاً
         wav_bytes = convert_audio_to_wav(audio_bytes)
         if wav_bytes is None:
             # إذا فشل التحويل، نحاول مباشرة (قد تنجح مع بعض الصيغ)
@@ -474,9 +473,9 @@ def transcribe_audio(audio_bytes):
     except sr.UnknownValueError:
         st.warning("⚠️ لم أستطع فهم الصوت، حاول مرة أخرى بوضوح.")
     except sr.RequestError as e:
-        st.error(f"خطأ في الاتصال بخدمة التعرف: {e}")
+        st.error(f"⚠️ خطأ في الاتصال بخدمة التعرف: {e}")
     except Exception as e:
-        st.error(f"حدث خطأ: {e}")
+        st.error(f"⚠️ حدث خطأ: {e}")
     return None
 
 def display_and_speak(text):
@@ -518,7 +517,71 @@ def process_query(query, model):
         st.error(f"❌ خطأ أثناء معالجة الطلب: {e}")
 
 # ==========================================
-# 12. تهيئة النموذج وحالة الجلسة
+# 12. دوال الأفاتار والمحادثة (تُعرَّف مبكراً لتجنب NameError)
+# ==========================================
+def animate_avatar(image_path, duration=1.5):
+    """تأثير وميض وتحريك بسيط لمحاكاة حركة الشفاه"""
+    if not os.path.exists(image_path):
+        return
+    placeholder = st.empty()
+    for i in range(3):
+        placeholder.image(image_path, width=180, caption="🗣️ يتحدث...")
+        time.sleep(0.15)
+        placeholder.image(image_path, width=170, caption=" ")
+        time.sleep(0.15)
+    placeholder.image(image_path, width=180, caption="سعيد")
+
+def process_query_avatar(query, model):
+    """معالجة الاستعلام وعرضه مع الأفاتار والصوت"""
+    if not query:
+        return
+    # إضافة سؤال المستخدم للمحادثة
+    st.session_state.conversation.append({"role": "user", "content": query})
+    with st.chat_message("user"):
+        st.write(query)
+
+    # الحصول على الرد
+    quick = quick_response(query)
+    if quick:
+        ai_reply = quick
+    elif model is None:
+        ai_reply = "⚠️ النموذج غير مهيأ."
+    else:
+        with st.spinner("🤖 جاري التفكير..."):
+            try:
+                response = model.generate_content(f"""
+                أجب على هذا السؤال باللغة العربية الفصحى:
+                {query}
+
+                تنبيهات:
+                - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري.
+                - إذا سأل عن تحليل منتج، لا تذكر اسمك.
+                - كن مختصراً وواضحاً.
+                """)
+                ai_reply = re.sub(r'[⭐★✨]', '', response.text)
+                ai_reply = re.sub(r'\s+', ' ', ai_reply).strip()
+            except Exception as e:
+                ai_reply = f"❌ خطأ: {e}"
+
+    # عرض الرد في الدردشة
+    with st.chat_message("assistant"):
+        st.write(ai_reply)
+    
+    # تشغيل الصوت وتحريك الأفاتار
+    if st.session_state.voice_enabled and ai_reply:
+        animate_avatar(st.session_state.current_avatar, duration=1.2)
+        if st.session_state.use_recorded_voice and st.session_state.recorded_voice_path and os.path.exists(st.session_state.recorded_voice_path):
+            with open(st.session_state.recorded_voice_path, "rb") as f:
+                audio_bytes = f.read()
+            st.audio(audio_bytes, format='audio/mp3')
+        else:
+            play_voice(ai_reply[:500])
+
+    st.session_state.conversation.append({"role": "assistant", "content": ai_reply})
+    st.rerun()
+
+# ==========================================
+# 13. تهيئة النموذج وحالة الجلسة
 # ==========================================
 if 'model_name' not in st.session_state:
     st.session_state.model_name = DEFAULT_MODEL
@@ -540,7 +603,7 @@ if 'products' not in st.session_state:
     st.session_state.products = []
 
 # ==========================================
-# 13. الغلاف العلوي
+# 14. الغلاف العلوي
 # ==========================================
 st.markdown("""
 <div class='hero-section'>
@@ -564,7 +627,7 @@ st.markdown("""
 play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
 
 # ==========================================
-# 14. السايدبار (مع إعدادات الأفاتار والصوت)
+# 15. السايدبار (مع إعدادات الأفاتار والصوت)
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -662,12 +725,12 @@ with st.sidebar:
     st.caption("© 2026 سوق سعيد")
 
 # ==========================================
-# 15. Tabs (مع إضافة تبويب إدارة المنتجات)
+# 16. Tabs (مع إضافة تبويب إدارة المنتجات)
 # ==========================================
 tab1, tab2, tab3, tab4 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية", "🗂️ إدارة المنتجات"])
 
 # ==========================================
-# 16. تبويب المنتجات (نفس الكود الأول)
+# 17. تبويب المنتجات (نفس الكود الأول)
 # ==========================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
@@ -767,7 +830,7 @@ with tab1:
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
 # ==========================================
-# 17. تبويب تحليل الرابط (نفس الكود الأول)
+# 18. تبويب تحليل الرابط (نفس الكود الأول)
 # ==========================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
@@ -807,10 +870,12 @@ with tab2:
                     st.warning("⚠️ الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# 18. تبويب المحادثة الذكية (مع الأفاتار والصوت المسجل)
+# 19. تبويب المحادثة الذكية (مع الأفاتار والصوت المسجل)
 # ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية (نص + صوت)")
+    if not PYDUB_AVAILABLE:
+        st.warning("⚠️ مكتبة pydub غير مثبتة. لتحويل الصوت بشكل صحيح، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg. قد لا تعمل خاصية الميكروفون بشكل صحيح.")
     st.info("💡 يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث. سيتحرك الأفاتار أثناء النطق.")
 
     # عرض المحادثة السابقة
@@ -842,71 +907,6 @@ with tab3:
         user_query = st.chat_input("اكتب سؤالك هنا...")
         if user_query:
             process_query_avatar(user_query, model)
-
-# ==========================================
-# 19. دوال المحادثة مع الأفاتار
-# ==========================================
-def animate_avatar(image_path, duration=1.5):
-    """تأثير وميض وتحريك بسيط لمحاكاة حركة الشفاه"""
-    if not os.path.exists(image_path):
-        return
-    placeholder = st.empty()
-    for i in range(3):
-        placeholder.image(image_path, width=180, caption="🗣️ يتحدث...")
-        time.sleep(0.15)
-        placeholder.image(image_path, width=170, caption=" ")
-        time.sleep(0.15)
-    placeholder.image(image_path, width=180, caption="سعيد")
-
-def process_query_avatar(query, model):
-    if not query:
-        return
-    # إضافة سؤال المستخدم للمحادثة
-    st.session_state.conversation.append({"role": "user", "content": query})
-    with st.chat_message("user"):
-        st.write(query)
-
-    # الحصول على الرد
-    quick = quick_response(query)
-    if quick:
-        ai_reply = quick
-    elif model is None:
-        ai_reply = "⚠️ النموذج غير مهيأ."
-    else:
-        with st.spinner("🤖 جاري التفكير..."):
-            try:
-                response = model.generate_content(f"""
-                أجب على هذا السؤال باللغة العربية الفصحى:
-                {query}
-
-                تنبيهات:
-                - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري.
-                - إذا سأل عن تحليل منتج، لا تذكر اسمك.
-                - كن مختصراً وواضحاً.
-                """)
-                ai_reply = re.sub(r'[⭐★✨]', '', response.text)
-                ai_reply = re.sub(r'\s+', ' ', ai_reply).strip()
-            except Exception as e:
-                ai_reply = f"❌ خطأ: {e}"
-
-    # عرض الرد في الدردشة
-    with st.chat_message("assistant"):
-        st.write(ai_reply)
-    
-    # تشغيل الصوت وتحريك الأفاتار
-    if st.session_state.voice_enabled and ai_reply:
-        # تحريك الشفاه
-        animate_avatar(st.session_state.current_avatar, duration=1.2)
-        # تشغيل الصوت: إذا كان هناك صوت مسجل يستخدمه، وإلا استخدم TTS
-        if st.session_state.use_recorded_voice and st.session_state.recorded_voice_path and os.path.exists(st.session_state.recorded_voice_path):
-            with open(st.session_state.recorded_voice_path, "rb") as f:
-                audio_bytes = f.read()
-            st.audio(audio_bytes, format='audio/mp3')
-        else:
-            play_voice(ai_reply[:500])
-
-    st.session_state.conversation.append({"role": "assistant", "content": ai_reply})
-    st.rerun()
 
 # ==========================================
 # 20. تبويب إدارة المنتجات (إضافة وعرض)
