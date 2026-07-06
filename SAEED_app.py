@@ -10,14 +10,21 @@ import asyncio
 from bs4 import BeautifulSoup
 import re
 import pandas as pd
-from io import StringIO
+from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
-import io as io_lib
+import time
+
+# محاولة استيراد pydub للتحويل الصوتي
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    PYDUB_AVAILABLE = False
+    st.warning("⚠️ مكتبة pydub غير مثبتة. لتشغيل خاصية الصوت، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg.")
 
 # ==========================================
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
-# ==========================================
 # ==========================================
 AVAILABLE_MODELS = [
     "gemini-3.5-flash",      # سريع ومناسب للمحادثة
@@ -51,7 +58,7 @@ def get_system_instructions():
         """
 
 # ==========================================
-# 3. تهيئة الموديل مع التخزين المؤقت (تحسين الأداء)
+# 3. تهيئة الموديل مع التخزين المؤقت
 # ==========================================
 @st.cache_resource(ttl=3600)
 def init_gemini(model_name):
@@ -433,12 +440,35 @@ def quick_response(question):
     return None
 
 # ==========================================
-# 11. دوال تحويل الصوت ومعالجة الاستعلامات
+# 11. دوال تحويل الصوت ومعالجة الاستعلامات (مع إصلاح مشكلة التنسيق)
 # ==========================================
+def convert_audio_to_wav(audio_bytes):
+    """تحويل أي صيغة صوت إلى WAV باستخدام pydub"""
+    if not PYDUB_AVAILABLE:
+        st.error("مكتبة pydub غير مثبتة. الرجاء تثبيتها: pip install pydub")
+        return None
+    try:
+        # قراءة الصوت من bytes
+        audio = AudioSegment.from_file(BytesIO(audio_bytes))
+        # تصدير إلى WAV في BytesIO
+        wav_io = BytesIO()
+        audio.export(wav_io, format="wav")
+        wav_io.seek(0)
+        return wav_io.read()
+    except Exception as e:
+        st.error(f"خطأ في تحويل الصوت: {e}")
+        return None
+
 def transcribe_audio(audio_bytes):
     try:
+        # محاولة تحويل الصوت إلى WAV أولاً
+        wav_bytes = convert_audio_to_wav(audio_bytes)
+        if wav_bytes is None:
+            # إذا فشل التحويل، نحاول مباشرة (قد تنجح مع بعض الصيغ)
+            wav_bytes = audio_bytes
+
         recognizer = sr.Recognizer()
-        with sr.AudioFile(io_lib.BytesIO(audio_bytes)) as source:
+        with sr.AudioFile(BytesIO(wav_bytes)) as source:
             audio = recognizer.record(source)
         return recognizer.recognize_google(audio, language='ar-AR')
     except sr.UnknownValueError:
@@ -488,12 +518,26 @@ def process_query(query, model):
         st.error(f"❌ خطأ أثناء معالجة الطلب: {e}")
 
 # ==========================================
-# 12. تهيئة النموذج في الجلسة
+# 12. تهيئة النموذج وحالة الجلسة
 # ==========================================
 if 'model_name' not in st.session_state:
     st.session_state.model_name = DEFAULT_MODEL
 if 'model' not in st.session_state or st.session_state.model is None:
     st.session_state.model = init_gemini(st.session_state.model_name)
+
+# متغيرات الأفاتار والصوت المسجل
+if 'current_avatar' not in st.session_state:
+    st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
+if 'voice_enabled' not in st.session_state:
+    st.session_state.voice_enabled = True
+if 'use_recorded_voice' not in st.session_state:
+    st.session_state.use_recorded_voice = False
+if 'recorded_voice_path' not in st.session_state:
+    st.session_state.recorded_voice_path = None
+if 'conversation' not in st.session_state:
+    st.session_state.conversation = []
+if 'products' not in st.session_state:
+    st.session_state.products = []
 
 # ==========================================
 # 13. الغلاف العلوي
@@ -520,45 +564,7 @@ st.markdown("""
 play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
 
 # ==========================================
-# 14. عرض منتجات SHEIN
-# ==========================================
-st.markdown("""
-<div class='shein-section'>
-    <div class='shein-header'>
-        <h2>🛍️ أحدث منتجات SHEIN</h2>
-        <p>تشكيلة مميزة من أفضل المنتجات بأسعار رائعة</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-cols = st.columns(4)
-for i, prod in enumerate(SHEIN_PRODUCTS):
-    with cols[i % 4]:
-        final_price = prod['price'] * (1 - prod['discount']/100) if prod['discount'] > 0 else prod['price']
-        st.markdown(f"""
-        <div class='product-card'>
-            <div class='product-code'>📦 {prod['code']}</div>
-            <div class='product-name'>{prod['name']}</div>
-            <div class='product-price'>${final_price:.2f}</div>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <span class='product-discount'>-{prod['discount']}%</span>
-                <span class='product-sales'>📊 تم البيع: {prod['sales']}</span>
-            </div>
-            <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
-                <div class='product-btn'>🛒 تسوق الآن</div>
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
-
-st.markdown("""
-<div style='text-align: center; margin: 20px 0;'>
-    <span style='color: #feca57; font-size: 14px;'>✨ استخدم كود الخصم N73QS للحصول على خصم إضافي</span>
-</div>
-<hr>
-""", unsafe_allow_html=True)
-
-# ==========================================
-# 15. السايدبار
+# 14. السايدبار (مع إعدادات الأفاتار والصوت)
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -577,7 +583,6 @@ with st.sidebar:
         index=AVAILABLE_MODELS.index(st.session_state.model_name) if st.session_state.model_name in AVAILABLE_MODELS else 0
     )
 
-    # إذا تغير الموديل، أعد تهيئته
     if model_choice != st.session_state.model_name:
         st.session_state.model_name = model_choice
         st.session_state.model = init_gemini(model_choice)
@@ -619,18 +624,50 @@ with st.sidebar:
     st.markdown("- ✅ عروض نون")
     st.markdown("- ✅ محادثة ذكية (نص + صوت)")
     st.markdown("---")
+    
+    # إعدادات الأفاتار والصوت
+    st.markdown("### 🎭 الأفاتار والصوت")
+    avatar_option = st.selectbox("اختر الأفاتار", ["سعيد (saeed.jpg)", "روبوت (ROBOT.jpg)", "صورتي أنا (ارفع صورة)"])
+    if avatar_option == "سعيد (saeed.jpg)":
+        st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
+    elif avatar_option == "روبوت (ROBOT.jpg)":
+        st.session_state.current_avatar = "ROBOT.jpg" if os.path.exists("ROBOT.jpg") else "saeed.jpg"
+    else:
+        uploaded_img = st.file_uploader("ارفع صورتك", type=["jpg", "png"], key="avatar_upload")
+        if uploaded_img:
+            with open("my_avatar.jpg", "wb") as f:
+                f.write(uploaded_img.getbuffer())
+            st.session_state.current_avatar = "my_avatar.jpg"
+    
+    st.session_state.voice_enabled = st.checkbox("🔊 تفعيل الصوت", value=True)
+    st.session_state.use_recorded_voice = st.checkbox("🎙️ استخدام صوتي المسجل (للردود)", value=False)
+    if st.session_state.use_recorded_voice:
+        recorded_voice_file = st.file_uploader("ارفع ملف صوتي (mp3) للردود", type=["mp3"], key="voice_upload")
+        if recorded_voice_file:
+            with open("my_voice.mp3", "wb") as f:
+                f.write(recorded_voice_file.getbuffer())
+            st.session_state.recorded_voice_path = "my_voice.mp3"
+            st.success("تم رفع صوتك! سيتم استخدامه لكل رد.")
+        else:
+            if os.path.exists("my_voice.mp3"):
+                st.session_state.recorded_voice_path = "my_voice.mp3"
+                st.info("صوتك المسجل موجود مسبقاً.")
+            else:
+                st.warning("يرجى رفع ملف صوتي لتفعيل هذه الخاصية.")
+    
+    st.markdown("---")
     st.markdown("### 📞 للتواصل:")
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
 
 # ==========================================
-# 16. Tabs
+# 15. Tabs (مع إضافة تبويب إدارة المنتجات)
 # ==========================================
-tab1, tab2, tab3 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية"])
+tab1, tab2, tab3, tab4 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية", "🗂️ إدارة المنتجات"])
 
 # ==========================================
-# 17. تبويب المنتجات
+# 16. تبويب المنتجات (نفس الكود الأول)
 # ==========================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
@@ -730,7 +767,7 @@ with tab1:
         st.info("✅ تم تحميل المنتجات بنجاح...")
 
 # ==========================================
-# 18. تبويب تحليل الرابط
+# 17. تبويب تحليل الرابط (نفس الكود الأول)
 # ==========================================
 with tab2:
     st.subheader("🔍 أداة فحص الروابط المتقدمة")
@@ -770,12 +807,18 @@ with tab2:
                     st.warning("⚠️ الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# 19. تبويب المحادثة الذكية (نص + صوت)
+# 18. تبويب المحادثة الذكية (مع الأفاتار والصوت المسجل)
 # ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية (نص + صوت)")
-    st.info("💡 يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث.")
+    st.info("💡 يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث. سيتحرك الأفاتار أثناء النطق.")
 
+    # عرض المحادثة السابقة
+    for msg in st.session_state.conversation:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+
+    # عمودان للميكروفون والنص
     col1, col2 = st.columns([1, 3])
 
     with col1:
@@ -792,13 +835,129 @@ with tab3:
                 user_text = transcribe_audio(audio['bytes'])
                 if user_text:
                     st.success(f"📝 النص المُستمع: {user_text}")
-                    process_query(user_text, model)
+                    process_query_avatar(user_text, model)
 
     with col2:
         st.markdown("#### ✍️ أو اكتب سؤالك")
-        user_query = st.text_area("اطرح سؤالك هنا:", placeholder="اكتب سؤالك هنا...", key="text_input")
-        if st.button("إرسال", key="send_text"):
-            if user_query:
-                process_query(user_query, model)
-            else:
-                st.warning("📝 يرجى كتابة سؤالك أولاً")
+        user_query = st.chat_input("اكتب سؤالك هنا...")
+        if user_query:
+            process_query_avatar(user_query, model)
+
+# ==========================================
+# 19. دوال المحادثة مع الأفاتار
+# ==========================================
+def animate_avatar(image_path, duration=1.5):
+    """تأثير وميض وتحريك بسيط لمحاكاة حركة الشفاه"""
+    if not os.path.exists(image_path):
+        return
+    placeholder = st.empty()
+    for i in range(3):
+        placeholder.image(image_path, width=180, caption="🗣️ يتحدث...")
+        time.sleep(0.15)
+        placeholder.image(image_path, width=170, caption=" ")
+        time.sleep(0.15)
+    placeholder.image(image_path, width=180, caption="سعيد")
+
+def process_query_avatar(query, model):
+    if not query:
+        return
+    # إضافة سؤال المستخدم للمحادثة
+    st.session_state.conversation.append({"role": "user", "content": query})
+    with st.chat_message("user"):
+        st.write(query)
+
+    # الحصول على الرد
+    quick = quick_response(query)
+    if quick:
+        ai_reply = quick
+    elif model is None:
+        ai_reply = "⚠️ النموذج غير مهيأ."
+    else:
+        with st.spinner("🤖 جاري التفكير..."):
+            try:
+                response = model.generate_content(f"""
+                أجب على هذا السؤال باللغة العربية الفصحى:
+                {query}
+
+                تنبيهات:
+                - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري.
+                - إذا سأل عن تحليل منتج، لا تذكر اسمك.
+                - كن مختصراً وواضحاً.
+                """)
+                ai_reply = re.sub(r'[⭐★✨]', '', response.text)
+                ai_reply = re.sub(r'\s+', ' ', ai_reply).strip()
+            except Exception as e:
+                ai_reply = f"❌ خطأ: {e}"
+
+    # عرض الرد في الدردشة
+    with st.chat_message("assistant"):
+        st.write(ai_reply)
+    
+    # تشغيل الصوت وتحريك الأفاتار
+    if st.session_state.voice_enabled and ai_reply:
+        # تحريك الشفاه
+        animate_avatar(st.session_state.current_avatar, duration=1.2)
+        # تشغيل الصوت: إذا كان هناك صوت مسجل يستخدمه، وإلا استخدم TTS
+        if st.session_state.use_recorded_voice and st.session_state.recorded_voice_path and os.path.exists(st.session_state.recorded_voice_path):
+            with open(st.session_state.recorded_voice_path, "rb") as f:
+                audio_bytes = f.read()
+            st.audio(audio_bytes, format='audio/mp3')
+        else:
+            play_voice(ai_reply[:500])
+
+    st.session_state.conversation.append({"role": "assistant", "content": ai_reply})
+    st.rerun()
+
+# ==========================================
+# 20. تبويب إدارة المنتجات (إضافة وعرض)
+# ==========================================
+with tab4:
+    st.subheader("🗂️ إدارة المنتجات المخصصة")
+    st.markdown("أضف منتجك الخاص أو استعرض المنتجات المضافة.")
+    
+    # نموذج إضافة منتج
+    with st.expander("➕ إضافة منتج جديد", expanded=False):
+        with st.form(key="product_form", clear_on_submit=True):
+            prod_name = st.text_input("🏷️ اسم المنتج")
+            prod_price = st.number_input("💰 السعر (دولار)", min_value=0.0, step=0.5)
+            prod_desc = st.text_area("📝 الوصف")
+            hidden_link = st.text_input("🔗 رابط المنتج (اختياري)")
+            img_link = st.text_input("🖼️ رابط صورة المنتج (اختياري)")
+            submitted = st.form_submit_button("📌 نشر المنتج")
+            if submitted and prod_name and prod_price > 0:
+                st.session_state.products.append({
+                    "name": prod_name,
+                    "price": prod_price,
+                    "desc": prod_desc,
+                    "link": hidden_link,
+                    "image": img_link
+                })
+                st.balloons()
+                st.success(f"✅ تمت إضافة {prod_name}")
+                st.rerun()
+            elif submitted:
+                st.error("الاسم والسعر مطلوبان")
+    
+    # عرض قائمة المنتجات المضافة
+    st.markdown("### 📦 قائمة منتجاتي")
+    if not st.session_state.products:
+        st.info("لا توجد منتجات مضافة بعد. أضف منتجاً من الأعلى.")
+    else:
+        for idx, prod in enumerate(st.session_state.products):
+            with st.container():
+                c1, c2 = st.columns([1, 3])
+                with c1:
+                    if prod["image"]:
+                        st.image(prod["image"], width=120)
+                    else:
+                        st.image("https://via.placeholder.com/120?text=No+Image", width=120)
+                with c2:
+                    st.markdown(f"### 🛍️ {prod['name']}")
+                    st.markdown(f"**السعر:** 💲{prod['price']}")
+                    st.markdown(f"**الوصف:** {prod['desc']}")
+                    if prod["link"]:
+                        st.markdown(f"[رابط المنتج]({prod['link']})")
+                st.divider()
+        if st.button("🗑️ حذف الكل", key="delete_all_products"):
+            st.session_state.products.clear()
+            st.rerun()
