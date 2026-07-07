@@ -14,6 +14,7 @@ from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
+from data_center import CONFIG, PRODUCTS
 
 # ==========================================
 # محاولة استيراد pydub للتحويل الصوتي
