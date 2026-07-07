@@ -1,114 +1,15 @@
-store,code,name,price,discount,link,sales
-SHEIN,SH001,معطف مبطن بغطاء رأس للفتيات,19.39,43,https://onelink.shein.com/38/5shrzfcizjmg,150+
-SHEIN,SH002,قميص أنيق بتصميم هونج كونج,14.18,37,https://onelink.shein.com/38/5shune7n90yf,200+
-SHEIN,SH003,نظارات حفلات مطبوعة 6 قطع,2.70,0,https://onelink.shein.com/38/5shujg5f2ywk,300+
-SHEIN,SH004,حقيبة مستلزمات سفر مقاومة للماء,3.90,17,https://onelink.shein.com/38/5shuimjyfjt7,100+
-SHEIN,SH005,معطف رجالي كاجوال سادة,25.67,24,https://onelink.shein.com/38/5shui8qqn60h,200+
-Noon,N001,ساعة ذكية رياضية,89.99,30,https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/,500+
-Noon,N002,سماعات لاسلكية بلوتوث,45.50,25,https://www.noon.com/ar-sa/N11200839A/p/,1200+
-import pandas as pd
-import pandas as pd
-# رابط ملف الـ CSV الخاص بك من GitHub (يجب أن يكون رابط RAW)
-# تأكد أن الرابط يبدأ بـ raw.githubusercontent.com
-url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
-import pandas as pd
-# 1. قائمة المنتجات
-products_data = [
-    {'name': 'Casual Black Shorts', 'price': 5.35, 'discount': 36},
-    {'name': 'Contrast Color Waistband Shorts', 'price': 11.41, 'discount': 4},
-    {'name': 'Versatile Women Blouse', 'price': 16.75, 'discount': 34},
-    {'name': 'Yoga Workout Body Shaper', 'price': 11.60, 'discount': 55},
-    {'name': '3pcs Sports Shorts With Pockets', 'price': 22.01, 'discount': 54},
-    {'name': 'Cargo Pocket Yoga Leggings', 'price': 13.28, 'discount': 55},
-    {'name': 'Old Money Style Vest', 'price': 9.38, 'discount': 26},
-    {'name': 'Polka Dot Camisole & Shorts Set', 'price': 20.79, 'discount': 27},
-    {'name': 'Long Ditsy Floral Skirt', 'price': 14.73, 'discount': 32},
-    {'name': 'Top And Pants Set', 'price': 19.22, 'discount': 56},
-    {'name': 'Puff Sleeve Bow Tie Top', 'price': 12.50, 'discount': 35},
-    {'name': 'Sexy Red Strapless Dress', 'price': 14.89, 'discount': 35},
-    {'name': 'Seamless High-Waisted Leggings', 'price': 12.05, 'discount': 56},
-    {'name': '3pcs Heart-Shaped Yoga Shorts', 'price': 20.86, 'discount': 53},
-    {'name': '2 In 1 Athletic Shorts', 'price': 6.17, 'discount': 52},
-    {'name': 'Straight Leg Jeans', 'price': 25.19, 'discount': 25},
-    {'name': 'High-Waist Shaping Yoga Pants', 'price': 8.17, 'discount': 54},
-    {'name': 'Striped Yoga Shorts', 'price': 7.71, 'discount': 52},
-    {'name': 'Loose Fit Sports Jacket', 'price': 10.16, 'discount': 56},
-    {'name': 'Tie-Side Triangle Bikini', 'price': 8.63, 'discount': 39},
-    {'name': 'Reversible Fleece Jacket', 'price': 23.89, 'discount': 50},
-    {'name': 'Black Bodycon Dress', 'price': 14.73, 'discount': 11},
-    {'name': 'Leopard Print High Waist Shorts', 'price': 13.69, 'discount': 0},
-    {'name': 'Purple Leggings', 'price': 6.50, 'discount': 34},
-    {'name': 'Halter Top & Shorts Set', 'price': 11.99, 'discount': 63},
-    {'name': 'Purple Sneakers', 'price': 11.03, 'discount': 35},
-    {'name': 'Retro Apricot Wide Leg Pants', 'price': 16.35, 'discount': 58},
-    {'name': '4pcs Bikini Set With Cover-Up', 'price': 16.29, 'discount': 34},
-    {'name': 'Shaping Yoga Shorts With Pockets', 'price': 7.18, 'discount': 55},
-    {'name': 'Men Ice Silk Polo Shirt', 'price': 4.71, 'discount': 60},
-    {'name': 'Strapless Knit Outfit', 'price': 20.99, 'discount': 26},
-    {'name': 'Ombre Round Neck T-Shirt', 'price': 8.39, 'discount': 65},
-    {'name': 'Black Elegant Woven Dress', 'price': 27.89, 'discount': 23},
-    {'name': 'Bodycon Mini Dress Metal Ring', 'price': 11.92, 'discount': 31},
-    {'name': 'Mini Vase Magnets', 'price': 0.83, 'discount': 36},
-    {'name': 'Casual Sports Shoes', 'price': 20.45, 'discount': 18},
-    {'name': 'Sports Waist Belt', 'price': 5.12, 'discount': 61},
-    {'name': 'Pajama Set Button Front', 'price': 6.91, 'discount': 69},
-    {'name': 'Shower Curtain Set', 'price': 4.47, 'discount': 70},
-    {'name': '4pcs Pajama Set', 'price': 10.98, 'discount': 40},
-    {'name': 'Plus Size Men Shirt Set', 'price': 17.42, 'discount': 31},
-    {'name': 'Newborn Baby Outfit', 'price': 5.63, 'discount': 45},
-    {'name': 'Men Sports Set', 'price': 33.98, 'discount': 56},
-    {'name': 'Men Casual Beach Set', 'price': 12.39, 'discount': 25},
-    {'name': 'Travel Packing Organizer', 'price': 5.10, 'discount': 28},
-    {'name': 'Plus-Size Casual Shirt', 'price': 4.40, 'discount': 53},
-    {'name': 'Plant Grow Bags', 'price': 1.60, 'discount': 30},
-    {'name': 'Kawasaki H2 R Model', 'price': 2.79, 'discount': 10},
-    {'name': 'Outdoor Folding Bed', 'price': 23.91, 'discount': 60},
-    {'name': 'Marvel Waist Bag', 'price': 4.77, 'discount': 45},
-    {'name': 'Posture Corrector', 'price': 5.04, 'discount': 37},
-    {'name': 'Double Layer Sweatshirt', 'price': 21.12, 'discount': 39},
-    {'name': 'Vintage 2-Piece Set', 'price': 11.30, 'discount': 38},
-    {'name': 'Rainbow Striped Chiffon Top', 'price': 17.79, 'discount': 32}
-# 2. إنشاء الجدول وإضافة كود الخصم لجميع المنتجات دفعة واحدة
-df = pd.DataFrame(products_data)
-df = df.drop_duplicates()
-df['coupon'] = 'N73QS'  # هنا أضفنا كود الخصم لجميع المنتجات
-# 3. استخراج أفضل العروض
-gold_deals = df[df['discount'] >= 50]
-print("--- أفضل العروض مع كود الخصم ---")
-print(gold_deals[['name', 'discount', 'coupon']])
-# 4. (اختياري) توليد رسالة إعلانية سريعة لأول عرض ذهبي
-if not gold_deals.empty:
-    top_product = gold_deals.iloc[0]
-    print("\n--- رسالة جاهزة للنشر ---")
-    print(f"🔥 عرض حصري: {top_product['name']} بخصم {top_product['discount']}%!")
-  print(f"استخدم كود الخصم: {top_product['coupon']}")
-import csv
-# بيانات الجدول كاملة ومحدثة بدون تكرار
-data = [
-    ["SKU", "Product_Name", "Discount_Price", "Original_Price", "Discount_Percentage"],
-    ["SM-101", "مكنسة كهربائية لاسلكية ABIR VC205", "$96.50", "$400.00", "76%"],
-    ["SM-102", "مسجل فيديو للسيارة 70mai T800E", "$90.23", "$199.98", "55%"],
-    ["SM-103", "مطحنة قهوة أوتوماتيكية", "$27.68", "$71.83", "61%"],
-    ["SM-104", "ساعة هواوي الذكية GT 6/Pro", "$177.12", "$628.09", "72%"],
-    ["SM-105", "سماعات T75 TWS", "$1.23", "$10.47", "88%"],
-    ["SM-106", "سماعات X15 TWS", "$2.48", "$11.65", "79%"],
-    ["SM-107", "كابل USB-C سريع 120 وات", "$0.99", "$4.12", "76%"],
-    ["SM-108", "جهاز تنظيف الأسنان المائي H2ofloss", "$41.83", "$57.91", "28%"],
-    ["SM-109", "شورت الجري الرجالي", "$8.37", "$14.04", "40%"],
-    ["SM-110", "تي شيرت رياضي سريع الجفاف", "$3.38", "$13.58", "75%"],
-    ["SM-111", "حقيبة خصر للجري", "$0.99", "$6.74", "85%"],
-    ["SM-112", "مضخة ثدي كهربائية", "$25.53", "$67.44", "62%"],
-    ["SM-113", "قلم 7 في 1", "$0.99", "$6.20", "84%"],
-    ["SM-114", "فرشاة سيليكون للتنظيف", "$0.99", "$5.16", "81%"],
-    ["SM-115", "سكين القلم الصغير", "$0.99", "$6.57", "85%"],
-    ["SM-116", "منظم الكابلات", "$0.99", "$4.15", "76%"],
-    ["SM-117", "شريط لاصق nano", "$0.99", "$3.51", "72%"],
-    ["SM-118", "منشفة غسيل السيارات", "$0.99", "$7.27", "86%"],
-    ["SM-119", "مكشطة اللسان", "$0.99", "$3.86", "74%"],
-    ["SM-120", "قناع نوم ثلاثي الأبعاد", "$0.99", "$5.09", "81%"]
-# كتابة البيانات إلى ملف CSV
-with open("table_20260707.csv", mode="w", newline="", encoding="utf-8") as file:
-    writer = csv.writer(file)
-    writer.writerows(data)
-
-print("تم إنشاء وحفظ ملف table_20260707.csv بنجاح في مجلد العمل!")
+SKU,name,price,discount,link,sales
+SH001,معطف مبطن بغطاء رأس للفتيات,19.39,43,https://onelink.shein.com/38/5shrzfcizjmg,150
+SH002,قميص أنيق بتصميم هونج كونج,14.18,37,https://onelink.shein.com/38/5shune7n90yf,200
+SH003,نظارات حفلات مطبوعة 6 قطع,2.70,0,https://onelink.shein.com/38/5shujg5f2ywk,300
+SH004,حقيبة مستلزمات سفر مقاومة للماء,3.90,17,https://onelink.shein.com/38/5shuimjyfjt7,100
+SH005,معطف رجالي كاجوال سادة,25.67,24,https://onelink.shein.com/38/5shui8qqn60h,200
+N001,ساعة ذكية رياضية,89.99,30,https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/,500
+N002,سماعات لاسلكية بلوتوث,45.50,25,https://www.noon.com/ar-sa/N11200839A/p/,1200
+SM-101,مكنسة كهربائية لاسلكية ABIR VC205,96.50,76,N/A,0
+SM-102,مسجل فيديو للسيارة 70mai T800E,90.23,55,N/A,0
+SM-103,مطحنة قهوة أوتوماتيكية,27.68,61,N/A,0
+SM-104,ساعة هواوي الذكية GT 6/Pro,177.12,72,N/A,0
+SM-105,سماعات T75 TWS,1.23,88,N/A,0
+SM-106,سماعات X15 TWS,2.48,79,N/A,0
+SM-112,مضخة ثدي كهربائية,25.53,62,N/A,0
