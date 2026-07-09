@@ -910,12 +910,16 @@ with tab4:
             img_link = st.text_input("🖼️ رابط صورة المنتج (اختياري)")
             submitted = st.form_submit_button("📌 نشر المنتج")
             if submitted and prod_name and prod_price > 0:
-                st.session_state.products.append({
+                # استخدام PRODUCTS من data_center
+                PRODUCTS.append({
+                    "sku": f"CUSTOM-{len(PRODUCTS)+1:03d}",
                     "name": prod_name,
                     "price": prod_price,
-                    "desc": prod_desc,
-                    "link": hidden_link,
-                    "image": img_link
+                    "store": "Custom",
+                    "type": "Local",
+                    "image": img_link,
+                    "description": prod_desc,
+                    "link": hidden_link
                 })
                 st.balloons()
                 st.success(f"✅ تمت إضافة {prod_name}")
@@ -923,26 +927,24 @@ with tab4:
             elif submitted:
                 st.error("الاسم والسعر مطلوبان")
     
-    # عرض قائمة المنتجات المضافة
-    st.markdown("### 📦 قائمة منتجاتي")
-    if not st.session_state.products:
+    # عرض قائمة المنتجات المضافة (من PRODUCTS)
+    st.markdown("### 📦 قائمة المنتجات")
+    custom_products = [p for p in PRODUCTS if p.get('store') == 'Custom']
+    if not custom_products:
         st.info("لا توجد منتجات مضافة بعد. أضف منتجاً من الأعلى.")
     else:
-        for idx, prod in enumerate(st.session_state.products):
+        for idx, prod in enumerate(custom_products):
             with st.container():
                 c1, c2 = st.columns([1, 3])
                 with c1:
-                    if prod["image"]:
+                    if prod.get("image"):
                         st.image(prod["image"], width=120)
                     else:
                         st.image("https://via.placeholder.com/120?text=No+Image", width=120)
                 with c2:
                     st.markdown(f"### 🛍️ {prod['name']}")
                     st.markdown(f"**السعر:** 💲{prod['price']}")
-                    st.markdown(f"**الوصف:** {prod['desc']}")
-                    if prod["link"]:
+                    st.markdown(f"**الوصف:** {prod.get('description', '')}")
+                    if prod.get("link"):
                         st.markdown(f"[رابط المنتج]({prod['link']})")
                 st.divider()
-        if st.button("🗑️ حذف الكل", key="delete_all_products"):
-            st.session_state.products.clear()
-            st.rerun()
