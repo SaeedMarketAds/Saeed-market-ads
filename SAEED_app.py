@@ -1,3 +1,4 @@
+
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper
@@ -14,7 +15,9 @@ from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
-from data_center import CONFIG, PRODUCTS
+
+# استيراد البيانات من data_center.py
+from data_center import CONFIG, PRODUCTS, SHEIN_PRODUCTS, GOLDEN_DEALS
 
 # ==========================================
 # محاولة استيراد pydub للتحويل الصوتي
@@ -30,12 +33,10 @@ except ImportError:
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
 AVAILABLE_MODELS = [
-    "gemini-3.5-flash",      # سريع ومناسب للمحادثة
-    "gemini-3.1-pro",        # أقوى وأدق
-    "gemini-2.0-flash-exp"   # تجريبي – أحدث
-]
-DEFAULT_MODEL = "gemini-1.5-flash"
-
+    "gemini-3.5-flash-exp",    # الأحدث والأسرع
+    "gemini-3.1-flash",        # سريع ومناسب للمحادثة
+    "gemini-1.5-pro",
+    
 # ==========================================
 # 2. دالة التعليمات (الهوية والقواعد)
 # ==========================================
