@@ -1,46 +1,65 @@
 
 import streamlit as st
-import google.generativeai as genai
-import cloudscraper
-import requests
-import os
-import base64
-import edge_tts
-import tempfile
-import asyncio
-from bs4 import BeautifulSoup
-import re
-import pandas as pd
-from io import StringIO, BytesIO
-from streamlit_mic_recorder import mic_recorder
-import speech_recognition as sr
-import time
 
-# استيراد البيانات من data_center.py
-from data_center import CONFIG, PRODUCTS, SHEIN_PRODUCTS, GOLDEN_DEALS
-
-# ==========================================
-# محاولة استيراد pydub للتحويل الصوتي
-# ==========================================
-try:
-    from pydub import AudioSegment
-    PYDUB_AVAILABLE = True
-except ImportError:
-    PYDUB_AVAILABLE = False
-    # سيتم عرض تحذير لاحقاً في الواجهة
-
-# ==========================================
-# 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
-# ==========================================
-# 1. إعدادات الموديلات (Configuration)
-# استخدام القاموس (Dictionary) يسهل عليك استدعاء الموديل لاحقاً
-AVAILABLE_MODELS = {
-    "fast": "gemini-3.5-flash",       # سريع ومناسب للمحادثة
-    "precise": "gemini-3.1-pro",      # أقوى وأدق
-    "experimental": "gemini-2.0-flash-exp"  # تجريبي - أحدث
+# 1. إعدادات الموديلات
+AVAILABLE_MODELS_DICT = {
+    "fast": "gemini-1.5-flash", # تم تعديل المسمى للنسخة المتوفرة غالباً
+    "precise": "gemini-1.5-pro",
+    "experimental": "gemini-2.0-flash-exp"
 }
+AVAILABLE_MODELS = ["fast", "precise", "experimental"]
 
-DEFAULT_MODEL = "gemini-1.5-flash"
+# (Identity Handler) - دالة قراءة التعليمات
+@st.cache_data
+def get_system_instructions(filepath='identity.txt'):
+    """تقوم بقراءة ملف الهوية مع إضافة معالجة للأخطاء"""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        st.error(f"تنبيه: الملف '{filepath}' غير موجود. يرجى التأكد من مسار الملف.")
+        return ""
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء قراءة ملف الهوية: {e}")
+        return ""
+
+# ملاحظة: تأكد أن دالة init_gemini لديك تقبل وسيطاً للتعليمات (system_instruction)
+# مثال: def init_gemini(model_name, system_instruction): ...
+
+# بداية القسم الجانبي
+with st.sidebar:
+    st.markdown("""
+    <div style='text-align: center; padding: 20px;'>
+        <h2 style='color: #feca57;'>🤖 المساعد الذكي</h2>
+        <p style='color: #aaa;'>للتسوق والاستشارات</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 3. اختيار الدولة
+    country = st.selectbox("اختر دولتك", ["السعودية", "قطر", "عمان"], index=0)
+
+    # 4. اختيار الموديل مع التحقق
+    if 'model_name' not in st.session_state:
+        st.session_state.model_name = None
+    if 'model' not in st.session_state:
+        st.session_state.model = None
+
+    model_choice = st.selectbox("اختر الموديل 🧠", AVAILABLE_MODELS)
+
+    # 5. تحديث الموديل عند تغييره فقط
+    if model_choice != st.session_state.model_name:
+        st.session_state.model_name = model_choice
+        
+        # جلب التعليمات من الملف
+        system_instructions = get_system_instructions('identity.txt')
+        
+        # استدعاء دالة التهيئة مع تمرير التعليمات
+        actual_model_name = AVAILABLE_MODELS_DICT[model_choice]
+        st.session_state.model = init_gemini(actual_model_name, system_instructions)
+
+    # 6. تحديث الحالة وعرض رسالة النجاح
+    if st.session_state.model:
+        st.success(f"تم تفعيل الموديل: {st.session_state.model_name}")
 
 # 2. دالة قراءة التعليمات (Identity Handler)
 def get_system_instructions(filepath='identity.txt'):
