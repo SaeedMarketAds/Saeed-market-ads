@@ -22,7 +22,7 @@ def get_system_instructions(filepath='identity.txt'):
     except Exception as e:
         st.error(f"حدث خطأ أثناء قراءة ملف الهوية: {e}")
         return ""
-
+} 
 # ملاحظة: تأكد أن دالة init_gemini لديك تقبل وسيطاً للتعليمات (system_instruction)
 # مثال: def init_gemini(model_name, system_instruction): ...
 
