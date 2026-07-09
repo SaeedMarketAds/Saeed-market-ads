@@ -32,11 +32,31 @@ except ImportError:
 # ==========================================
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
-AVAILABLE_MODELS = [
-    "gemini-3.5-flash-exp",    # الأحدث والأسرع
-    "gemini-3.1-flash",        # سريع ومناسب للمحادثة
-    "gemini-1.5-pro",
-    ]  # <-- أضف هذا القوس المفقود 
+# 1. إعدادات الموديلات (Configuration)
+# استخدام القاموس (Dictionary) يسهل عليك استدعاء الموديل لاحقاً
+AVAILABLE_MODELS = {
+    "fast": "gemini-3.5-flash",       # سريع ومناسب للمحادثة
+    "precise": "gemini-3.1-pro",      # أقوى وأدق
+    "experimental": "gemini-2.0-flash-exp"  # تجريبي - أحدث
+}
+
+DEFAULT_MODEL = "gemini-1.5-flash"
+
+# 2. دالة قراءة التعليمات (Identity Handler)
+def get_system_instructions(filepath='identity.txt'):
+    """
+    تقوم بقراءة ملف الهوية مع إضافة معالجة للأخطاء (Error Handling)
+    لضمان عدم توقف البوت في حال لم يتم العثور على الملف.
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        print(f"تنبيه: الملف '{filepath}' غير موجود. يرجى التأكد من مساره.")
+        return ""
+    except Exception as e:
+        print(f"حدث خطأ أثناء قراءة ملف الهوية: {e}")
+        return ""
 # ==========================================
 # 2. دالة التعليمات (الهوية والقواعد)
 # ==========================================
