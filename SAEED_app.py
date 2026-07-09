@@ -227,27 +227,21 @@ hr { border-color: rgba(255,255,255,0.1); }
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 .hero-subtitle {
-    color: #fff;
-    font-size: 22px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-.hero-code {
-    background: white;
-    display: inline-block;
-    padding: 15px 50px;
-    border-radius: 80px;
-    margin: 10px 0;
-}
-.hero-code-text {
-    color: #ff0844;
-    margin: 0;
-    font-size: 45px;
-    font-weight: bold;
+    c def quick_response(question):
+    q = question.lower()
+    if "السلام" in q or "مرحبا" in q or "هلا" in q:
+        return "وعليكم السلام ورحمة الله وبركاته"
+    elif "كيف حال" in q or "كيفك" in q:
+        return "بخير والحمد لله، أنا هنا لخدمتك."
+    elif "كود" in q or "خصم" in q:
+        return "كود الخصم الحصري هو: N73QS"
+    elif any(w in q for w in ["من أنت", "من برمج", "مين أنت", "من صنعك"]):
+        return "أنا Saeed DaTaBoT، المساعد الذكي لمنصة SaeedMarketAds. تم تطويري بواسطة سعيد المسوري، مؤسس المنصة."
+    elif "شكرا" in q:
+        return "العفو، أنا في خدمتك."
+    return None
 }
 
-.shein-section {
-    background: linear-gradient(135deg, rgba(255,107,107,0.1), rgba(254,202,87,0.1));
-    border-radius: 30px;
     padding: 25px;
     margin: 20px 0;
     border: 2px solid rgba(254,202,87,0.3);
