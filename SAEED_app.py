@@ -335,22 +335,11 @@ def play_voice(text):
 # ==========================================
 # 7. دوال جلب المنتجات
 # ==========================================
-@st.cache_data(ttl=3600)
-def load_products_from_csv():
-    try:
-        url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
-        r = requests.get(url)
-        if r.status_code == 200:
-            return pd.read_csv(StringIO(r.text))
-    except:
-        pass
-    return None
-
 def get_golden_deals_from_csv():
     df = load_products_from_csv()
     if df is not None and 'discount' in df.columns:
         return df[df['discount'] >= 50].to_dict('records')
-    return []
+    return GOLDEN_DEALS  # إرجاع البيانات من data_center بدلاً من التعريف المكرر
 
 # ==========================================
 # 8. بيانات المنتجات (ثابتة)
