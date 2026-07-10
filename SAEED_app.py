@@ -48,7 +48,7 @@ DEFAULT_MODEL = "gemini-1.5-flash" # <--- أضف هذا السطر هنا
 MODEL_MAPPING = {
     "3.5": "gemini-2.0-flash-exp",
     "3.1": "gemini-1.5-pro"
-}
+
 # ... (بقية الكود والدوال) ...
 
 }
