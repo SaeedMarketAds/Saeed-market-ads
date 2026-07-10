@@ -53,8 +53,8 @@ except ImportError:
 # ==========================================
 DEFAULT_MODEL = "fast"
 AVAILABLE_MODELS_DICT = {
-    "fast": "gemini-1.5-flash",
-    "precise": "gemini-1.5-pro",
+    "fast": "gemini-3.5-flash",
+    "precise": "gemini-3.1-pro",
     "experimental": "gemini-2.0-flash-exp"
 }
 AVAILABLE_MODELS = ["fast", "precise", "experimental"]
