@@ -40,12 +40,43 @@ except ImportError:
 # ==========================================
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
-AVAILABLE_MODELS = [
-    "gemini-3.5-flash",      # سريع ومناسب للمحادثة
-    "gemini-3.1-pro",        # أقوى وأدق
-    "gemini-2.0-flash-exp"   # تجريبي – أحدث
-]
-DEFAULT_MODEL = "gemini-1.5-flash"
+# ==========================================
+# 18. تهيئة الموديل (يعمل في الخلفية - لا يظهر للمستخدم)
+# ==========================================
+
+# اختر الموديل هنا (يمكنك تغييره إلى "3.1" وقتما تشاء)
+ACTIVE_MODEL = "3.5" 
+
+# قاموس الربط البرمجي
+MODEL_MAPPING = {
+    "3.5": "gemini-2.0-flash-exp",
+    "3.1": "gemini-1.5-pro"
+}
+
+@st.cache_resource(ttl=3600)
+def init_gemini():
+    # الحصول على الاسم التقني بناءً على اختيارك في ACTIVE_MODEL
+    model_name = MODEL_MAPPING.get(ACTIVE_MODEL, "gemini-1.5-flash")
+    
+    if "GEMINI_MAIN_KEY" not in st.secrets:
+        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
+        return None
+    
+    try:
+        genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
+        # هنا نستدعي دالة التعليمات التي صممتها سابقاً
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            system_instruction=get_system_instructions()
+        )
+        return model
+    except Exception as e:
+        st.error(f"⚠️ فشل تهيئة الموديل: {e}")
+        return None
+
+# تشغيل الموديل فوراً عند فتح التطبيق
+st.session_state.model = init_gemini()
+
 
 # ==========================================
 # 2. دالة التعليمات (الهوية والقواعد)
