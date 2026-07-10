@@ -39,10 +39,18 @@ def get_system_instructions():
         return "You are a helpful assistant."
 
 # 3. إعدادات الموديل (خلف الكواليس)
-ACTIVE_MODEL = "3.5" 
+# ... (الاستيرادات) ...
+# ... (دالة load_products_from_csv) ...
+
+# تعريف الموديل
+ACTIVE_MODEL = "3.5"
+DEFAULT_MODEL = "gemini-1.5-flash" # <--- أضف هذا السطر هنا
 MODEL_MAPPING = {
     "3.5": "gemini-2.0-flash-exp",
     "3.1": "gemini-1.5-pro"
+}
+# ... (بقية الكود والدوال) ...
+
 }
 
 @st.cache_resource(ttl=3600)
