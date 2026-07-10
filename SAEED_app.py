@@ -14,6 +14,18 @@ from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
+# ضع هذا الكود بعد السطر 17 مباشرة (مكان الدالة القديمة)
+@st.cache_data(ttl=3600)
+def load_products_from_csv():
+    # هذا الرابط هو رابط ملف الـ CSV الخاص بك على GitHub
+    url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
+    try:
+        # قراءة البيانات مباشرة من الملف الخارجي
+        df = pd.read_csv(url)
+        return df
+    except Exception as e:
+        # في حال لم يجد الملف، يعطيك جدولاً فارغاً ولا ينهار التطبيق
+        return pd.DataFrame(columns=['code', 'name', 'price', 'discount', 'link', 'sales', 'image_path'])
 
 # ==========================================
 # محاولة استيراد pydub للتحويل الصوتي
