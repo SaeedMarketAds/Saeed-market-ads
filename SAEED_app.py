@@ -48,9 +48,9 @@ except ImportError:
     MIC_RECORDER_AVAILABLE = False
     mic_recorder = None
 
-# ===============# ==========================================
+# =#========================================================
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
-# ==========================================
+# =#=========================================
 
 AVAILABLE_MODELS = [
     "gemini-1.5-flash",    # سريع ومناسب للمحادثة
@@ -69,8 +69,7 @@ def get_system_instructions():
             return f.read()
     except:
         return "You are a helpful assistant."
-===========================
- ==========================
+#===========================
 AVAILABLE_MODELS = ["fast", "precise", "experimental"]
 
 # بيانات المنتجات الافتراضية
