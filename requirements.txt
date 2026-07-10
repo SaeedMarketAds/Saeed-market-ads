@@ -1,11 +1,10 @@
-streamlit>=1.28.0
-google-generativeai>=0.3.0
-cloudscraper>=1.2.71
-requests>=2.31.0
 beautifulsoup4>=4.12.2
+cloudscraper>=1.2.71
 edge-tts>=6.1.8
+google-generativeai>=0.3.0
 pandas>=1.5.0
-streamlit-mic-recorder>=1.0.0
-SpeechRecognition>=3.10.0
 pydub>=0.25.0
-pip install streamlit
+requests>=2.31.0
+SpeechRecognition>=3.10.0
+streamlit>=1.28.0
+streamlit-mic-recorder>=1.0.0
