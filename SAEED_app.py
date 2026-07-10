@@ -14,40 +14,32 @@ from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
-# ضع هذا الكود بعد السطر 17 مباشرة (مكان الدالة القديمة)
+# ==========================================
+# 17. محرك المنتجات والذكاء الاصطناعي (النسخة النهائية)
+# ==========================================
+
+# 1. دالة جلب المنتجات
 @st.cache_data(ttl=3600)
 def load_products_from_csv():
-    # هذا الرابط هو رابط ملف الـ CSV الخاص بك على GitHub
-    url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
     try:
-        # قراءة البيانات مباشرة من الملف الخارجي
-        df = pd.read_csv(url)
-        return df
-    except Exception as e:
-        # في حال لم يجد الملف، يعطيك جدولاً فارغاً ولا ينهار التطبيق
-        return pd.DataFrame(columns=['code', 'name', 'price', 'discount', 'link', 'sales', 'image_path'])
+        url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            return pd.read_csv(StringIO(r.text))
+        return None
+    except:
+        return None
 
-# ==========================================
-# محاولة استيراد pydub للتحويل الصوتي
-# ==========================================
-try:
-    from pydub import AudioSegment
-    PYDUB_AVAILABLE = True
-except ImportError:
-    PYDUB_AVAILABLE = False
-    # سيتم عرض تحذير لاحقاً في الواجهة
+# 2. دالة التعليمات (التي صممتها أنت)
+def get_system_instructions():
+    try:
+        with open('identity.txt', 'r', encoding='utf-8') as f:
+            return f.read()
+    except:
+        return "You are a helpful assistant."
 
-# ==========================================
-# 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
-# ==========================================
-# ==========================================
-# 18. تهيئة الموديل (يعمل في الخلفية - لا يظهر للمستخدم)
-# ==========================================
-
-# اختر الموديل هنا (يمكنك تغييره إلى "3.1" وقتما تشاء)
+# 3. إعدادات الموديل (خلف الكواليس)
 ACTIVE_MODEL = "3.5" 
-
-# قاموس الربط البرمجي
 MODEL_MAPPING = {
     "3.5": "gemini-2.0-flash-exp",
     "3.1": "gemini-1.5-pro"
@@ -55,27 +47,22 @@ MODEL_MAPPING = {
 
 @st.cache_resource(ttl=3600)
 def init_gemini():
-    # الحصول على الاسم التقني بناءً على اختيارك في ACTIVE_MODEL
     model_name = MODEL_MAPPING.get(ACTIVE_MODEL, "gemini-1.5-flash")
-    
     if "GEMINI_MAIN_KEY" not in st.secrets:
-        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
         return None
-    
     try:
         genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
-        # هنا نستدعي دالة التعليمات التي صممتها سابقاً
         model = genai.GenerativeModel(
             model_name=model_name,
             system_instruction=get_system_instructions()
         )
         return model
-    except Exception as e:
-        st.error(f"⚠️ فشل تهيئة الموديل: {e}")
+    except:
         return None
 
-# تشغيل الموديل فوراً عند فتح التطبيق
+# 4. أمر التشغيل (هذا يوضع في آخر سطر في ملفك)
 st.session_state.model = init_gemini()
+
 
 
 # ==========================================
