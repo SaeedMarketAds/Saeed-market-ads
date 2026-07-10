@@ -53,8 +53,8 @@ except ImportError:
 # =#=========================================
 
 AVAILABLE_MODELS = [
-    "gemini-1.5-flash",    # سريع ومناسب للمحادثة
-    "gemini-1.5-pro",      # أقوى وأدق
+    "gemini-3.5-flash",    # سريع ومناسب للمحادثة
+    "gemini-3.1-pro",      # أقوى وأدق
     "gemini-2.0-flash-exp" # تجريبي - الأحدث
 ]
 
