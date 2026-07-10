@@ -48,15 +48,29 @@ except ImportError:
     MIC_RECORDER_AVAILABLE = False
     mic_recorder = None
 
+# ===============# ==========================================
+# 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
-# 1. الثوابت والإعدادات
+
+AVAILABLE_MODELS = [
+    "gemini-1.5-flash",    # سريع ومناسب للمحادثة
+    "gemini-1.5-pro",      # أقوى وأدق
+    "gemini-2.0-flash-exp" # تجريبي - الأحدث
+]
+
+DEFAULT_MODEL = "gemini-1.5-flash"
+
 # ==========================================
-DEFAULT_MODEL = "fast"
-AVAILABLE_MODELS_DICT = {
-    "fast": "gemini-3.5-flash",
-    "precise": "gemini-3.1-pro",
-    "experimental": "gemini-2.0-flash-exp"
-}
+# 2. دالة التعليمات (الهوية والقواعد)
+# ==========================================
+def get_system_instructions():
+    try:
+        with open('identity.txt', 'r', encoding='utf-8') as f:
+            return f.read()
+    except:
+        return "You are a helpful assistant."
+===========================
+ ==========================
 AVAILABLE_MODELS = ["fast", "precise", "experimental"]
 
 # بيانات المنتجات الافتراضية
