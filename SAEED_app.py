@@ -31,17 +31,11 @@ from io import StringIO
 
 
 # هنا تحدد الموديل الذي تريده (فقط غيّر هذه الكلمة لـ "3.1" إذا أردت التغيير)
-ACTIVE_MODEL = "3.5" 
-# أضف هذا السطر تحديداً في الأعلى تحت ACTIVE_MODEL
-DEFAULT_MODEL = "gemini-3.5-flash"
+# تعريفات بسيطة ليرتاح الكود القديم
+DEFAULT_MODEL = "gemini-1.5-flash"
+AVAILABLE_MODELS = ["3.5", "3.1"]
+MODEL_MAPPING = {"3.5": "gemini-1.5-flash", "3.1": "gemini-1.5-pro"}
 
-MODEL_MAPPING = {
-# ضع هذا السطر تحت MODEL_MAPPING مباشرة
-AVAILABLE_MODELS = list(MODEL_MAPPING.keys())
-   
-    "3.5": "gemini-2.0-flash-exp",
-    "3.1": "gemini-3.1-pro"
-}
 
 # ==========================================
 # 3. الدوال (تعريف الوظائف)
