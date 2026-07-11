@@ -15,22 +15,31 @@ from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
 # ==========================================
-# 17. محرك المنتجات والذكاء الاصطناعي (النسخة النهائية)
+# ==========================================
+# 1. الاستيرادات (Imports)
+# ==========================================
+import streamlit as st
+import google.generativeai as genai
+import pandas as pd
+import requests
+from io import StringIO
+
+# ==========================================
+# 2. إعدادات الموديلات (القاموس الذي طلبته)
 # ==========================================
 
-# 1. دالة جلب المنتجات
-@st.cache_data(ttl=3600)
-def load_products_from_csv():
-    try:
-        url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
-        r = requests.get(url, timeout=10)
-        if r.status_code == 200:
-            return pd.read_csv(StringIO(r.text))
-        return None
-    except:
-        return None
+# هنا تحدد الموديل الذي تريده (فقط غيّر هذه الكلمة لـ "3.1" إذا أردت التغيير)
+ACTIVE_MODEL = "3.5" 
 
-# 2. دالة التعليمات (التي صممتها أنت)
+MODEL_MAPPING = {
+    "3.5": "gemini-2.0-flash-exp",
+    "3.1": "gemini-1.5-pro"
+}
+
+# ==========================================
+# 3. الدوال (تعريف الوظائف)
+# ==========================================
+
 def get_system_instructions():
     try:
         with open('identity.txt', 'r', encoding='utf-8') as f:
@@ -38,39 +47,41 @@ def get_system_instructions():
     except:
         return "You are a helpful assistant."
 
-# 3. إعدادات الموديل (خلف الكواليس)
-# ... (الاستيرادات) ...
-# ... (دالة load_products_from_csv) ...
-
-# تعريف الموديل
-ACTIVE_MODEL = "3.5"
-DEFAULT_MODEL = "gemini-1.5-flash" # <--- أضف هذا السطر هنا
-MODEL_MAPPING = {
-    "3.5": "gemini-2.0-flash-exp",
-    "3.1": "gemini-1.5-pro"
-
-# ... (بقية الكود والدوال) ...
-
-}
-
 @st.cache_resource(ttl=3600)
 def init_gemini():
+    # هنا نستخدم القاموس لاختيار الموديل بناءً على ACTIVE_MODEL
     model_name = MODEL_MAPPING.get(ACTIVE_MODEL, "gemini-1.5-flash")
+    
     if "GEMINI_MAIN_KEY" not in st.secrets:
+        st.error("⚠️ مفتاح API غير موجود.")
         return None
+        
     try:
         genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
         model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=get_system_instructions()
+            model_name=model_name, 
+            system_instruction=get_system_instructions() 
         )
         return model
-    except:
+    except Exception as e:
+        st.error(f"Error: {e}")
         return None
 
-# 4. أمر التشغيل (هذا يوضع في آخر سطر في ملفك)
+# دالة جلب المنتجات (التي ستستخدمها لاحقاً)
+@st.cache_data(ttl=3600)
+def load_products_from_csv():
+    # كود جلب المنتجات يوضع هنا
+    return None 
+
+# ==========================================
+# 4. أمر التشغيل (يأتي بعد كل الدوال)
+# ==========================================
 st.session_state.model = init_gemini()
 
+# ==========================================
+# 5. واجهة التطبيق (بدء عرض المحتوى)
+# ==========================================
+# هنا يمكنك كتابة كود الواجهة (st.write, st.image...)
 
 
 # ==========================================
