@@ -37,8 +37,8 @@ from io import StringIO
 # --- الإعدادات الثابتة (لا تلمس أي شيء آخر) ---
 # --- إعدادات الموديلات ---
 MODEL_MAPPING = {
-    "3.5": "gemini-1.5-flash",
-    "3.1": "gemini-1.5-pro"
+    "3.5": "gemini-3.5-flash",
+    "3.1": "gemini-3.1-pro"
 }
 ACTIVE_MODEL = "3.5"
 PYDUB_AVAILABLE = False
