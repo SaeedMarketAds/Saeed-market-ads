@@ -23,15 +23,14 @@ try:
     PYDUB_AVAILABLE = True
 except ImportError:
     PYDUB_AVAILABLE = False
-    # سيتم عرض تحذير لاحقاً في الواجهة
 
 # ==========================================
 # 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
 AVAILABLE_MODELS = [
-    "gemini-3.5-flash",      # سريع ومناسب للمحادثة
-    "gemini-3.1-pro",        # أقوى وأدق
-    "gemini-2.0-flash-exp"   # تجريبي – أحدث
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-2.0-flash-exp"
 ]
 DEFAULT_MODEL = "gemini-1.5-flash"
 
@@ -172,35 +171,69 @@ page_bg = """
     margin-right: 10px;
 }
 .product-sales {
- # ==========================================
-# 8. بيانات المنتجات (ثابتة)
-# ==========================================
-SHEIN_PRODUCTS = [
-    {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
-    {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
-    {"code": "SH003", "name": "نظارات حفلات مطبوعة 6 قطع", "price": 2.70, "discount": 0, "link": "https://onelink.shein.com/38/5shujg5f2ywk", "sales": "300+"},
-    {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
-    {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
-]
+    color: #2ecc71;
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+.product-discount {
+    background: #ff6b6b;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+.product-btn {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 40px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+    border: none;
+}
+.product-btn:hover {
+    background: linear-gradient(90deg, #764ba2, #667eea);
+    transform: scale(1.02);
+}
+hr { border-color: rgba(255,255,255,0.1); }
 
-# ⬇️⬇️⬇️ ضع منتجات AliExpress هنا ⬇️⬇️⬇️
-ALIEXPRESS_PRODUCTS = [
-    {"code": "AE001", "name": "ساعة ذكية رياضية مقاومة للماء", "price": 25.99, "discount": 40, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,300+"},
-    {"code": "AE002", "name": "سماعات لاسلكية TWS Bass", "price": 15.50, "discount": 55, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "5,100+"},
-    {"code": "AE003", "name": "باور بانك 20000mAh شحن سريع", "price": 18.75, "discount": 35, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,800+"},
-    {"code": "AE004", "name": "قلم حساس للشاشات اللوحية", "price": 8.99, "discount": 60, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "4,500+"},
-    {"code": "AE005", "name": "حامل هاتف للسيارة مغناطيسي", "price": 6.25, "discount": 45, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "3,200+"},
-    {"code": "AE006", "name": "سوار ذكي لقياس النبض والخطوات", "price": 12.40, "discount": 50, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "6,700+"},
-    {"code": "AE007", "name": "مصباح LED متعدد الألوان للغرفة", "price": 9.99, "discount": 30, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,900+"},
-    {"code": "AE008", "name": "كاميرا مراقبة منزلية لاسلكية", "price": 32.50, "discount": 25, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,200+"},
-]
-
-GOLDEN_DEALS = [
-    {"name": "Men Ice Silk Polo Shirt", "price": 4.71, "discount": 60, "link": "#", "sales": "500+"},
-    {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
-    {"name": "Shower Curtain Set", "price": 4.47, "discount": 70, "link": "#", "sales": "200+"},
-    {"name": "Sports Waist Belt", "price": 5.12, "discount": 61, "link": "#", "sales": "400+"},
-]   
+.hero-section {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
+    background-size: 300% 300%;
+    animation: gradientShift 5s ease infinite;
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.hero-title {
+    color: #fff;
+    font-size: 48px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+.hero-subtitle {
+    color: #fff;
+    font-size: 22px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+.hero-code {
+    background: white;
+    display: inline-block;
+    padding: 15px 50px;
+    border-radius: 80px;
+    margin: 10px 0;
 }
 .hero-code-text {
     color: #ff0844;
@@ -333,6 +366,17 @@ SHEIN_PRODUCTS = [
     {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
 ]
 
+ALIEXPRESS_PRODUCTS = [
+    {"code": "AE001", "name": "ساعة ذكية رياضية مقاومة للماء", "price": 25.99, "discount": 40, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,300+"},
+    {"code": "AE002", "name": "سماعات لاسلكية TWS Bass", "price": 15.50, "discount": 55, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "5,100+"},
+    {"code": "AE003", "name": "باور بانك 20000mAh شحن سريع", "price": 18.75, "discount": 35, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,800+"},
+    {"code": "AE004", "name": "قلم حساس للشاشات اللوحية", "price": 8.99, "discount": 60, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "4,500+"},
+    {"code": "AE005", "name": "حامل هاتف للسيارة مغناطيسي", "price": 6.25, "discount": 45, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "3,200+"},
+    {"code": "AE006", "name": "سوار ذكي لقياس النبض والخطوات", "price": 12.40, "discount": 50, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "6,700+"},
+    {"code": "AE007", "name": "مصباح LED متعدد الألوان للغرفة", "price": 9.99, "discount": 30, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,900+"},
+    {"code": "AE008", "name": "كاميرا مراقبة منزلية لاسلكية", "price": 32.50, "discount": 25, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,200+"},
+]
+
 GOLDEN_DEALS = [
     {"name": "Men Ice Silk Polo Shirt", "price": 4.71, "discount": 60, "link": "#", "sales": "500+"},
     {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
@@ -408,10 +452,9 @@ def quick_response(question):
     return None
 
 # ==========================================
-# 11. دوال تحويل الصوت ومعالجة الاستعلامات (مع إصلاح مشكلة التنسيق)
+# 11. دوال تحويل الصوت ومعالجة الاستعلامات
 # ==========================================
 def convert_audio_to_wav(audio_bytes):
-    """تحويل أي صيغة صوت إلى WAV باستخدام pydub"""
     if not PYDUB_AVAILABLE:
         st.error("⚠️ مكتبة pydub غير مثبتة. الرجاء تثبيتها: `pip install pydub` مع تثبيت ffmpeg.")
         return None
@@ -429,7 +472,6 @@ def transcribe_audio(audio_bytes):
     try:
         wav_bytes = convert_audio_to_wav(audio_bytes)
         if wav_bytes is None:
-            # إذا فشل التحويل، نحاول مباشرة (قد تنجح مع بعض الصيغ)
             wav_bytes = audio_bytes
 
         recognizer = sr.Recognizer()
@@ -483,10 +525,9 @@ def process_query(query, model):
         st.error(f"❌ خطأ أثناء معالجة الطلب: {e}")
 
 # ==========================================
-# 12. دوال الأفاتار والمحادثة (تُعرَّف مبكراً لتجنب NameError)
+# 12. دوال الأفاتار والمحادثة
 # ==========================================
 def animate_avatar(image_path, duration=1.5):
-    """تأثير وميض وتحريك بسيط لمحاكاة حركة الشفاه"""
     if not os.path.exists(image_path):
         return
     placeholder = st.empty()
@@ -498,15 +539,12 @@ def animate_avatar(image_path, duration=1.5):
     placeholder.image(image_path, width=180, caption="سعيد")
 
 def process_query_avatar(query, model):
-    """معالجة الاستعلام وعرضه مع الأفاتار والصوت"""
     if not query:
         return
-    # إضافة سؤال المستخدم للمحادثة
     st.session_state.conversation.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
 
-    # الحصول على الرد
     quick = quick_response(query)
     if quick:
         ai_reply = quick
@@ -529,11 +567,9 @@ def process_query_avatar(query, model):
             except Exception as e:
                 ai_reply = f"❌ خطأ: {e}"
 
-    # عرض الرد في الدردشة
     with st.chat_message("assistant"):
         st.write(ai_reply)
     
-    # تشغيل الصوت وتحريك الأفاتار
     if st.session_state.voice_enabled and ai_reply:
         animate_avatar(st.session_state.current_avatar, duration=1.2)
         if st.session_state.use_recorded_voice and st.session_state.recorded_voice_path and os.path.exists(st.session_state.recorded_voice_path):
@@ -554,7 +590,6 @@ if 'model_name' not in st.session_state:
 if 'model' not in st.session_state or st.session_state.model is None:
     st.session_state.model = init_gemini(st.session_state.model_name)
 
-# متغيرات الأفاتار والصوت المسجل
 if 'current_avatar' not in st.session_state:
     st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
 if 'voice_enabled' not in st.session_state:
@@ -573,72 +608,40 @@ if 'products' not in st.session_state:
 # ==========================================
 st.markdown("""
 <div class='hero-section'>
-    <h1 class='hero-title'>🛍️ سوق سعيد</h1>
+    <h1 class='hero-title'>سوق سعيد</h1>
     <p class='hero-subtitle'>متجر SHEIN | نون | علي اكسبرس</p>
     <div style='margin: 20px 0;'>
         <span style='background: #ff6b6b; color: white; padding: 10px 30px; border-radius: 30px; font-size: 18px;'>
-            🤖 مساعد ذكي للتسوق
+            مساعد ذكي للتسوق
         </span>
     </div>
     <div style='background: rgba(255,255,255,0.2); border-radius: 20px; padding: 20px; margin-top: 15px;'>
-        <p style='color: #fff; font-size: 20px; margin: 0;'>🎁 كود الخصم الحصري</p>
+        <p style='color: #fff; font-size: 20px; margin: 0;'>كود الخصم الحصري</p>
         <div class='hero-code'>
             <h1 class='hero-code-text'>N73QS</h1>
         </div>
-        <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0;'>🔥 خصم يصل إلى 60% على أول طلب</p>
+        <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0;'>خصم يصل إلى 60% على أول طلب</p>
     </div>
-elif store == "AliExpress":
-    st.markdown("""
-    <div style='background: linear-gradient(135deg, #ff6b6b, #ff4757); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
-        <h2 style='color: #fff;'> متجر AliExpress</h2>
-        <p style='color: #fff; font-size: 18px;'>أفضل العروض والمنتجات بأسعار تنافسية</p>
-        <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    cols = st.columns(4)
-    for i, prod in enumerate(ALIEXPRESS_PRODUCTS):
-        with cols[i % 4]:
-            final_price = prod['price'] * (1 - prod['discount']/100)
-            price_str = f"${final_price:.2f}"  # ⬅️ احسب السعر كنص منفصل
-            st.markdown(f"""
-            <divclass='product-card' style='border: 2px solid #ff4757;'>
-                <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
-                    {prod['code']}
-                </div>
-                <div class='product-name'>{prod['name']}</div>
-                <div class='product-price'>{price_str}</div>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin: 5px 0;'>
-                    <span class='product-discount'>-{prod['discount']}%</span>
-                    <span class='product-sales'> {prod['sales']}</span>
-                </div>
-                <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
-                    <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
-                        تسوق الآن
-                    </div>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
-<st.info("✅ تم تحميل منتجات AliExpress بنجاح...")
+</div>
+""", unsafe_allow_html=True)
 
 play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
 
 # ==========================================
-# 15. السايدبار (مع إعدادات الأفاتار والصوت)
+# 15. السايدبار
 # ==========================================
 with st.sidebar:
     st.markdown("""
     <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57;'>🤖 المساعد الذكي</h2>
+        <h2 style='color: #feca57;'>المساعد الذكي</h2>
         <p style='color: #aaa;'>للتسوق والاستشارات</p>
     </div>
     """, unsafe_allow_html=True)
 
-    country = st.selectbox("🌍 اختر دولتك:", ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"], index=0)
+    country = st.selectbox("اختر دولتك:", ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"], index=0)
 
-    # اختيار الموديل مع تحديث فوري
     model_choice = st.selectbox(
-        "🧠 اختر الموديل:",
+        "اختر الموديل:",
         AVAILABLE_MODELS,
         index=AVAILABLE_MODELS.index(st.session_state.model_name) if st.session_state.model_name in AVAILABLE_MODELS else 0
     )
@@ -650,20 +653,20 @@ with st.sidebar:
     model = st.session_state.model
 
     if model:
-        st.success(f"✅ يعمل على {st.session_state.model_name}")
+        st.success(f"يعمل على {st.session_state.model_name}")
     else:
-        st.error("⚠️ فشل تهيئة النموذج (تأكد من المفتاح)")
+        st.error("فشل تهيئة النموذج (تأكد من المفتاح)")
 
     st.markdown("---")
-    st.markdown("### 🔥 العروض المميزة")
-    if st.button("🔥 عرض الغلات الآن", use_container_width=True):
+    st.markdown("### العروض المميزة")
+    if st.button("عرض الغلات الآن", use_container_width=True):
         st.session_state.show_golden = True
         st.session_state.store = None
 
     if st.session_state.get('show_golden', False):
         st.markdown("""
         <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 20px; padding: 15px; text-align: center; margin: 10px 0;'>
-            <h4 style='color: #fff;'>🔥 العروض الذهبية</h4>
+            <h4 style='color: #fff;'>العروض الذهبية</h4>
         </div>
         """, unsafe_allow_html=True)
         golden = get_golden_deals_from_csv() or GOLDEN_DEALS
@@ -672,22 +675,21 @@ with st.sidebar:
             st.markdown(f"""
             <div style='background: rgba(255,255,255,0.1); border-radius: 15px; padding: 12px; margin-bottom: 10px; border-right: 4px solid #feca57;'>
                 <p style='color: #e2e8f0; margin: 0;'><b>{prod['name'][:30]}...</b></p>
-                <p style='color: #feca57; margin: 0;'>💰 ${final:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${prod['price']:.2f}</span></p>
+                <p style='color: #feca57; margin: 0;'>${final:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${prod['price']:.2f}</span></p>
                 <p style='color: #2ecc71; margin: 0;'>خصم {prod['discount']}%</p>
             </div>
             """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### 🎯 خدماتي:")
-    st.markdown("- ✅ تحليل الروابط المتقدم")
-    st.markdown("- ✅ عروض SHEIN")
-    st.markdown("- ✅ عروض نون")
-    st.markdown("- ✅ محادثة ذكية (نص + صوت)")
+    st.markdown("### خدماتي:")
+    st.markdown("- تحليل الروابط المتقدم")
+    st.markdown("- عروض SHEIN")
+    st.markdown("- عروض نون")
+    st.markdown("- محادثة ذكية (نص + صوت)")
     st.markdown("---")
     
-    # إعدادات الأفاتار والصوت
-    st.markdown("### 🎭 الأفاتار والصوت")
-    avatar_option = st.selectbox("اختر الأفاتار", ["سعيد (saeed.jpg)", "روبوت (ROBOT.jpg)", "صورتي أنا (ارفع صورة)"])
+    st.markdown("### الافاتار والصوت")
+    avatar_option = st.selectbox("اختر الافاتار", ["سعيد (saeed.jpg)", "روبوت (ROBOT.jpg)", "صورتي أنا (ارفع صورة)"])
     if avatar_option == "سعيد (saeed.jpg)":
         st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
     elif avatar_option == "روبوت (ROBOT.jpg)":
@@ -699,8 +701,8 @@ with st.sidebar:
                 f.write(uploaded_img.getbuffer())
             st.session_state.current_avatar = "my_avatar.jpg"
     
-    st.session_state.voice_enabled = st.checkbox("🔊 تفعيل الصوت", value=True)
-    st.session_state.use_recorded_voice = st.checkbox("🎙️ استخدام صوتي المسجل (للردود)", value=False)
+    st.session_state.voice_enabled = st.checkbox("تفعيل الصوت", value=True)
+    st.session_state.use_recorded_voice = st.checkbox("استخدام صوتي المسجل (للردود)", value=False)
     if st.session_state.use_recorded_voice:
         recorded_voice_file = st.file_uploader("ارفع ملف صوتي (mp3) للردود", type=["mp3"], key="voice_upload")
         if recorded_voice_file:
@@ -716,45 +718,45 @@ with st.sidebar:
                 st.warning("يرجى رفع ملف صوتي لتفعيل هذه الخاصية.")
     
     st.markdown("---")
-    st.markdown("### 📞 للتواصل:")
+    st.markdown("### للتواصل:")
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
 
 # ==========================================
-# 16. Tabs (مع إضافة تبويب إدارة المنتجات)
+# 16. Tabs
 # ==========================================
-tab1, tab2, tab3, tab4 = st.tabs(["🛍️ متجر المنتجات", "🔍 أداة الفحص المتقدم", "💬 المحادثة الذكية", "🗂️ إدارة المنتجات"])
+tab1, tab2, tab3, tab4 = st.tabs(["متجر المنتجات", "أداة الفحص المتقدم", "المحادثة الذكية", "إدارة المنتجات"])
 
 # ==========================================
-# 17. تبويب المنتجات (نفس الكود الأول)
+# 17. تبويب المنتجات
 # ==========================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
     col1, col2, col3, col4 = st.columns(4)
-    if col1.button("🛍️ تصفح SHEIN"):
+    if col1.button("تصفح SHEIN"):
         st.session_state.store = "SHEIN"
         st.session_state.show_golden = False
-    if col2.button("💛 تصفح Noon"):
+    if col2.button("تصفح Noon"):
         st.session_state.store = "Noon"
         st.session_state.show_golden = False
-    if col3.button("🚀 تصفح AliExpress"):
+    if col3.button("تصفح AliExpress"):
         st.session_state.store = "AliExpress"
         st.session_state.show_golden = False
-    if col4.button("🔥 الغلات"):
+    if col4.button("الغلات"):
         st.session_state.show_golden = True
         st.session_state.store = None
 
     if st.session_state.get('show_golden', False):
         st.markdown("""
         <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
-            <h2 style='color: #fff;'>🔥 عروض الغلات الحصرية 🔥</h2>
+            <h2 style='color: #fff;'>عروض الغلات الحصرية</h2>
             <p style='color: #fff; font-size: 18px;'>خصومات تصل إلى 70%</p>
-            <p style='color: #fff; font-size: 16px;'>🎁 استخدم كود الخصم: N73QS</p>
+            <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("🔊 استمع لعروض الغلات"):
+        if st.button("استمع لعروض الغلات"):
             play_voice("مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة.")
 
         golden = get_golden_deals_from_csv() or GOLDEN_DEALS
@@ -764,19 +766,19 @@ with tab1:
                 final = prod['price'] * (1 - prod['discount']/100)
                 st.markdown(f"""
                 <div class='product-card' style='border: 3px solid #feca57;'>
-                    <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>🔥 غلة</div>
+                    <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>غلة</div>
                     <div class='product-name'>{prod['name']}</div>
                     <div class='product-price'>${final:.2f}</div>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
                         <span class='product-discount'>-{prod['discount']}%</span>
-                        <span class='product-sales'>📊 {prod.get('sales', 'N/A')}</span>
+                        <span class='product-sales'>{prod.get('sales', 'N/A')}</span>
                     </div>
                     <a href='{prod.get('link', '#')}' target='_blank' style='text-decoration: none;'>
-                        <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>🛒 احصل على العرض</div>
+                        <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>احصل على العرض</div>
                     </a>
                 </div>
                 """, unsafe_allow_html=True)
-        st.info("✅ تم تحميل الغلات بنجاح...")
+        st.info("تم تحميل الغلات بنجاح...")
 
     elif st.session_state.get('store'):
         store = st.session_state.store
@@ -788,12 +790,12 @@ with tab1:
                     final = prod['price'] * (1 - prod['discount']/100) if prod['discount'] > 0 else prod['price']
                     st.markdown(f"""
                     <div class='product-card'>
-                        <div class='product-code'>📦 {prod['code']}</div>
+                        <div class='product-code'>{prod['code']}</div>
                         <div class='product-name'>{prod['name']}</div>
                         <div class='product-price'>${final:.2f}</div>
-                        <div class='product-sales'>📊 تم البيع: {prod['sales']}</div>
+                        <div class='product-sales'>تم البيع: {prod['sales']}</div>
                         <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
-                            <div class='product-btn'>🛒 تسوق الآن</div>
+                            <div class='product-btn'>تسوق الآن</div>
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
@@ -808,35 +810,62 @@ with tab1:
                     final = prod['price'] * (1 - prod['discount']/100) if prod['discount'] > 0 else prod['price']
                     st.markdown(f"""
                     <div class='product-card'>
-                        <div class='product-code'>📦 {prod['code']}</div>
+                        <div class='product-code'>{prod['code']}</div>
                         <div class='product-name'>{prod['name']}</div>
                         <div class='product-price'>${final:.2f}</div>
-                        <div class='product-sales'>📊 تم البيع: {prod['sales']}</div>
+                        <div class='product-sales'>تم البيع: {prod['sales']}</div>
                         <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
-                            <div class='product-btn'>🛒 تسوق الآن</div>
+                            <div class='product-btn'>تسوق الآن</div>
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
         elif store == "AliExpress":
             st.markdown("""
-            <div style='text-align: center; padding: 50px; background: rgba(255,71,87,0.1); border-radius: 40px;'>
-                <h3 style='color: #feca57;'>🚀 قادم قريباً جداً</h3>
-                <p style='color: #ddd;'>نستعد لإطلاق متجر AliExpress مع أفضل العروض</p>
+            <div style='background: linear-gradient(135deg, #ff6b6b, #ff4757); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
+                <h2 style='color: #fff;'>متجر AliExpress</h2>
+                <p style='color: #fff; font-size: 18px;'>أفضل العروض والمنتجات بأسعار تنافسية</p>
+                <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
             </div>
             """, unsafe_allow_html=True)
-        st.info("✅ تم تحميل المنتجات بنجاح...")
+
+            cols = st.columns(4)
+            for i, prod in enumerate(ALIEXPRESS_PRODUCTS):
+                with cols[i % 4]:
+                    final_price = prod['price'] * (1 - prod['discount']/100)
+                    price_str = f"${final_price:.2f}"
+                    st.markdown(f"""
+                    <div class='product-card' style='border: 2px solid #ff4757;'>
+                        <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
+                            {prod['code']}
+                        </div>
+                        <div class='product-name'>{prod['name']}</div>
+                        <div class='product-price'>{price_str}</div>
+                        <div style='display: flex; justify-content: space-between; align-items: center; margin: 5px 0;'>
+                            <span class='product-discount'>-{prod['discount']}%</span>
+                            <span class='product-sales'>{prod['sales']}</span>
+                        </div>
+                        <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
+                            <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
+                                تسوق الآن
+                            </div>
+                        </a>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            st.info("تم تحميل منتجات AliExpress بنجاح...")
+        st.info("تم تحميل المنتجات بنجاح...")
 
 # ==========================================
-# 18. تبويب تحليل الرابط (نفس الكود الأول)
+# 18. تبويب تحليل الرابط
 # ==========================================
 with tab2:
-    st.subheader("🔍 أداة فحص الروابط المتقدمة")
+    st.subheader("أداة فحص الروابط المتقدمة")
     link = st.text_input("ضع رابط المنتج هنا:", placeholder="https://...")
     if st.button("تحليل المنتج"):
         if not link:
-            st.warning("📝 يرجى إدخال رابط المنتج")
+            st.warning("يرجى إدخال رابط المنتج")
         elif not model:
-            st.warning("⚠️ النموذج غير مهيأ.")
+            st.warning("النموذج غير مهيأ.")
         else:
             with st.spinner("جاري التحليل..."):
                 status, html = check_link_status(link)
@@ -856,7 +885,7 @@ with tab2:
                         clean = re.sub(r'\s+', ' ', clean).strip()
                         st.markdown(f"""
                         <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                            <h4 style='color: #feca57;'>📊 نتيجة التحليل:</h4>
+                            <h4 style='color: #feca57;'>نتيجة التحليل:</h4>
                             <p style='color: #e2e8f0; white-space: pre-wrap;'>{clean}</p>
                         </div>
                         """, unsafe_allow_html=True)
@@ -864,63 +893,60 @@ with tab2:
                     except Exception as e:
                         st.error(f"خطأ: {e}")
                 else:
-                    st.warning("⚠️ الرابط غير متاح أو لا يحتوي على محتوى.")
+                    st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# 19. تبويب المحادثة الذكية (مع الأفاتار والصوت المسجل)
+# 19. تبويب المحادثة الذكية
 # ==========================================
 with tab3:
-    st.subheader("💬 المحادثة الذكية (نص + صوت)")
+    st.subheader("المحادثة الذكية (نص + صوت)")
     if not PYDUB_AVAILABLE:
-        st.warning("⚠️ مكتبة pydub غير مثبتة. لتحويل الصوت بشكل صحيح، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg. قد لا تعمل خاصية الميكروفون بشكل صحيح.")
-    st.info("💡 يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث. سيتحرك الأفاتار أثناء النطق.")
+        st.warning("مكتبة pydub غير مثبتة. لتحويل الصوت بشكل صحيح، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg. قد لا تعمل خاصية الميكروفون بشكل صحيح.")
+    st.info("يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث. سيتحرك الافاتار أثناء النطق.")
 
-    # عرض المحادثة السابقة
     for msg in st.session_state.conversation:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    # عمودان للميكروفون والنص
     col1, col2 = st.columns([1, 3])
 
     with col1:
-        st.markdown("#### 🎤 تحدث")
+        st.markdown("#### تحدث")
         audio = mic_recorder(
-            start_prompt="🎤 اضغط للتحدث",
-            stop_prompt="⏹️ أوقف",
+            start_prompt="اضغط للتحدث",
+            stop_prompt="أوقف",
             just_once=True,
             key='mic_recorder'
         )
         if audio and audio.get('bytes'):
             st.audio(audio['bytes'], format='audio/wav')
-            with st.spinner("🔄 جاري تحويل الصوت إلى نص..."):
+            with st.spinner("جاري تحويل الصوت إلى نص..."):
                 user_text = transcribe_audio(audio['bytes'])
                 if user_text:
-                    st.success(f"📝 النص المُستمع: {user_text}")
+                    st.success(f"النص المستمع: {user_text}")
                     process_query_avatar(user_text, model)
 
     with col2:
-        st.markdown("#### ✍️ أو اكتب سؤالك")
+        st.markdown("#### أو اكتب سؤالك")
         user_query = st.chat_input("اكتب سؤالك هنا...")
         if user_query:
             process_query_avatar(user_query, model)
 
 # ==========================================
-# 20. تبويب إدارة المنتجات (إضافة وعرض)
+# 20. تبويب إدارة المنتجات
 # ==========================================
 with tab4:
-    st.subheader("🗂️ إدارة المنتجات المخصصة")
+    st.subheader("إدارة المنتجات المخصصة")
     st.markdown("أضف منتجك الخاص أو استعرض المنتجات المضافة.")
     
-    # نموذج إضافة منتج
-    with st.expander("➕ إضافة منتج جديد", expanded=False):
+    with st.expander("إضافة منتج جديد", expanded=False):
         with st.form(key="product_form", clear_on_submit=True):
-            prod_name = st.text_input("🏷️ اسم المنتج")
-            prod_price = st.number_input("💰 السعر (دولار)", min_value=0.0, step=0.5)
-            prod_desc = st.text_area("📝 الوصف")
-            hidden_link = st.text_input("🔗 رابط المنتج (اختياري)")
-            img_link = st.text_input("🖼️ رابط صورة المنتج (اختياري)")
-            submitted = st.form_submit_button("📌 نشر المنتج")
+            prod_name = st.text_input("اسم المنتج")
+            prod_price = st.number_input("السعر (دولار)", min_value=0.0, step=0.5)
+            prod_desc = st.text_area("الوصف")
+            hidden_link = st.text_input("رابط المنتج (اختياري)")
+            img_link = st.text_input("رابط صورة المنتج (اختياري)")
+            submitted = st.form_submit_button("نشر المنتج")
             if submitted and prod_name and prod_price > 0:
                 st.session_state.products.append({
                     "name": prod_name,
@@ -930,13 +956,12 @@ with tab4:
                     "image": img_link
                 })
                 st.balloons()
-                st.success(f"✅ تمت إضافة {prod_name}")
+                st.success(f"تمت إضافة {prod_name}")
                 st.rerun()
             elif submitted:
                 st.error("الاسم والسعر مطلوبان")
     
-    # عرض قائمة المنتجات المضافة
-    st.markdown("### 📦 قائمة منتجاتي")
+    st.markdown("### قائمة منتجاتي")
     if not st.session_state.products:
         st.info("لا توجد منتجات مضافة بعد. أضف منتجاً من الأعلى.")
     else:
@@ -949,13 +974,12 @@ with tab4:
                     else:
                         st.image("https://via.placeholder.com/120?text=No+Image", width=120)
                 with c2:
-                    st.markdown(f"### 🛍️ {prod['name']}")
-                    st.markdown(f"**السعر:** 💲{prod['price']}")
+                    st.markdown(f"### {prod['name']}")
+                    st.markdown(f"**السعر:** ${prod['price']}")
                     st.markdown(f"**الوصف:** {prod['desc']}")
                     if prod["link"]:
                         st.markdown(f"[رابط المنتج]({prod['link']})")
                 st.divider()
-        if st.button("🗑️ حذف الكل", key="delete_all_products"):
+        if st.button("حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
-
