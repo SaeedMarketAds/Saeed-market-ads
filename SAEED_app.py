@@ -28,16 +28,16 @@ from io import StringIO
 # 2. إعدادات الموديلات (القاموس الذي طلبته)
 # ==========================================
 # أضف هذا السطر تحت تعريف MODEL_MAPPING مباشرة
-AVAILABLE_MODELS = list(MODEL_MAPPING.keys())
+
 
 # هنا تحدد الموديل الذي تريده (فقط غيّر هذه الكلمة لـ "3.1" إذا أردت التغيير)
 ACTIVE_MODEL = "3.5" 
 # أضف هذا السطر تحديداً في الأعلى تحت ACTIVE_MODEL
-DEFAULT_MODEL = "gemini-1.5-flash"
+DEFAULT_MODEL = "gemini-3.5-flash"
 
 MODEL_MAPPING = {
     "3.5": "gemini-2.0-flash-exp",
-    "3.1": "gemini-1.5-pro"
+    "3.1": "gemini-3.1-pro"
 }
 
 # ==========================================
