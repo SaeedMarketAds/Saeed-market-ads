@@ -36,6 +36,9 @@ ACTIVE_MODEL = "3.5"
 DEFAULT_MODEL = "gemini-3.5-flash"
 
 MODEL_MAPPING = {
+# ضع هذا السطر تحت MODEL_MAPPING مباشرة
+AVAILABLE_MODELS = list(MODEL_MAPPING.keys())
+   
     "3.5": "gemini-2.0-flash-exp",
     "3.1": "gemini-3.1-pro"
 }
