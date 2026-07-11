@@ -172,69 +172,35 @@ page_bg = """
     margin-right: 10px;
 }
 .product-sales {
-    color: #2ecc71;
-    font-weight: bold;
-    font-size: 13px;
-    margin-bottom: 10px;
-}
-.product-discount {
-    background: #ff6b6b;
-    color: white;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: bold;
-    display: inline-block;
-}
-.product-btn {
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 40px;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    font-weight: bold;
-    color: white;
-    transition: all 0.3s ease;
-    margin-top: 15px;
-    border: none;
-}
-.product-btn:hover {
-    background: linear-gradient(90deg, #764ba2, #667eea);
-    transform: scale(1.02);
-}
-hr { border-color: rgba(255,255,255,0.1); }
+ # ==========================================
+# 8. بيانات المنتجات (ثابتة)
+# ==========================================
+SHEIN_PRODUCTS = [
+    {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
+    {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
+    {"code": "SH003", "name": "نظارات حفلات مطبوعة 6 قطع", "price": 2.70, "discount": 0, "link": "https://onelink.shein.com/38/5shujg5f2ywk", "sales": "300+"},
+    {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
+    {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
+]
 
-.hero-section {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
-    background-size: 300% 300%;
-    animation: gradientShift 5s ease infinite;
-    padding: 40px;
-    border-radius: 30px;
-    text-align: center;
-    margin-bottom: 30px;
-}
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-.hero-title {
-    color: #fff;
-    font-size: 48px;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-.hero-subtitle {
-    color: #fff;
-    font-size: 22px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-.hero-code {
-    background: white;
-    display: inline-block;
-    padding: 15px 50px;
-    border-radius: 80px;
-    margin: 10px 0;
+# ⬇️⬇️⬇️ ضع منتجات AliExpress هنا ⬇️⬇️⬇️
+ALIEXPRESS_PRODUCTS = [
+    {"code": "AE001", "name": "ساعة ذكية رياضية مقاومة للماء", "price": 25.99, "discount": 40, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,300+"},
+    {"code": "AE002", "name": "سماعات لاسلكية TWS Bass", "price": 15.50, "discount": 55, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "5,100+"},
+    {"code": "AE003", "name": "باور بانك 20000mAh شحن سريع", "price": 18.75, "discount": 35, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,800+"},
+    {"code": "AE004", "name": "قلم حساس للشاشات اللوحية", "price": 8.99, "discount": 60, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "4,500+"},
+    {"code": "AE005", "name": "حامل هاتف للسيارة مغناطيسي", "price": 6.25, "discount": 45, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "3,200+"},
+    {"code": "AE006", "name": "سوار ذكي لقياس النبض والخطوات", "price": 12.40, "discount": 50, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "6,700+"},
+    {"code": "AE007", "name": "مصباح LED متعدد الألوان للغرفة", "price": 9.99, "discount": 30, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,900+"},
+    {"code": "AE008", "name": "كاميرا مراقبة منزلية لاسلكية", "price": 32.50, "discount": 25, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,200+"},
+]
+
+GOLDEN_DEALS = [
+    {"name": "Men Ice Silk Polo Shirt", "price": 4.71, "discount": 60, "link": "#", "sales": "500+"},
+    {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
+    {"name": "Shower Curtain Set", "price": 4.47, "discount": 70, "link": "#", "sales": "200+"},
+    {"name": "Sports Waist Belt", "price": 5.12, "discount": 61, "link": "#", "sales": "400+"},
+]   
 }
 .hero-code-text {
     color: #ff0844;
