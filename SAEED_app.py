@@ -600,13 +600,14 @@ elif store == "AliExpress":
     for i, prod in enumerate(ALIEXPRESS_PRODUCTS):
         with cols[i % 4]:
             final_price = prod['price'] * (1 - prod['discount']/100)
+            price_str = f"${final_price:.2f}"  # ⬅️ احسب السعر كنص منفصل
             st.markdown(f"""
-            <div class='product-card' style='border: 2px solid #ff4757;'>
+            <divclass='product-card' style='border: 2px solid #ff4757;'>
                 <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
                     {prod['code']}
                 </div>
                 <div class='product-name'>{prod['name']}</div>
-                <div class='product-price'>${final_price:.2f}</div>
+                <div class='product-price'>{price_str}</div>
                 <div style='display: flex; justify-content: space-between; align-items: center; margin: 5px 0;'>
                     <span class='product-discount'>-{prod['discount']}%</span>
                     <span class='product-sales'> {prod['sales']}</span>
@@ -618,8 +619,6 @@ elif store == "AliExpress":
                 </a>
             </div>
             """, unsafe_allow_html=True)
-
-
 <st.info("✅ تم تحميل منتجات AliExpress بنجاح...")
 
 play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
