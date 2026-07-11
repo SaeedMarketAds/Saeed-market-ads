@@ -21,6 +21,9 @@ import time
 # ==========================================
 # IMPORTS
 # ==========================================
+# ==========================================
+# IMPORTS
+# ==========================================
 import streamlit as st
 import google.generativeai as genai
 import pandas as pd
@@ -37,30 +40,76 @@ MODEL_MAPPING = {
 
 # الموديل النشط (غيّر إلى "3.1" إن أردت)
 ACTIVE_MODEL = "3.5"
+DEFAULT_MODEL = MODEL_MAPPING[ACTIVE_MODEL]  # ✅ تعريف المتغير المفقود
 
 # تعطيل الصوت مؤقتاً لتجنب الأخطاء
 PYDUB_AVAILABLE = False
 
 # ==========================================
-# تهيئة الـ API
+# تهيئة الـ API بمفتاح صحيح
 # ==========================================
-# ضع مفتاحك هنا أو استخدم st.secrets
-API_KEY = "YOUR_GEMINI_API_KEY"  # غيّره بمفتاحك
-genai.configure(api_key=API_KEY)
+# 🔴 هام: استبدل هذا بمفتاحك الحقيقي من:
+# https://aistudio.google.com/apikey
+API_KEY = "AIzaSy..."  # ⚠️ ضع مفتاحك الصحيح هنا
 
-# اختيار الموديل الصحيح
-model_name = MODEL_MAPPING[ACTIVE_MODEL]
-model = genai.GenerativeModel(model_name)
+if API_KEY and API_KEY != "AIzaSy...":
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel(DEFAULT_MODEL)
+    API_READY = True
+else:
+    API_READY = False
 
 # ==========================================
 # دالة الرد الذكي
 # ==========================================
 def get_gemini_response(prompt):
+    if not API_READY:
+        return "⚠️ مفتاح API غير صالح أو غير مضبوط. يرجى إدخال مفتاح صحيح."
     try:
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
         return f"⚠️ خطأ: {str(e)}"
+
+# ==========================================
+# واجهة Streamlit (مناسبة للشاشات الكبيرة)
+# ==========================================
+st.set_page_config(page_title="مساعدي الذكي", layout="wide")
+
+# عنوان كبير وجذاب
+st.markdown("<h1 style='text-align: center;'>🤖 مرحباً، كيف يمكنني مساعدتك؟</h1>", unsafe_allow_html=True)
+
+# عمودان لعرض أنيق
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    user_input = st.text_area("✍️ اكتب سؤالك هنا:", height=150, placeholder="مثال: السلام عليكم ورحمة الله...")
+    if st.button("🚀 إرسال", use_container_width=True):
+        if user_input:
+            with st.spinner("جارٍ التفكير..."):
+                reply = get_gemini_response(user_input)
+                st.success("✅ الرد:")
+                st.write(reply)
+        else:
+            st.warning("الرجاء كتابة سؤال أولاً.")
+
+with col2:
+    st.markdown("### 📌 معلومات")
+    if API_READY:
+        st.success(f"🔹 الموديل المستخدم: **{DEFAULT_MODEL}**")
+        st.success("🔹 الحالة: **جاهز** ✅")
+    else:
+        st.error("🔹 الموديل: **غير متاح**")
+        st.error("🔹 الحالة: **مفتاح API غير صالح** ❌")
+        st.info("📌 احصل على مفتاح من [Google AI Studio](https://aistudio.google.com/apikey)")
+    
+    st.warning("🎤 خاصية الصوت معطلة حالياً لتجنب الأخطاء.")
+
+# ==========================================
+# تذييل
+# ==========================================
+st.markdown("---")
+st.caption("© 2026 - تم التطوير بحب ❤️")
 
 # ==========================================
 # واجهة Streamlit (مناسبة للشاشات الكبيرة)
