@@ -740,13 +740,26 @@ with tab1:
     if col2.button("تصفح Noon"):
         st.session_state.store = "Noon"
         st.session_state.show_golden = False
-    if col3.button("تصفح AliExpress"):
-            # استبدل السطور من 743 إلى 749 بهذا الكود الجديد:
+        # ... (هذا جزء من داخل with st.sidebar:)
+    # تأكد من أنك أنهيت الـ if/else الخاصة بالصوت قبله مباشرة
+    
     st.markdown("---")
     st.markdown("### 📱 تواصل معنا:")
     
-    # تنسيق الروابط بشكل أنيق وعملي
+    # تأكد أن الكود أدناه على نفس مستوى المسافة الذي تتبعه st.sidebar
     st.markdown("""
+    <div style='display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;'>
+        <a href='https://wa.me/967716345735' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>🟢 واتساب المراسلة</a>
+        <a href='https://t.me/SeenMarket2026' target='_blank' style='text-decoration:none; color:#0088cc; font-weight:bold;'>✈️ قناة تليجرام</a>
+        <a href='https://whatsapp.com/channel/0029VaP4CWbAO7RNyolw301f' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>📢 قناة واتساب</a>
+        <a href='https://www.youtube.com/@saeedmarketads' target='_blank' style='text-decoration:none; color:#FF0000; font-weight:bold;'>▶️ يوتيوب - سعيد المسوري</a>
+        <a href='https://www.instagram.com/saeedmarketads' target='_blank' style='text-decoration:none; color:#E1306C; font-weight:bold;'>📷 إنستجرام</a>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.caption("© 2026 سوق سعيد")
+
     <div style='display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;'>
         <a href='https://wa.me/967716345735' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>🟢 واتساب المراسلة</a>
         <a href='https://t.me/SeenMarket2026' target='_blank' style='text-decoration:none; color:#0088cc; font-weight:bold;'>✈️ قناة تليجرام</a>
