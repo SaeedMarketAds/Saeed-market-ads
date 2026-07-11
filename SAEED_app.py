@@ -32,9 +32,13 @@ from io import StringIO
 
 # هنا تحدد الموديل الذي تريده (فقط غيّر هذه الكلمة لـ "3.1" إذا أردت التغيير)
 # تعريفات بسيطة ليرتاح الكود القديم
+# === تعريفات ضرورية لكل التطبيق (للحل النهائي) ===
 DEFAULT_MODEL = "gemini-1.5-flash"
-AVAILABLE_MODELS = ["3.5", "3.1"]
-MODEL_MAPPING = {"3.5": "gemini-1.5-flash", "3.1": "gemini-1.5-pro"}
+MODEL_MAPPING = {"3.5": "gemini-2.0-flash-exp", "3.1": "gemini-1.5-pro"}
+AVAILABLE_MODELS = list(MODEL_MAPPING.keys())
+PYDUB_AVAILABLE = False 
+# ===============================================
+
 
 
 # ==========================================
