@@ -30,6 +30,8 @@ from io import StringIO
 
 # هنا تحدد الموديل الذي تريده (فقط غيّر هذه الكلمة لـ "3.1" إذا أردت التغيير)
 ACTIVE_MODEL = "3.5" 
+# أضف هذا السطر تحديداً في الأعلى تحت ACTIVE_MODEL
+DEFAULT_MODEL = "gemini-1.5-flash"
 
 MODEL_MAPPING = {
     "3.5": "gemini-2.0-flash-exp",
