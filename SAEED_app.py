@@ -14,187 +14,26 @@ from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
-# ==========================================
-# ==========================================
-# 1. الاستيرادات (Imports)
-# ==========================================
-# ==========================================
-# IMPORTS
-# ==========================================
-# ==========================================
-# IMPORTS
-# ==========================================
-import streamlit as st
-import google.generativeai as genai
-import pandas as pd
-import requests
-from io import StringIO
 
 # ==========================================
-# إعدادات الموديلات (MODEL_MAPPING)
-# =====================
-# تعريفات النظام الضرورية
-PYDUB_AVAILABLE = False
-MODEL_MAPPING = {
-    "3.5": "gemini-3.5-flash",
-    "3.1": "gemini-3.1-pro"
-}
-ACTIVE_MODEL = "3.5"
-AVAILABLE_MODELS = ["3.5", "3.1"]
-
-# الموديل النشط (غيّر إلى "3.1" إن أردت)
-ACTIVE_MODEL = "3.5"
-DEFAULT_MODEL = MODEL_MAPPING[ACTIVE_MODEL]  # ✅ تعريف المتغير المفقود
-
-# تعطيل الصوت مؤقتاً لتجنب الأخطاء
-PYDUB_AVAILABLE = False
+# محاولة استيراد pydub للتحويل الصوتي
+# ==========================================
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    PYDUB_AVAILABLE = False
+    # سيتم عرض تحذير لاحقاً في الواجهة
 
 # ==========================================
-# تهيئة الـ API بمفتاح صحيح
+# 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
 # ==========================================
-# 🔴 هام: استبدل هذا بمفتاحك الحقيقي من:
-# https://aistudio.google.com/apikey
-API_KEY = "AIzaSy..."  # ⚠️ ضع مفتاحك الصحيح هنا
-
-if API_KEY and API_KEY != "AIzaSy...":
-    genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel(DEFAULT_MODEL)
-    API_READY = True
-else:
-    API_READY = False
-
-# ==========================================
-# دالة الرد الذكي
-# ==========================================
-def get_gemini_response(prompt):
-    if not API_READY:
-        return "⚠️ مفتاح API غير صالح أو غير مضبوط. يرجى إدخال مفتاح صحيح."
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"⚠️ خطأ: {str(e)}"
-
-# ==========================================
-# واجهة Streamlit (مناسبة للشاشات الكبيرة)
-# ==========================================
-st.set_page_config(page_title="مساعدي الذكي", layout="wide")
-
-# عنوان كبير وجذاب
-st.markdown("<h1 style='text-align: center;'>🤖 مرحباً، كيف يمكنني مساعدتك؟</h1>", unsafe_allow_html=True)
-
-# عمودان لعرض أنيق
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    user_input = st.text_area("✍️ اكتب سؤالك هنا:", height=150, placeholder="مثال: السلام عليكم ورحمة الله...")
-    if st.button("🚀 إرسال", use_container_width=True):
-        if user_input:
-            with st.spinner("جارٍ التفكير..."):
-                reply = get_gemini_response(user_input)
-                st.success("✅ الرد:")
-                st.write(reply)
-        else:
-            st.warning("الرجاء كتابة سؤال أولاً.")
-
-with col2:
-    st.markdown("### 📌 معلومات")
-    if API_READY:
-        st.success(f"🔹 الموديل المستخدم: **{DEFAULT_MODEL}**")
-        st.success("🔹 الحالة: **جاهز** ✅")
-    else:
-        st.error("🔹 الموديل: **غير متاح**")
-        st.error("🔹 الحالة: **مفتاح API غير صالح** ❌")
-        st.info("📌 احصل على مفتاح من [Google AI Studio](https://aistudio.google.com/apikey)")
-    
-    st.warning("🎤 خاصية الصوت معطلة حالياً لتجنب الأخطاء.")
-
-# ==========================================
-# تذييل
-# ==========================================
-st.markdown("---")
-st.caption("© 2026 - تم التطوير بحب ❤️")
-
-# ==========================================
-# واجهة Streamlit (مناسبة للشاشات الكبيرة)
-# ==========================================
-st.set_page_config(page_title="مساعدي الذكي", layout="wide")
-
-# عنوان كبير وجذاب
-st.markdown("<h1 style='text-align: center;'>🤖 مرحباً، كيف يمكنني مساعدتك؟</h1>", unsafe_allow_html=True)
-
-# عمودان لعرض أنيق
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    user_input = st.text_area("✍️ اكتب سؤالك هنا:", height=150, placeholder="مثال: أريد هاتف...")
-    if st.button("🚀 إرسال", use_container_width=True):
-        if user_input:
-            with st.spinner("جارٍ التفكير..."):
-                reply = get_gemini_response(user_input)
-                st.success("✅ الرد:")
-                st.write(reply)
-        else:
-            st.warning("الرجاء كتابة سؤال أولاً.")
-
-with col2:
-    st.markdown("### 📌 معلومات")
-    st.info(f"🔹 الموديل المستخدم: **{model_name}**")
-    st.info("🔹 الحالة: **جاهز**")
-    st.warning("🎤 خاصية الصوت معطلة حالياً لتجنب الأخطاء.")
-
-# ==========================================
-# تذييل
-# ==========================================
-st.markdown("---")
-st.caption("© 2026 - تم التطوير بحب ❤️")
-# ==========================================
-# 3. الدوال (تعريف الوظائف)
-# ==========================================
-
-def get_system_instructions():
-    try:
-        with open('identity.txt', 'r', encoding='utf-8') as f:
-            return f.read()
-    except:
-        return "You are a helpful assistant."
-
-@st.cache_resource(ttl=3600)
-def init_gemini():
-    # هنا نستخدم القاموس لاختيار الموديل بناءً على ACTIVE_MODEL
-    model_name = MODEL_MAPPING.get(ACTIVE_MODEL, "gemini-1.5-flash")
-    
-    if "GEMINI_MAIN_KEY" not in st.secrets:
-        st.error("⚠️ مفتاح API غير موجود.")
-        return None
-        
-    try:
-        genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
-        model = genai.GenerativeModel(
-            model_name=model_name, 
-            system_instruction=get_system_instructions() 
-        )
-        return model
-    except Exception as e:
-        st.error(f"Error: {e}")
-        return None
-
-# دالة جلب المنتجات (التي ستستخدمها لاحقاً)
-@st.cache_data(ttl=3600)
-def load_products_from_csv():
-    # كود جلب المنتجات يوضع هنا
-    return None 
-
-# ==========================================
-# 4. أمر التشغيل (يأتي بعد كل الدوال)
-# ==========================================
-st.session_state.model = init_gemini()
-
-# ==========================================
-# 5. واجهة التطبيق (بدء عرض المحتوى)
-# ==========================================
-# هنا يمكنك كتابة كود الواجهة (st.write, st.image...)
-
+AVAILABLE_MODELS = [
+    "gemini-3.5-flash",      # سريع ومناسب للمحادثة
+    "gemini-3.1-pro",        # أقوى وأدق
+    "gemini-2.0-flash-exp"   # تجريبي – أحدث
+]
+DEFAULT_MODEL = "gemini-1.5-flash"
 
 # ==========================================
 # 2. دالة التعليمات (الهوية والقواعد)
@@ -1122,5 +961,4 @@ with tab4:
         if st.button("🗑️ حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
-
 
