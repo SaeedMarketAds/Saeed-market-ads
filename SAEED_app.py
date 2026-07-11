@@ -588,7 +588,39 @@ st.markdown("""
         <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0;'>🔥 خصم يصل إلى 60% على أول طلب</p>
     </div>
 </div>
-""", unsafe_allow_html=True)
+elif store == "AliExpress":
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #ff6b6b, #ff4757); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
+        <h2 style='color: #fff;'>🚀 متجر AliExpress</h2>
+        <p style='color: #fff; font-size: 18px;'>أفضل العروض والمنتجات بأسعار تنافسية</p>
+        <p style='color: #fff; font-size: 16px;'>🎁 استخدم كود الخصم: N73QS</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    cols = st.columns(4)
+    for i, prod in enumerate(ALIEXPRESS_PRODUCTS):
+        with cols[i % 4]:
+            final_price = prod['price'] * (1 - prod['discount']/100)
+            st.markdown(f"""
+            <div class='product-card' style='border: 2px solid #ff4757;'>
+                <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
+                    📦 {prod['code']}
+                </div>
+                <div class='product-name'>{prod['name']}</div>
+                <div class='product-price'>${final_price:.2f}</div>
+                <div style='display: flex; justify-content: space-between; align-items: center; margin: 5px 0;'>
+                    <span class='product-discount'>-{prod['discount']}%</span>
+                    <span class='product-sales'>📊 {prod['sales']}</span>
+                </div>
+                <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
+                    <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
+                        🛒 تسوق الآن
+                    </div>
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
+
+    <st.info("✅ تم تحميل منتجات AliExpress بنجاح...")
 
 play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
 
