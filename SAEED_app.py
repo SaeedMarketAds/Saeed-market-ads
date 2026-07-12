@@ -1,6 +1,5 @@
-Enter# 1. أنشئ الملف
-cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
-import streamlit as st
+
+import streamlit as st"gemini-2.0-flash-exp"
 import google.generativeai as genai
 import cloudscraper
 import requests
@@ -1068,7 +1067,3 @@ with tab4:
         if st.button("حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
-PYEOF
-
-# 2. تشغيل التطبيق
-streamlit run /mnt/user-data/outputs/SAEED_app.py
