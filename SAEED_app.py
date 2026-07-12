@@ -1,4 +1,4 @@
-cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
+import streamlit as st
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper
