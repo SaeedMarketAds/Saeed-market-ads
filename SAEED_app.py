@@ -1,4 +1,5 @@
-
+here# 1. أنشئ الملف
+cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper
@@ -31,7 +32,7 @@ except ImportError:
 AVAILABLE_MODELS = [
     "gemini-3.5-flash",
     "gemini-3.1-pro",
-    "gemini-2.0-flash-exp"
+ 
 ]
 DEFAULT_MODEL = "gemini-1.5-flash"
 
@@ -1067,3 +1068,7 @@ with tab4:
         if st.button("حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
+PYEOF
+
+# 2. تشغيل التطبيق
+streamlit run /mnt/user-data/outputs/SAEED_app.py
