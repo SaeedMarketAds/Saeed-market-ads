@@ -1,4 +1,4 @@
-
+cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper
@@ -1067,3 +1067,4 @@ with tab4:
         if st.button("حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
+PYEOF
