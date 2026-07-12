@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper
@@ -25,11 +26,11 @@ except ImportError:
     PYDUB_AVAILABLE = False
 
 # ==========================================
-# 1. إعدادات الموديل الصحيحة (مدعومة رسمياً)
+# 1. إعدادات الموديل (يعمل تلقائياً بدون إظهار قائمة للمستخدم)
 # ==========================================
 AVAILABLE_MODELS = [
-    "gemini-3.5-flash",
-    "gemini-3.1-pro",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
     "gemini-2.0-flash-exp"
 ]
 DEFAULT_MODEL = "gemini-1.5-flash"
@@ -59,109 +60,149 @@ def get_system_instructions():
         """
 
 # ==========================================
-# 3. تهيئة الموديل مع التخزين المؤقت
+# 3. تهيئة الموديل مع التخزين المؤقت والتبديل التلقائي عند الفشل
 # ==========================================
 @st.cache_resource(ttl=3600)
 def init_gemini(model_name):
     if "GEMINI_MAIN_KEY" not in st.secrets:
-        st.error("⚠️ مفتاح API غير موجود في secrets.toml")
         return None
     genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
-    return genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=get_system_instructions()
-    )
+    try:
+        return genai.GenerativeModel(
+            model_name=model_name,
+            system_instruction=get_system_instructions()
+        )
+    except Exception:
+        return None
+
+def get_working_model():
+    """يحاول الموديلات المتاحة بالترتيب حتى يجد واحداً يعمل، دون إظهار أي خيارات للمستخدم."""
+    for m in AVAILABLE_MODELS:
+        model = init_gemini(m)
+        if model is not None:
+            return model, m
+    return None, None
 
 # ==========================================
 # 4. إعدادات الصفحة
 # ==========================================
 st.set_page_config(
-    page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس",
+    page_title="سوق سعيد | SHEIN - نون - AliExpress",
     page_icon="🛍️",
     layout="wide"
 )
 
 # ==========================================
-# 5. CSS (التصميم + الميكروفون)
+# 5. CSS (تصميم فاخر بمستوى الشركات العالمية)
 # ==========================================
 page_bg = """
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
+html, body, [class*="css"] {
+    font-family: 'Tajawal', 'Cairo', sans-serif !important;
+}
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
+    background: radial-gradient(circle at 10% 10%, #1b0f3a 0%, transparent 40%),
+                radial-gradient(circle at 90% 20%, #3a0f5c 0%, transparent 45%),
+                radial-gradient(circle at 50% 90%, #0f1f3a 0%, transparent 45%),
+                linear-gradient(160deg, #05010f 0%, #0d0620 35%, #140a2e 65%, #05010f 100%);
     background-attachment: fixed;
 }
-[data-testid="stHeader"] { background: rgba(0,0,0,0.2); }
+[data-testid="stHeader"] { background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); }
 .stMarkdown { color: #fff; }
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #0d0620; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#ffb300,#ff4d8d); border-radius: 10px; }
+
 .stButton > button {
-    background: linear-gradient(90deg, #ff6b6b, #feca57);
-    color: white;
+    background: linear-gradient(90deg, #ff4d8d, #ffb300);
+    color: #1a0a2e;
     border: none;
     border-radius: 30px;
-    padding: 12px 28px;
-    font-weight: bold;
+    padding: 13px 28px;
+    font-weight: 800;
     font-size: 16px;
-    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+    transition: all 0.35s cubic-bezier(.2,.9,.3,1.2);
     width: 100%;
+    box-shadow: 0 6px 18px rgba(255,77,141,0.25);
 }
 .stButton > button:hover {
-    transform: scale(1.02);
-    background: linear-gradient(90deg, #feca57, #ff6b6b);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    transform: translateY(-3px) scale(1.03);
+    background: linear-gradient(90deg, #ffb300, #ff4d8d);
+    box-shadow: 0 12px 30px rgba(255,179,0,0.4);
 }
-.stTextInput > div > div > input {
-    background: rgba(255,255,255,0.1);
+.stButton > button:active { transform: translateY(0) scale(0.98); }
+
+.stTextInput > div > div > input, .stNumberInput input {
+    background: rgba(255,255,255,0.06);
     color: white;
     border-radius: 30px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,179,0,0.35);
     padding: 12px 20px;
 }
 .stTextArea > div > div > textarea {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
     color: white;
     border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,179,0,0.35);
 }
+
 .product-card {
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(250,250,255,0.95));
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 24px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.98), rgba(245,244,255,0.96));
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,179,0,0.15);
+    transition: all 0.35s cubic-bezier(.2,.9,.3,1.2);
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     position: relative;
+    overflow: hidden;
+}
+.product-card::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #ff4d8d, #ffb300, #7c3aed);
 }
 .product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+    transform: translateY(-8px) scale(1.015);
+    box-shadow: 0 20px 45px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,179,0,0.35);
 }
 .product-code {
     position: absolute;
-    top: 10px;
+    top: 16px;
     right: 15px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #7c3aed, #ff4d8d);
     color: white;
-    padding: 4px 12px;
+    padding: 4px 14px;
     border-radius: 20px;
     font-size: 11px;
-    font-weight: bold;
+    font-weight: 800;
     direction: ltr;
+    box-shadow: 0 4px 10px rgba(124,58,237,0.35);
 }
 .product-name {
-    font-size: 16px;
-    font-weight: bold;
-    color: #1e293b;
-    margin-bottom: 12px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #1a0a2e;
+    margin-bottom: 14px;
+    margin-top: 10px;
     min-height: 50px;
-    padding-right: 60px;
+    padding-right: 65px;
 }
 .product-price {
-    color: #ff4757;
-    font-size: 24px;
-    font-weight: bold;
+    background: linear-gradient(90deg, #ff4d8d, #ff7a00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 26px;
+    font-weight: 900;
     margin-bottom: 5px;
 }
 .old-price {
@@ -171,46 +212,57 @@ page_bg = """
     margin-right: 10px;
 }
 .product-sales {
-    color: #2ecc71;
-    font-weight: bold;
+    color: #16a34a;
+    font-weight: 700;
     font-size: 13px;
     margin-bottom: 10px;
 }
 .product-discount {
-    background: #ff6b6b;
+    background: linear-gradient(90deg, #ff4d8d, #7c3aed);
     color: white;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 20px;
     font-size: 12px;
-    font-weight: bold;
+    font-weight: 800;
     display: inline-block;
+    box-shadow: 0 4px 10px rgba(255,77,141,0.3);
 }
 .product-btn {
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #1a0a2e, #3a1466);
     border-radius: 40px;
-    padding: 12px;
+    padding: 13px;
     text-align: center;
     cursor: pointer;
-    font-weight: bold;
-    color: white;
+    font-weight: 800;
+    color: #ffb300;
     transition: all 0.3s ease;
-    margin-top: 15px;
-    border: none;
+    margin-top: 16px;
+    border: 1px solid rgba(255,179,0,0.4);
 }
 .product-btn:hover {
-    background: linear-gradient(90deg, #764ba2, #667eea);
-    transform: scale(1.02);
+    background: linear-gradient(90deg, #ffb300, #ff4d8d);
+    color: #1a0a2e;
+    transform: scale(1.03);
 }
-hr { border-color: rgba(255,255,255,0.1); }
+hr { border-color: rgba(255,179,0,0.15); }
 
 .hero-section {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
-    background-size: 300% 300%;
-    animation: gradientShift 5s ease infinite;
-    padding: 40px;
-    border-radius: 30px;
+    background: linear-gradient(120deg, #ff4d8d, #ffb300, #7c3aed, #ff4d8d);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    padding: 50px 40px;
+    border-radius: 34px;
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 34px;
+    box-shadow: 0 20px 60px rgba(124,58,237,0.35);
+    position: relative;
+    overflow: hidden;
+}
+.hero-section::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 40%);
 }
 @keyframes gradientShift {
     0% { background-position: 0% 50%; }
@@ -219,56 +271,59 @@ hr { border-color: rgba(255,255,255,0.1); }
 }
 .hero-title {
     color: #fff;
-    font-size: 48px;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 54px;
+    font-weight: 900;
+    text-shadow: 3px 3px 10px rgba(0,0,0,0.35);
+    letter-spacing: 1px;
+    margin: 0;
 }
 .hero-subtitle {
     color: #fff;
     font-size: 22px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    font-weight: 600;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+}
+.hero-badge {
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(10px);
+    display: inline-block;
+    padding: 10px 34px;
+    border-radius: 30px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.35);
+    margin-top: 12px;
 }
 .hero-code {
-    background: white;
+    background: #fff;
     display: inline-block;
-    padding: 15px 50px;
-    border-radius: 80px;
-    margin: 10px 0;
+    padding: 16px 55px;
+    border-radius: 90px;
+    margin: 14px 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
 .hero-code-text {
-    color: #ff0844;
+    background: linear-gradient(90deg, #ff4d8d, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin: 0;
-    font-size: 45px;
-    font-weight: bold;
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: 2px;
 }
 
-.shein-section {
-    background: linear-gradient(135deg, rgba(255,107,107,0.1), rgba(254,202,87,0.1));
+.store-banner {
     border-radius: 30px;
-    padding: 25px;
-    margin: 20px 0;
-    border: 2px solid rgba(254,202,87,0.3);
-}
-.shein-header {
-    background: linear-gradient(135deg, #ff6b6b, #feca57);
-    border-radius: 20px;
-    padding: 15px 25px;
+    padding: 26px;
     text-align: center;
-    margin-bottom: 25px;
+    margin: 22px 0;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.35);
 }
-.shein-header h2 {
-    color: #fff;
-    margin: 0;
-    font-size: 28px;
-}
-.shein-header p {
-    color: #fff;
-    margin: 5px 0 0 0;
-    font-size: 16px;
-    opacity: 0.9;
-}
+.store-banner h2 { color: #fff; margin: 0; font-size: 30px; font-weight: 900; text-shadow: 2px 2px 6px rgba(0,0,0,0.3); }
+.store-banner p { color: #fff; margin: 6px 0 0 0; font-size: 16px; opacity: 0.95; }
 
-/* تنسيق زر الميكروفون (شبيه بـ Gemini) */
 [data-testid="stAudio"] { display: none; }
 
 .stMicRecorder {
@@ -278,22 +333,36 @@ hr { border-color: rgba(255,255,255,0.1); }
     margin: 10px 0;
 }
 .stMicRecorder button {
-    width: 80px !important;
-    height: 80px !important;
+    width: 84px !important;
+    height: 84px !important;
     border-radius: 50% !important;
-    background: linear-gradient(135deg, #4285f4, #34a853) !important;
+    background: linear-gradient(135deg, #7c3aed, #ff4d8d) !important;
     color: white !important;
     font-size: 36px !important;
     border: none !important;
-    box-shadow: 0 8px 20px rgba(66, 133, 244, 0.4) !important;
+    box-shadow: 0 10px 26px rgba(124,58,237,0.45) !important;
     transition: all 0.3s ease;
 }
 .stMicRecorder button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 30px rgba(66, 133, 244, 0.6);
+    transform: scale(1.06);
+    box-shadow: 0 14px 34px rgba(255,77,141,0.55);
 }
-.stMicRecorder button:active {
-    transform: scale(0.95);
+.stMicRecorder button:active { transform: scale(0.95); }
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0d0620 0%, #1a0a2e 100%);
+    border-left: 1px solid rgba(255,179,0,0.15);
+}
+[data-baseweb="tab-list"] { gap: 6px; }
+[data-baseweb="tab"] {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px 16px 0 0 !important;
+    color: #eee !important;
+    font-weight: 700 !important;
+}
+[aria-selected="true"] {
+    background: linear-gradient(90deg, #ff4d8d, #ffb300) !important;
+    color: #1a0a2e !important;
 }
 </style>
 """
@@ -312,8 +381,7 @@ async def generate_audio(text, voice="ar-SA-HamedNeural"):
             audio_bytes = f.read()
         os.unlink(output)
         return audio_bytes
-    except Exception as e:
-        st.warning(f"⚠️ خطأ في توليد الصوت: {e}")
+    except Exception:
         return None
 
 def play_voice(text):
@@ -331,8 +399,8 @@ def play_voice(text):
                 unsafe_allow_html=True
             )
             return True
-    except Exception as e:
-        st.warning(f"⚠️ خطأ في تشغيل الصوت: {e}")
+    except Exception:
+        pass
     return False
 
 # ==========================================
@@ -382,6 +450,11 @@ GOLDEN_DEALS = [
     {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
     {"name": "Shower Curtain Set", "price": 4.47, "discount": 70, "link": "#", "sales": "200+"},
     {"name": "Sports Waist Belt", "price": 5.12, "discount": 61, "link": "#", "sales": "400+"},
+]
+
+NOON_PRODUCTS = [
+    {"code": "N001", "name": "ساعة ذكية رياضية", "price": 89.99, "discount": 30, "link": "https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/", "sales": "500+"},
+    {"code": "N002", "name": "سماعات لاسلكية بلوتوث", "price": 45.50, "discount": 25, "link": "https://www.noon.com/ar-sa/N11200839A/p/", "sales": "1200+"},
 ]
 
 # ==========================================
@@ -490,8 +563,8 @@ def display_and_speak(text):
     if not text:
         return
     st.markdown(f"""
-    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-        <h4 style='color: #feca57;'>🤖 الرد:</h4>
+    <div style='background: linear-gradient(135deg, #1a0a2e, #0d0620); border-radius: 25px; padding: 25px; border-right: 5px solid #ffb300; box-shadow: 0 10px 30px rgba(0,0,0,0.4);'>
+        <h4 style='color: #ffb300;'>🤖 الرد:</h4>
         <p style='color: #e2e8f0;'>{text}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -505,7 +578,7 @@ def process_query(query, model):
         display_and_speak(quick)
         return
     if model is None:
-        st.warning("⚠️ النموذج غير مهيأ. يرجى اختيار موديل صحيح.")
+        st.warning("⚠️ الخدمة غير متاحة حالياً.")
         return
     try:
         with st.spinner("🤖 جاري التفكير..."):
@@ -549,7 +622,7 @@ def process_query_avatar(query, model):
     if quick:
         ai_reply = quick
     elif model is None:
-        ai_reply = "⚠️ النموذج غير مهيأ."
+        ai_reply = "⚠️ الخدمة غير متاحة حالياً."
     else:
         with st.spinner("🤖 جاري التفكير..."):
             try:
@@ -583,12 +656,12 @@ def process_query_avatar(query, model):
     st.rerun()
 
 # ==========================================
-# 13. تهيئة النموذج وحالة الجلسة
+# 13. تهيئة النموذج وحالة الجلسة (بدون إظهار أي خيارات موديل للمستخدم)
 # ==========================================
-if 'model_name' not in st.session_state:
-    st.session_state.model_name = DEFAULT_MODEL
 if 'model' not in st.session_state or st.session_state.model is None:
-    st.session_state.model = init_gemini(st.session_state.model_name)
+    _model, _model_name = get_working_model()
+    st.session_state.model = _model
+    st.session_state.model_name = _model_name
 
 if 'current_avatar' not in st.session_state:
     st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
@@ -603,24 +676,24 @@ if 'conversation' not in st.session_state:
 if 'products' not in st.session_state:
     st.session_state.products = []
 
+model = st.session_state.model
+
 # ==========================================
 # 14. الغلاف العلوي
 # ==========================================
 st.markdown("""
 <div class='hero-section'>
-    <h1 class='hero-title'>سوق سعيد</h1>
-    <p class='hero-subtitle'>متجر SHEIN | نون | علي اكسبرس</p>
-    <div style='margin: 20px 0;'>
-        <span style='background: #ff6b6b; color: white; padding: 10px 30px; border-radius: 30px; font-size: 18px;'>
-            مساعد ذكي للتسوق
-        </span>
+    <h1 class='hero-title'>✨ سوق سعيد ✨</h1>
+    <p class='hero-subtitle'>وجهتك الفاخرة للتسوق العالمي — SHEIN | نون | AliExpress</p>
+    <div style='margin: 22px 0;'>
+        <span class='hero-badge'>🤖 مساعد ذكي للتسوق</span>
     </div>
-    <div style='background: rgba(255,255,255,0.2); border-radius: 20px; padding: 20px; margin-top: 15px;'>
-        <p style='color: #fff; font-size: 20px; margin: 0;'>كود الخصم الحصري</p>
+    <div style='background: rgba(255,255,255,0.15); border-radius: 24px; padding: 22px; margin-top: 18px; backdrop-filter: blur(8px);'>
+        <p style='color: #fff; font-size: 20px; margin: 0; font-weight:700;'>كود الخصم الحصري</p>
         <div class='hero-code'>
             <h1 class='hero-code-text'>N73QS</h1>
         </div>
-        <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0;'>خصم يصل إلى 60% على أول طلب</p>
+        <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0; font-weight:600;'>خصم يصل إلى 60% على أول طلب</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -628,67 +701,56 @@ st.markdown("""
 play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
 
 # ==========================================
-# 15. السايدبار
+# 15. السايدبار (بدون قائمة موديلات)
 # ==========================================
 with st.sidebar:
     st.markdown("""
-    <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57;'>المساعد الذكي</h2>
-        <p style='color: #aaa;'>للتسوق والاستشارات</p>
+    <div style='text-align: center; padding: 24px; background: linear-gradient(135deg, #1a0a2e, #3a1466); border-radius: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);'>
+        <h2 style='color: #ffb300; margin:0;'>👑 المساعد الذكي</h2>
+        <p style='color: #d1c4e9; margin-top:6px;'>للتسوق والاستشارات الفاخرة</p>
     </div>
     """, unsafe_allow_html=True)
 
-    country = st.selectbox("اختر دولتك:", ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"], index=0)
-
-    model_choice = st.selectbox(
-        "اختر الموديل:",
-        AVAILABLE_MODELS,
-        index=AVAILABLE_MODELS.index(st.session_state.model_name) if st.session_state.model_name in AVAILABLE_MODELS else 0
-    )
-
-    if model_choice != st.session_state.model_name:
-        st.session_state.model_name = model_choice
-        st.session_state.model = init_gemini(model_choice)
-
-    model = st.session_state.model
+    country = st.selectbox("🌍 اختر دولتك:", ["السعودية", "الإمارات", "الكويت", "قطر", "عمان", "البحرين"], index=0)
 
     if model:
-        st.success(f"يعمل على {st.session_state.model_name}")
+        st.success("✅ الخدمة الذكية جاهزة")
     else:
-        st.error("فشل تهيئة النموذج (تأكد من المفتاح)")
+        st.error("⚠️ تعذر تفعيل الخدمة (تحقق من مفتاح API)")
 
     st.markdown("---")
-    st.markdown("### العروض المميزة")
+    st.markdown("### 🌟 العروض المميزة")
     if st.button("عرض الغلات الآن", use_container_width=True):
         st.session_state.show_golden = True
         st.session_state.store = None
 
     if st.session_state.get('show_golden', False):
         st.markdown("""
-        <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 20px; padding: 15px; text-align: center; margin: 10px 0;'>
-            <h4 style='color: #fff;'>العروض الذهبية</h4>
+        <div style='background: linear-gradient(135deg, #ff4d8d, #ffb300); border-radius: 20px; padding: 15px; text-align: center; margin: 10px 0;'>
+            <h4 style='color: #fff; margin:0;'>العروض الذهبية</h4>
         </div>
         """, unsafe_allow_html=True)
         golden = get_golden_deals_from_csv() or GOLDEN_DEALS
         for prod in golden[:5]:
             final = prod['price'] * (1 - prod['discount']/100)
             st.markdown(f"""
-            <div style='background: rgba(255,255,255,0.1); border-radius: 15px; padding: 12px; margin-bottom: 10px; border-right: 4px solid #feca57;'>
+            <div style='background: rgba(255,255,255,0.08); border-radius: 15px; padding: 12px; margin-bottom: 10px; border-right: 4px solid #ffb300;'>
                 <p style='color: #e2e8f0; margin: 0;'><b>{prod['name'][:30]}...</b></p>
-                <p style='color: #feca57; margin: 0;'>${final:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${prod['price']:.2f}</span></p>
-                <p style='color: #2ecc71; margin: 0;'>خصم {prod['discount']}%</p>
+                <p style='color: #ffb300; margin: 0;'>${final:.2f} <span style='color: #ff4d8d; text-decoration: line-through;'>${prod['price']:.2f}</span></p>
+                <p style='color: #16a34a; margin: 0;'>خصم {prod['discount']}%</p>
             </div>
             """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### خدماتي:")
+    st.markdown("### 💎 خدماتي:")
     st.markdown("- تحليل الروابط المتقدم")
     st.markdown("- عروض SHEIN")
     st.markdown("- عروض نون")
+    st.markdown("- عروض AliExpress")
     st.markdown("- محادثة ذكية (نص + صوت)")
     st.markdown("---")
     
-    st.markdown("### الافاتار والصوت")
+    st.markdown("### 🎭 الافاتار والصوت")
     avatar_option = st.selectbox("اختر الافاتار", ["سعيد (saeed.jpg)", "روبوت (ROBOT.jpg)", "صورتي أنا (ارفع صورة)"])
     if avatar_option == "سعيد (saeed.jpg)":
         st.session_state.current_avatar = "saeed.jpg" if os.path.exists("saeed.jpg") else "ROBOT.jpg"
@@ -718,57 +780,55 @@ with st.sidebar:
                 st.warning("يرجى رفع ملف صوتي لتفعيل هذه الخاصية.")
     
     st.markdown("---")
-    st.markdown("### للتواصل:")
+    st.markdown("### 📞 للتواصل:")
     st.markdown("[@SaeedMarketAds](https://t.me/SaeedMarketAds)")
     st.markdown("---")
-    st.caption("© 2026 سوق سعيد")
+    st.caption("© 2026 سوق سعيد — صُنع بفخامة 👑")
 
 # ==========================================
 # 16. Tabs
 # ==========================================
-tab1, tab2, tab3, tab4 = st.tabs(["متجر المنتجات", "أداة الفحص المتقدم", "المحادثة الذكية", "إدارة المنتجات"])
+tab1, tab2, tab3, tab4 = st.tabs(["🛍️ متجر المنتجات", "🔍 الفحص المتقدم", "💬 المحادثة الذكية", "📦 إدارة المنتجات"])
 
 # ==========================================
 # 17. تبويب المنتجات
 # ==========================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
-    col1, col2, col3, col4 = st.columns(4)
-    if col1.button("تصفح SHEIN"):
+    col1, col2, col3 = st.columns(3)
+    if col1.button("🩷 تصفح SHEIN"):
         st.session_state.store = "SHEIN"
         st.session_state.show_golden = False
-    if col2.button("تصفح Noon"):
+    if col2.button("🟡 تصفح Noon"):
         st.session_state.store = "Noon"
         st.session_state.show_golden = False
-        # ... (هذا جزء من داخل with st.sidebar:)
-    # تأكد من أنك أنهيت الـ if/else الخاصة بالصوت قبله مباشرة
-    
+    if col3.button("🧡 تصفح AliExpress"):
+        st.session_state.store = "AliExpress"
+        st.session_state.show_golden = False
+
     st.markdown("---")
-    st.markdown("### 📱 تواصل معنا:")
-    
-    # تأكد أن الكود أدناه على نفس مستوى المسافة الذي تتبعه st.sidebar
+    st.markdown("### 📱 تواصل معنا")
     st.markdown("""
     <div style='display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;'>
         <a href='https://wa.me/967716345735' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>🟢 واتساب المراسلة</a>
-        <a href='https://t.me/SeenMarket2026' target='_blank' style='text-decoration:none; color:#0088cc; font-weight:bold;'>✈️ قناة تليجرام</a>
+        <a href='https://t.me/SeenMarket2026' target='_blank' style='text-decoration:none; color:#54a9eb; font-weight:bold;'>✈️ قناة تليجرام</a>
         <a href='https://whatsapp.com/channel/0029VaP4CWbAO7RNyolw301f' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>📢 قناة واتساب</a>
-        <a href='https://www.youtube.com/@saeedmarketads' target='_blank' style='text-decoration:none; color:#FF0000; font-weight:bold;'>▶️ يوتيوب - سعيد المسوري</a>
-        <a href='https://www.instagram.com/saeedmarketads' target='_blank' style='text-decoration:none; color:#E1306C; font-weight:bold;'>📷 إنستجرام</a>
+        <a href='https://www.youtube.com/@saeedmarketads' target='_blank' style='text-decoration:none; color:#ff5c5c; font-weight:bold;'>▶️ يوتيوب - سعيد المسوري</a>
+        <a href='https://www.instagram.com/saeedmarketads' target='_blank' style='text-decoration:none; color:#e05c9a; font-weight:bold;'>📷 إنستجرام</a>
     </div>
     """, unsafe_allow_html=True)
-
     st.markdown("---")
-    st.caption("© 2026 سوق سعيد")
+
     if st.session_state.get('show_golden', False):
         st.markdown("""
-        <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
-            <h2 style='color: #fff;'>عروض الغلات الحصرية</h2>
-            <p style='color: #fff; font-size: 18px;'>خصومات تصل إلى 70%</p>
-            <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
+        <div class='store-banner' style='background: linear-gradient(135deg, #ff4d8d, #ffb300);'>
+            <h2>🏆 عروض الغلات الحصرية</h2>
+            <p>خصومات تصل إلى 70%</p>
+            <p>استخدم كود الخصم: N73QS</p>
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("استمع لعروض الغلات"):
+        if st.button("🔊 استمع لعروض الغلات"):
             play_voice("مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة.")
 
         golden = get_golden_deals_from_csv() or GOLDEN_DEALS
@@ -777,8 +837,8 @@ with tab1:
             with cols[i % 4]:
                 final = prod['price'] * (1 - prod['discount']/100)
                 st.markdown(f"""
-                <div class='product-card' style='border: 3px solid #feca57;'>
-                    <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>غلة</div>
+                <div class='product-card' style='border: 2px solid #ffb300;'>
+                    <div class='product-code' style='background: linear-gradient(90deg, #ff4d8d, #ffb300);'>غلة</div>
                     <div class='product-name'>{prod['name']}</div>
                     <div class='product-price'>${final:.2f}</div>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
@@ -786,16 +846,23 @@ with tab1:
                         <span class='product-sales'>{prod.get('sales', 'N/A')}</span>
                     </div>
                     <a href='{prod.get('link', '#')}' target='_blank' style='text-decoration: none;'>
-                        <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>احصل على العرض</div>
+                        <div class='product-btn'>احصل على العرض</div>
                     </a>
                 </div>
                 """, unsafe_allow_html=True)
-        st.info("تم تحميل الغلات بنجاح...")
+        st.info("تم تحميل الغلات بنجاح ✅")
 
     elif st.session_state.get('store'):
         store = st.session_state.store
-        st.write(f"### عرض منتجات: {store}")
+        st.write(f"### 🛒 عرض منتجات: {store}")
         if store == "SHEIN":
+            st.markdown("""
+            <div class='store-banner' style='background: linear-gradient(135deg, #ff4d8d, #7c3aed);'>
+                <h2>متجر SHEIN</h2>
+                <p>أحدث صيحات الموضة بأسعار مذهلة</p>
+                <p>استخدم كود الخصم: N73QS</p>
+            </div>
+            """, unsafe_allow_html=True)
             cols = st.columns(4)
             for i, prod in enumerate(SHEIN_PRODUCTS):
                 with cols[i % 4]:
@@ -812,10 +879,13 @@ with tab1:
                     </div>
                     """, unsafe_allow_html=True)
         elif store == "Noon":
-            NOON_PRODUCTS = [
-                {"code": "N001", "name": "ساعة ذكية رياضية", "price": 89.99, "discount": 30, "link": "https://www.noon.com/ar-sa/Z09748F5900924601C848Z/p/", "sales": "500+"},
-                {"code": "N002", "name": "سماعات لاسلكية بلوتوث", "price": 45.50, "discount": 25, "link": "https://www.noon.com/ar-sa/N11200839A/p/", "sales": "1200+"},
-            ]
+            st.markdown("""
+            <div class='store-banner' style='background: linear-gradient(135deg, #ffb300, #ff7a00);'>
+                <h2>متجر Noon</h2>
+                <p>التسوق الذكي بأفضل الأسعار الخليجية</p>
+                <p>استخدم كود الخصم: N73QS</p>
+            </div>
+            """, unsafe_allow_html=True)
             cols = st.columns(4)
             for i, prod in enumerate(NOON_PRODUCTS):
                 with cols[i % 4]:
@@ -833,10 +903,10 @@ with tab1:
                     """, unsafe_allow_html=True)
         elif store == "AliExpress":
             st.markdown("""
-            <div style='background: linear-gradient(135deg, #ff6b6b, #ff4757); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
-                <h2 style='color: #fff;'>متجر AliExpress</h2>
-                <p style='color: #fff; font-size: 18px;'>أفضل العروض والمنتجات بأسعار تنافسية</p>
-                <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
+            <div class='store-banner' style='background: linear-gradient(135deg, #ff4d8d, #ff7a00);'>
+                <h2>متجر AliExpress</h2>
+                <p>أفضل العروض والمنتجات بأسعار تنافسية عالمياً</p>
+                <p>استخدم كود الخصم: N73QS</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -846,10 +916,8 @@ with tab1:
                     final_price = prod['price'] * (1 - prod['discount']/100)
                     price_str = f"${final_price:.2f}"
                     st.markdown(f"""
-                    <div class='product-card' style='border: 2px solid #ff4757;'>
-                        <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
-                            {prod['code']}
-                        </div>
+                    <div class='product-card'>
+                        <div class='product-code'>{prod['code']}</div>
                         <div class='product-name'>{prod['name']}</div>
                         <div class='product-price'>{price_str}</div>
                         <div style='display: flex; justify-content: space-between; align-items: center; margin: 5px 0;'>
@@ -857,27 +925,31 @@ with tab1:
                             <span class='product-sales'>{prod['sales']}</span>
                         </div>
                         <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
-                            <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
-                                تسوق الآن
-                            </div>
+                            <div class='product-btn'>تسوق الآن</div>
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
 
-            st.info("تم تحميل منتجات AliExpress بنجاح...")
-        st.info("تم تحميل المنتجات بنجاح...")
+            st.info("تم تحميل منتجات AliExpress بنجاح ✅")
+        st.info("تم تحميل المنتجات بنجاح ✅")
+    else:
+        st.markdown("""
+        <div style='text-align:center; padding: 60px 20px; color:#d1c4e9;'>
+            <h3>👆 اختر متجراً من الأعلى لبدء التصفح</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ==========================================
 # 18. تبويب تحليل الرابط
 # ==========================================
 with tab2:
-    st.subheader("أداة فحص الروابط المتقدمة")
+    st.subheader("🔍 أداة فحص الروابط المتقدمة")
     link = st.text_input("ضع رابط المنتج هنا:", placeholder="https://...")
     if st.button("تحليل المنتج"):
         if not link:
             st.warning("يرجى إدخال رابط المنتج")
         elif not model:
-            st.warning("النموذج غير مهيأ.")
+            st.warning("الخدمة غير متاحة حالياً.")
         else:
             with st.spinner("جاري التحليل..."):
                 status, html = check_link_status(link)
@@ -896,8 +968,8 @@ with tab2:
                         clean = re.sub(r'Saeed\s*DaTaBoT|SaeedMarketAds', '', clean, flags=re.IGNORECASE)
                         clean = re.sub(r'\s+', ' ', clean).strip()
                         st.markdown(f"""
-                        <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                            <h4 style='color: #feca57;'>نتيجة التحليل:</h4>
+                        <div style='background: linear-gradient(135deg, #1a0a2e, #0d0620); border-radius: 25px; padding: 25px; border-right: 5px solid #ffb300; box-shadow: 0 10px 30px rgba(0,0,0,0.4);'>
+                            <h4 style='color: #ffb300;'>نتيجة التحليل:</h4>
                             <p style='color: #e2e8f0; white-space: pre-wrap;'>{clean}</p>
                         </div>
                         """, unsafe_allow_html=True)
@@ -911,7 +983,7 @@ with tab2:
 # 19. تبويب المحادثة الذكية
 # ==========================================
 with tab3:
-    st.subheader("المحادثة الذكية (نص + صوت)")
+    st.subheader("💬 المحادثة الذكية (نص + صوت)")
     if not PYDUB_AVAILABLE:
         st.warning("مكتبة pydub غير مثبتة. لتحويل الصوت بشكل صحيح، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg. قد لا تعمل خاصية الميكروفون بشكل صحيح.")
     st.info("يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث. سيتحرك الافاتار أثناء النطق.")
@@ -923,7 +995,7 @@ with tab3:
     col1, col2 = st.columns([1, 3])
 
     with col1:
-        st.markdown("#### تحدث")
+        st.markdown("#### 🎙️ تحدث")
         audio = mic_recorder(
             start_prompt="اضغط للتحدث",
             stop_prompt="أوقف",
@@ -939,7 +1011,7 @@ with tab3:
                     process_query_avatar(user_text, model)
 
     with col2:
-        st.markdown("#### أو اكتب سؤالك")
+        st.markdown("#### ✍️ أو اكتب سؤالك")
         user_query = st.chat_input("اكتب سؤالك هنا...")
         if user_query:
             process_query_avatar(user_query, model)
@@ -948,10 +1020,10 @@ with tab3:
 # 20. تبويب إدارة المنتجات
 # ==========================================
 with tab4:
-    st.subheader("إدارة المنتجات المخصصة")
+    st.subheader("📦 إدارة المنتجات المخصصة")
     st.markdown("أضف منتجك الخاص أو استعرض المنتجات المضافة.")
     
-    with st.expander("إضافة منتج جديد", expanded=False):
+    with st.expander("➕ إضافة منتج جديد", expanded=False):
         with st.form(key="product_form", clear_on_submit=True):
             prod_name = st.text_input("اسم المنتج")
             prod_price = st.number_input("السعر (دولار)", min_value=0.0, step=0.5)
@@ -995,3 +1067,5 @@ with tab4:
         if st.button("حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
+PYEOF
+echo "تم إنشاء الملف"
