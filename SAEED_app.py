@@ -1,4 +1,4 @@
-here# 1. أنشئ الملف
+Enter# 1. أنشئ الملف
 cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
 import streamlit as st
 import google.generativeai as genai
@@ -32,7 +32,7 @@ except ImportError:
 AVAILABLE_MODELS = [
     "gemini-3.5-flash",
     "gemini-3.1-pro",
- 
+    "gemini-2.0-flash-exp"
 ]
 DEFAULT_MODEL = "gemini-1.5-flash"
 
