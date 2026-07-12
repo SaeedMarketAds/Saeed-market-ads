@@ -1,5 +1,5 @@
-# 1. أنشئ الملف المحدث
-cat > /mnt/user-data/outputs/SAEED_app.py << 'PYEOF'
+import streamlit as st
+import google.generativeai
 import streamlit as st
 import google.generativeai as genai
 import cloudscraper
