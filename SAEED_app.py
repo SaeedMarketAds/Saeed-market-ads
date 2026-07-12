@@ -29,8 +29,8 @@ except ImportError:
 # 1. إعدادات الموديل (يعمل تلقائياً بدون إظهار قائمة للمستخدم)
 # ==========================================
 AVAILABLE_MODELS = [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-3.5-flash",
+    "gemini-3.1-pro",
     "gemini-2.0-flash-exp"
 ]
 DEFAULT_MODEL = "gemini-1.5-flash"
