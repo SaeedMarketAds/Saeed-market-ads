@@ -756,23 +756,9 @@ with tab1:
         <a href='https://www.instagram.com/saeedmarketads' target='_blank' style='text-decoration:none; color:#E1306C; font-weight:bold;'>📷 إنستجرام</a>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
     st.caption("© 2026 سوق سعيد")
-
-    <div style='display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;'>
-        <a href='https://wa.me/967716345735' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>🟢 واتساب المراسلة</a>
-        <a href='https://t.me/SeenMarket2026' target='_blank' style='text-decoration:none; color:#0088cc; font-weight:bold;'>✈️ قناة تليجرام</a>
-        <a href='https://whatsapp.com/channel/0029VaP4CWbAO7RNyolw301f' target='_blank' style='text-decoration:none; color:#25D366; font-weight:bold;'>📢 قناة واتساب</a>
-        <a href='https://www.youtube.com/@saeedmarketads' target='_blank' style='text-decoration:none; color:#FF0000; font-weight:bold;'>▶️ يوتيوب - سعيد المسوري</a>
-        <a href='https://www.instagram.com/saeedmarketads' target='_blank' style='text-decoration:none; color:#E1306C; font-weight:bold;'>📷 إنستجرام</a>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.caption("© 2026 سوق سعيد")
-
-
     if st.session_state.get('show_golden', False):
         st.markdown("""
         <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
