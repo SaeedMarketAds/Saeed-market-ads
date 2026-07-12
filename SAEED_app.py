@@ -1067,4 +1067,3 @@ with tab4:
         if st.button("حذف الكل", key="delete_all_products"):
             st.session_state.products.clear()
             st.rerun()
-PYEOF
