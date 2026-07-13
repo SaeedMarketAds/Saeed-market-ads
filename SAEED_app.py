@@ -479,7 +479,7 @@ def transcribe_audio(audio_bytes):
         recognizer = sr.Recognizer()
         with sr.AudioFile(BytesIO(wav_bytes)) as source:
             audio = recognizer.record(source)
-        return recognizer.recognize_google(audio, language='ar-AR')
+        return recognizer.recognize_google(audio, language="ar-AR")
     except sr.UnknownValueError:
         st.warning("⚠️ لم أستطع فهم الصوت، حاول مرة أخرى بوضوح.")
     except sr.RequestError as e:
