@@ -69,8 +69,10 @@ def init_gemini(model_name):
     genai.configure(api_key=st.secrets["GEMINI_MAIN_KEY"])
     return genai.GenerativeModel(
         model_name=model_name,
-        system_instruction=get_system_instructions()
+        system_instruction=get_system_instructions(),
+        generation_config={"max_output_tokens": 1824}
     )
+
 
 # ==========================================
 # 4. إعدادات الصفحة
