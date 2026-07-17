@@ -900,39 +900,32 @@ with tab2:
 # ==========================================
 # 19. تبويب المحادثة الذكية
 # ==========================================
-with tab3:
-    st.subheader("المحادثة الذكية (نص + صوت)")
-    if not PYDUB_AVAILABLE:
-        st.warning("مكتبة pydub غير مثبتة. لتحويل الصوت بشكل صحيح، قم بتثبيتها: `pip install pydub` مع تثبيت ffmpeg. قد لا تعمل خاصية الميكروفون بشكل صحيح.")
-    st.info("يمكنك إما كتابة سؤالك أو استخدام الميكروفون للتحدث. سيتحرك الافاتار أثناء النطق.")
+#with col1:
+    st.markdown("#### تحدث")
+    # 1. المايك الجديد المدمج (واجهة عصرية)
+    audio_file = st.audio_input("اضغط وتحدث 🎙️")
 
-    for msg in st.session_state.conversation:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-
-    col1, col2 = st.columns([1, 3])
-
-    with col1:
-        st.markdown("#### تحدث")
-        audio = mic_recorder(
-            start_prompt="اضغط للتحدث",
-            stop_prompt="أوقف",
-            just_once=True,
-            key='mic_recorder'
-        )
-        if audio and audio.get('bytes'):
-            st.audio(audio['bytes'], format='audio/wav')
-            with st.spinner("جاري تحويل الصوت إلى نص..."):
-                user_text = transcribe_audio(audio['bytes'])
-                if user_text:
-                    st.success(f"النص المستمع: {user_text}")
-                    process_query_avatar(user_text, model)
-
-    with col2:
-        st.markdown("#### أو اكتب سؤالك")
-        user_query = st.chat_input("اكتب سؤالك هنا...")
-        if user_query:
-            process_query_avatar(user_query, model)
+    # 2. منطق المعالجة (يتم تنفيذه فور توفر الصوت)
+    if audio_file is not None:
+        # استمع لصوتك الذي سجلته
+        st.audio(audio_file, format="audio/wav")
+        
+        with st.spinner("جاري معالجة صوتك... ⏳"):
+            # استدعاء دالتك الموجودة في كودك الأصلية لتفريغ الصوت
+            user_text = transcribe_audio(audio_file)
+            
+        if user_text:
+            st.info(f"🗣️ كلامك: {user_text}")
+            
+            # معالجة النص بواسطة الدالة الأصلية في تطبيقك
+            with st.spinner("جاري التفكير... 🧠"):
+                bot_response = process_query(user_text)
+                
+            # عرض رد البوت
+            st.success(bot_response)
+            
+            # (اختياري) تشغيل الرد صوتياً إذا كانت دالتك تدعم ذلك
+            # display_and_speak(bot_response)
 
 # ==========================================
 # 20. تبويب إدارة المنتجات
