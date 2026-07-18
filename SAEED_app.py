@@ -1034,6 +1034,9 @@ with tab4:
 # ==========================================
 # 21. شريط الصوت الثابت (في أسفل الصفحة)
 # ==========================================
+# ==========================================
+# 21. شريط الصوت الثابت (في أسفل الصفحة) - معدل
+# ==========================================
 is_active_class = "active" if st.session_state.audio_streaming else ""
 audio_icon = '<i class="fa-solid fa-pause"></i>' if st.session_state.audio_streaming else '<i class="fa-solid fa-waveform"></i>'
 
@@ -1061,14 +1064,14 @@ st.markdown(f"""
     </div>
 </div>
 
-<!-- شريط الصوت السفلي -->
+<!-- شريط الصوت السفلي - تم إزالة النص "اسأل المساعد الذكي أو ابدأ التحدث" -->
 <div class="audio-footer">
     <div class="audio-input-container">
         <button class="btn-audio-core {is_active_class}" onclick="triggerAudioStream()">
             {audio_icon}
         </button>
         <button class="icon-btn" style="margin-left: 5px;"><i class="fa-solid fa-microphone"></i></button>
-        <input type="text" id="audioInputField" placeholder="اسأل المساعد الذكي أو ابدأ التحدث..." class="audio-text-field" onkeypress="handleAudioSend(event)">
+        <input type="text" id="audioInputField" placeholder="" class="audio-text-field" onkeypress="handleAudioSend(event)">
         <button class="icon-btn" onclick="toggleAudioSheet(true)"><i class="fa-solid fa-plus"></i></button>
     </div>
 </div>
@@ -1126,7 +1129,6 @@ setTimeout(() => {{
 }}, 100);
 </script>
 """, unsafe_allow_html=True)
-
 # ==========================================
 # 22. معالجة تبديل البث الصوتي عبر الـ query params
 # ==========================================
