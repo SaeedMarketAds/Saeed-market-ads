@@ -1037,98 +1037,74 @@ with tab4:
 # ==========================================
 # 21. شريط الصوت الثابت (في أسفل الصفحة) - معدل
 # ==========================================
-is_active_class = "active" if st.session_state.audio_streaming else ""
-audio_icon = '<i class="fa-solid fa-pause"></i>' if st.session_state.audio_streaming else '<i class="fa-solid fa-waveform"></i>'
-
-st.markdown(f"""
-<!-- خلفية القائمة المنبثقة للـ (+) -->
-<div id="audioOverlay" class="audio-overlay" onclick="toggleAudioSheet(false)"></div>
-
-<!-- القائمة المنبثقة الذكية -->
-<div id="audioSheet" class="audio-sheet">
-    <div style="width:50px; height:5px; background:#3f3f46; border-radius:999px; margin:0 auto 20px auto; cursor:pointer;" onclick="toggleAudioSheet(false)"></div>
-    <h4 style="color:#a1a1aa; margin-bottom:15px; font-size:14px;">🎵 أدوات الصوت المتقدمة</h4>
-    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
-        <div style="background:#18181b; border:1px solid #27272a; padding:15px; border-radius:16px; text-align:center; cursor:pointer;" onclick="alert('تنقية الصوت قيد التطوير')">
-            <i class="fa-solid fa-microphone-lines" style="color:#a855f7; font-size:1.5rem; margin-bottom:6px;"></i>
-            <div style="font-size:12px; color:white;">تنقية الصوت</div>
-        </div>
-        <div style="background:#18181b; border:1px solid #27272a; padding:15px; border-radius:16px; text-align:center; cursor:pointer;" onclick="alert('رفع ملف صوتي قيد التطوير')">
-            <i class="fa-solid fa-file-audio" style="color:#3b82f6; font-size:1.5rem; margin-bottom:6px;"></i>
-            <div style="font-size:12px; color:white;">رفع ملف صوتي</div>
-        </div>
-        <div style="background:#18181b; border:1px solid #27272a; padding:15px; border-radius:16px; text-align:center; cursor:pointer;" onclick="alert('ترجمة فورية قيد التطوير')">
-            <i class="fa-solid fa-language" style="color:#10b981; font-size:1.5rem; margin-bottom:6px;"></i>
-            <div style="font-size:12px; color:white;">ترجمة فورية</div>
-        </div>
-    </div>
-</div>
-
-<!-- شريط الصوت السفلي - تم إزالة النص "اسأل المساعد الذكي أو ابدأ التحدث" -->
-<div class="audio-footer">
-    <div class="audio-input-container">
-        <button class="btn-audio-core {is_active_class}" onclick="triggerAudioStream()">
-            {audio_icon}
-        </button>
-        <button class="icon-btn" style="margin-left: 5px;"><i class="fa-solid fa-microphone"></i></button>
-        <input type="text" id="audioInputField" placeholder="" class="audio-text-field" onkeypress="handleAudioSend(event)">
-        <button class="icon-btn" onclick="toggleAudioSheet(true)"><i class="fa-solid fa-plus"></i></button>
-    </div>
-</div>
-
-<script>
-function toggleAudioSheet(show) {{
-    const sheet = document.getElementById('audioSheet');
-    const overlay = document.getElementById('audioOverlay');
-    if(show) {{
-        sheet.classList.add('show');
-        overlay.classList.add('show');
-    }} else {{
-        sheet.classList.remove('show');
-        overlay.classList.remove('show');
-    }}
-}}
-
-function triggerAudioStream() {{
-    const url = new URL(window.location.href);
-    url.searchParams.set('toggle_stream', '1');
-    window.location.href = url.toString();
-}}
-
-function handleAudioSend(e) {{
-    if(e.key === 'Enter') {{
-        const val = document.getElementById('audioInputField').value;
-        if(!val) return;
-        // إرسال النص إلى خانة الدردشة
-        const chatInput = window.parent.document.querySelector('[data-testid="stChatInput"]');
-        if(chatInput) {{
-            chatInput.value = val;
-            chatInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
-            setTimeout(() => {{
-                const btn = chatInput.closest('form')?.querySelector('button[type="submit"]');
-                if(btn) btn.click();
-            }}, 50);
-        }}
-        document.getElementById('audioInputField').value = '';
-    }}
-}}
-
-// مزامنة حالة البث الصوتي مع الواجهة
-setTimeout(() => {{
-    const isActive = {str(st.session_state.audio_streaming).lower()};
-    const btn = document.querySelector('.btn-audio-core');
-    if(btn) {{
-        if(isActive) {{
-            btn.classList.add('active');
-            btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-        }} else {{
-            btn.classList.remove('active');
-            btn.innerHTML = '<i class="fa-solid fa-waveform"></i>';
-        }}
-    }}
-}}, 100);
-</script>
-""", unsafe_allow_html=True)
+# ==========================================
+# 19. تبويب المحادثة الذكية - معدل مع اختبار الصوت
+# ==========================================
+with tab3:
+    st.subheader("المحادثة الذكية")
+    
+    # عرض المحادثة
+    for msg in st.session_state.conversation:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+    
+    # إنشاء أعمدة للإدخال
+    col1, col2 = st.columns([5, 1])
+    
+    with col1:
+        # مدخل النص بدون placeholder
+        user_input = st.text_input("", placeholder="", key="chat_input_text", label_visibility="collapsed")
+    
+    with col2:
+        # زر الإرسال
+        send_btn = st.button("📤 إرسال", use_container_width=True)
+    
+    # معالجة النص عند الضغط على زر الإرسال أو Enter
+    if send_btn or (user_input and user_input.strip()):
+        if user_input and user_input.strip():
+            process_query_avatar(user_input.strip(), model)
+            # إعادة تعيين الحقل (يتم عبر session state)
+            st.session_state.chat_input_text = ""
+            st.rerun()
+    
+    # مدخل الصوت (الميكروفون)
+    st.markdown("---")
+    st.markdown("### 🎙️ تحدث بصوتك")
+    
+    # أزرار بدلاً من النص
+    col3, col4, col5, col6 = st.columns(4)  #增加到4 أعمدة لإضافة زر الاختبار
+    
+    with col3:
+        if st.button("🎤 تسجيل صوتي", use_container_width=True):
+            st.info("انقر على زر الميكروفون في المتصفح للتسجيل")
+    
+    with col4:
+        if st.button("📂 رفع ملف صوتي", use_container_width=True):
+            st.info("استخدم رافع الملفات أدناه")
+    
+    with col5:
+        if st.button("🔊 تشغيل الصوت", use_container_width=True):
+            if st.session_state.conversation and st.session_state.conversation[-1]["role"] == "assistant":
+                play_voice(st.session_state.conversation[-1]["content"][:500])
+            else:
+                st.warning("لا يوجد رد صوتي لتشغيله")
+    
+    with col6:
+        # زر اختبار الصوت
+        if st.button("🔊 اختبار الصوت", use_container_width=True):
+            with st.spinner("جاري تشغيل الصوت..."):
+                play_voice("مرحباً، هذا اختبار للصوت")
+                st.success("✅ تم تشغيل الصوت بنجاح")
+    
+    # رافع الملفات الصوتية
+    audio_file = st.file_uploader("اختر ملف صوتي (mp3, wav)", type=["mp3", "wav", "ogg"], key="audio_upload")
+    if audio_file is not None:
+        st.audio(audio_file, format="audio/wav")
+        with st.spinner("جاري معالجة صوتك... ⏳"):
+            user_text = transcribe_audio(audio_file)
+        if user_text:
+            st.info(f"🗣️ كلامك: {user_text}")
+            process_query_avatar(user_text, model)
 # ==========================================
 # 22. معالجة تبديل البث الصوتي عبر الـ query params
 # ==========================================
