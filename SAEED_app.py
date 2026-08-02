@@ -974,31 +974,57 @@ with tab2:
                     st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# 19. تبويب المحادثة الذكية
+# 19. تبويب المحادثة الذكية (مُعدَّل ومحمي من التكرار اللانهائي)
 # ==========================================
 with tab3:
-    st.subheader("المحادثة الذكية")
+    st.subheader("💬 المحادثة الذكية")
     
-    # عرض المحادثة
+    # عرض سجل المحادثة
     for msg in st.session_state.conversation:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
     
-    # مدخل النص
+    # مدخل النص المتوافق والأمن لمنع التكرار
     user_input = st.chat_input("اكتب سؤالك هنا...")
     if user_input:
         process_query_avatar(user_input, model)
+
+    # --------------------------------------
+    # قسم الصوت والتفاعل
+    # --------------------------------------
+    st.markdown("---")
+    st.markdown("### 🎙️ أدوات الصوت والتفاعل")
     
-    # مدخل الصوت (الميكروفون)
-    st.markdown("### 🎙️ تحدث بصوتك")
-    audio_file = st.audio_input("اضغط وتحدث 🎙️")
+    col3, col4, col5 = st.columns(3)
+    
+    with col3:
+        if st.button("🔊 إعطاء الرد صوتياً", use_container_width=True):
+            if st.session_state.conversation and st.session_state.conversation[-1]["role"] == "assistant":
+                play_voice(st.session_state.conversation[-1]["content"][:500])
+            else:
+                st.warning("لا يوجد رد حالي لتشغيله")
+    
+    with col4:
+        if st.button("🔊 اختبار الصوت", use_container_width=True):
+            with st.spinner("جاري تشغيل الصوت..."):
+                play_voice("مرحباً بك، اختبار الصوت يعمل بنجاح")
+                st.success("✅ يعمل!")
+
+    with col5:
+        if st.button("🗑️ مسح المحادثة", use_container_width=True):
+            st.session_state.conversation = []
+            st.rerun()
+            
+    # رافع الملفات الصوتية للترجمة إلى نص
+    audio_file = st.file_uploader("ارفع تسجيل صوتي للإرسال (mp3, wav)", type=["mp3", "wav", "ogg"], key="chat_audio_upload")
     if audio_file is not None:
         st.audio(audio_file, format="audio/wav")
-        with st.spinner("جاري معالجة صوتك... ⏳"):
+        with st.spinner("جاري تفريغ الصوت إلى نص... ⏳"):
             user_text = transcribe_audio(audio_file)
         if user_text:
-            st.info(f"🗣️ كلامك: {user_text}")
+            st.info(f"🗣️ الكلام المستخرج: {user_text}")
             process_query_avatar(user_text, model)
+
 
 # ==========================================
 # 20. تبويب إدارة المنتجات
