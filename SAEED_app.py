@@ -14,6 +14,27 @@ from io import StringIO, BytesIO
 from streamlit_mic_recorder import mic_recorder
 import speech_recognition as sr
 import time
+import time
+
+# ==========================================
+# كود تتبع Google Analytics
+# ==========================================
+ga_code = """
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVFKB360RZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-QVFKB360RZ');
+</script>
+"""
+st.components.v1.html(ga_code, height=0, width=0)
+
+# ==========================================
+# محاولة استيراد pydub للتحويل الصوتي
+# ==========================================
 
 # ==========================================
 # محاولة استيراد pydub للتحويل الصوتي
