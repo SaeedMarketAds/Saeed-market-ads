@@ -1084,74 +1084,19 @@ with tab4:
 # ==========================================
 # 21. شريط الصوت الثابت (في أسفل الصفحة) - معدل
 # ==========================================
-# ==========================================
-# 19. تبويب المحادثة الذكية - معدل مع اختبار الصوت
-# ==========================================
 with tab3:
-    st.subheader("المحادثة الذكية")
+    st.subheader("💬 المحادثة الذكية")
     
-    # عرض المحادثة
+    # عرض سجل المحادثة
     for msg in st.session_state.conversation:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
     
-    # إنشاء أعمدة للإدخال
-    col1, col2 = st.columns([5, 1])
-    
-    with col1:
-        # مدخل النص بدون placeholder
-        user_input = st.text_input("", placeholder="", key="chat_input_text", label_visibility="collapsed")
-    
-    with col2:
-        # زر الإرسال
-        send_btn = st.button("📤 إرسال", use_container_width=True)
-    
-    # معالجة النص عند الضغط على زر الإرسال أو Enter
-    if send_btn or (user_input and user_input.strip()):
-        if user_input and user_input.strip():
-            process_query_avatar(user_input.strip(), model)
-            # إعادة تعيين الحقل (يتم عبر session state)
-            st.session_state.chat_input_text = ""
-            st.rerun()
-    
-    # مدخل الصوت (الميكروفون)
-    st.markdown("---")
-    st.markdown("### 🎙️ تحدث بصوتك")
-    
-    # أزرار بدلاً من النص
-    col3, col4, col5, col6 = st.columns(4)  #增加到4 أعمدة لإضافة زر الاختبار
-    
-    with col3:
-        if st.button("🎤 تسجيل صوتي", use_container_width=True):
-            st.info("انقر على زر الميكروفون في المتصفح للتسجيل")
-    
-    with col4:
-        if st.button("📂 رفع ملف صوتي", use_container_width=True):
-            st.info("استخدم رافع الملفات أدناه")
-    
-    with col5:
-        if st.button("🔊 تشغيل الصوت", use_container_width=True):
-            if st.session_state.conversation and st.session_state.conversation[-1]["role"] == "assistant":
-                play_voice(st.session_state.conversation[-1]["content"][:500])
-            else:
-                st.warning("لا يوجد رد صوتي لتشغيله")
-    
-    with col6:
-        # زر اختبار الصوت
-        if st.button("🔊 اختبار الصوت", use_container_width=True):
-            with st.spinner("جاري تشغيل الصوت..."):
-                play_voice("مرحباً، هذا اختبار للصوت")
-                st.success("✅ تم تشغيل الصوت بنجاح")
-    
-    # رافع الملفات الصوتية
-    audio_file = st.file_uploader("اختر ملف صوتي (mp3, wav)", type=["mp3", "wav", "ogg"], key="audio_upload")
-    if audio_file is not None:
-        st.audio(audio_file, format="audio/wav")
-        with st.spinner("جاري معالجة صوتك... ⏳"):
-            user_text = transcribe_audio(audio_file)
-        if user_text:
-            st.info(f"🗣️ كلامك: {user_text}")
-            process_query_avatar(user_text, model)
+    # حقل الإدخال الذكي والحديث (يمنع التكرار تماماً)
+    user_input = st.chat_input("اكتب سؤالك هنا...")
+    if user_input:
+        process_query_avatar(user_input, model)
+
 # ==========================================
 # 22. معالجة تبديل البث الصوتي عبر الـ query params
 # ==========================================
