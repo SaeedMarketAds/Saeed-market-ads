@@ -1,20 +1,20 @@
-import streamlit as st
-import google.generativeai as genai
-import cloudscraper
-import requests
-import os
-import base64
-import edge_tts
-import tempfile
 import asyncio
-from bs4 import BeautifulSoup
+import base64
+from io import BytesIO, StringIO
+import os
 import re
+import tempfile
+import time
+
+from bs4 import BeautifulSoup
+import cloudscraper
+import edge_tts
+import google.generativeai as genai
 import pandas as pd
-from io import StringIO, BytesIO
-from streamlit_mic_recorder import mic_recorder
+import requests
 import speech_recognition as sr
-import time
-import time
+import streamlit as st
+from streamlit_mic_recorder import mic_recorder
 
 # ==========================================
 # كود تتبع Google Analytics
@@ -123,16 +123,15 @@ if 'store' not in st.session_state:
     st.session_state.store = None
 if 'show_golden' not in st.session_state:
     st.session_state.show_golden = False
-# حالة الصوت الجديدة
 if 'audio_streaming' not in st.session_state:
     st.session_state.audio_streaming = False
 
 # ==========================================
-# 6. CSS (التصميم القديم + الصوت الجديد)
+# 6. CSS والتصميم العام
 # ==========================================
 page_bg = """
 <style>
-/* ===== التصميم الأساسي القديم ===== */
+/* ===== التصميم الأساسي ===== */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
     background-attachment: fixed;
@@ -289,120 +288,7 @@ hr { border-color: rgba(255,255,255,0.1); }
     font-weight: bold;
 }
 
-.shein-section {
-    background: linear-gradient(135deg, rgba(255,107,107,0.1), rgba(254,202,87,0.1));
-    border-radius: 30px;
-    padding: 25px;
-    margin: 20px 0;
-    border: 2px solid rgba(254,202,87,0.3);
-}
-.shein-header {
-    background: linear-gradient(135deg, #ff6b6b, #feca57);
-    border-radius: 20px;
-    padding: 15px 25px;
-    text-align: center;
-    margin-bottom: 25px;
-}
-.shein-header h2 {
-    color: #fff;
-    margin: 0;
-    font-size: 28px;
-}
-.shein-header p {
-    color: #fff;
-    margin: 5px 0 0 0;
-    font-size: 16px;
-    opacity: 0.9;
-}
-
-/* ===== تنسيق الصوت الجديد (من تصميمك) ===== */
 [data-testid="stAudio"] { display: none; }
-
-/* زر البث/الإيقاف الأزرق الدائري */
-.btn-audio-core {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #2563eb;
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(37,99,235,0.4);
-    transition: transform 0.2s, background 0.2s;
-}
-.btn-audio-core:hover { background: #1d4ed8; transform: scale(1.05); }
-.btn-audio-core.active {
-    background: #dc2626;
-    box-shadow: 0 4px 15px rgba(220,38,38,0.4);
-}
-
-/* شريط الصوت السفلي */
-.audio-footer {
-    position: fixed;
-    bottom: 20px; left: 0; right: 0;
-    z-index: 999;
-    padding: 0 20px;
-}
-.audio-input-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 9999px;
-    padding: 8px 16px;
-    max-width: 650px;
-    margin: 0 auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-/* القائمة المنبثقة السفلية */
-.audio-sheet {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: #111113;
-    border-top: 1px solid #27272a;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    z-index: 9999;
-    padding: 24px;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.audio-sheet.show { transform: translateY(0); }
-.audio-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 9998;
-    display: none;
-}
-.audio-overlay.show { display: block; }
-
-.icon-btn {
-    background: transparent;
-    border: none;
-    color: #a1a1aa;
-    font-size: 1.3rem;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-.icon-btn:hover { color: #f4f4f5; }
-
-.audio-text-field {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: white;
-    font-size: 15px;
-    text-align: right;
-    direction: rtl;
-}
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
@@ -604,32 +490,6 @@ def display_and_speak(text):
     """, unsafe_allow_html=True)
     play_voice(text[:500])
 
-def process_query(query, model):
-    if not query:
-        return
-    quick = quick_response(query)
-    if quick:
-        display_and_speak(quick)
-        return
-    if model is None:
-        st.warning("⚠️ النموذج غير مهيأ. يرجى اختيار موديل صحيح.")
-        return
-    try:
-        with st.spinner("🤖 جاري التفكير..."):
-            response = model.generate_content(f"""
-            أجب على هذا السؤال باللغة العربية الفصحى:
-            {query}
-            تنبيهات:
-            - إذا سأل عن هويتك، عرف بنفسك كـ Saeed DaTaBoT المساعد الذكي لـ SaeedMarketAds والمطور سعيد المسوري.
-            - إذا سأل عن تحليل منتج، لا تذكر اسمك.
-            - كن مختصراً وواضحاً.
-            """)
-            clean = re.sub(r'[⭐★✨]', '', response.text)
-            clean = re.sub(r'\s+', ' ', clean).strip()
-            display_and_speak(clean)
-    except Exception as e:
-        st.error(f"❌ خطأ أثناء معالجة الطلب: {e}")
-
 # ==========================================
 # 13. دوال الأفاتار والمحادثة
 # ==========================================
@@ -648,8 +508,6 @@ def process_query_avatar(query, model):
     if not query:
         return
     st.session_state.conversation.append({"role": "user", "content": query})
-    with st.chat_message("user"):
-        st.write(query)
     quick = quick_response(query)
     if quick:
         ai_reply = quick
@@ -670,12 +528,11 @@ def process_query_avatar(query, model):
                 ai_reply = re.sub(r'\s+', ' ', ai_reply).strip()
             except Exception as e:
                 ai_reply = f"❌ خطأ: {e}"
-    with st.chat_message("assistant"):
-        st.write(ai_reply)
+                
+    st.session_state.conversation.append({"role": "assistant", "content": ai_reply})
     if st.session_state.voice_enabled and ai_reply:
         animate_avatar(st.session_state.current_avatar, duration=1.2)
         play_voice(ai_reply[:500])
-    st.session_state.conversation.append({"role": "assistant", "content": ai_reply})
     st.rerun()
 
 # ==========================================
@@ -700,10 +557,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-play_voice("مرحباً بكم في سوق سعيد، منصة التسوق الذكية. استمتعوا بأفضل العروض والخصومات.")
-
 # ==========================================
-# 15. السايدبار
+# 15. القائمة الجانبية (Sidebar)
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -799,7 +654,7 @@ with st.sidebar:
     st.caption("© 2026 سوق سعيد")
 
 # ==========================================
-# 16. Tabs
+# 16. التبويبات الرئيسية (Tabs)
 # ==========================================
 tab1, tab2, tab3, tab4 = st.tabs(["متجر المنتجات", "أداة الفحص المتقدم", "المحادثة الذكية", "إدارة المنتجات"])
 
@@ -928,7 +783,6 @@ with tab1:
                     """, unsafe_allow_html=True)
 
             st.info("تم تحميل منتجات AliExpress بنجاح...")
-        st.info("تم تحميل المنتجات بنجاح...")
 
 # ==========================================
 # 18. تبويب تحليل الرابط
@@ -971,24 +825,22 @@ with tab2:
                     st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# 19. تبويب المحادثة الذكية (مُعدَّل ومحمي من التكرار اللانهائي)
+# 19. تبويب المحادثة الذكية (مُعالج ومحمي بالكامل)
 # ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية")
     
-    # عرض سجل المحادثة
+    # 1. عرض سجل المحادثة
     for msg in st.session_state.conversation:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
     
-    # مدخل النص المتوافق والأمن لمنع التكرار
-    user_input = st.chat_input("اكتب سؤالك هنا...")
+    # 2. حقل الإدخال المفرد والمحمي بمفتاح فريد
+    user_input = st.chat_input("اكتب سؤالك هنا...", key="saeed_smart_chat_input")
     if user_input:
         process_query_avatar(user_input, model)
 
-    # --------------------------------------
-    # قسم الصوت والتفاعل
-    # --------------------------------------
+    # 3. أدوات الصوت والتفاعل
     st.markdown("---")
     st.markdown("### 🎙️ أدوات الصوت والتفاعل")
     
@@ -1012,16 +864,15 @@ with tab3:
             st.session_state.conversation = []
             st.rerun()
             
-    # رافع الملفات الصوتية للترجمة إلى نص
+    # 4. رفع الملفات الصوتية لتحويلها لنص
     audio_file = st.file_uploader("ارفع تسجيل صوتي للإرسال (mp3, wav)", type=["mp3", "wav", "ogg"], key="chat_audio_upload")
     if audio_file is not None:
         st.audio(audio_file, format="audio/wav")
         with st.spinner("جاري تفريغ الصوت إلى نص... ⏳"):
-            user_text = transcribe_audio(audio_file)
+            user_text = transcribe_audio(audio_file.read())
         if user_text:
             st.info(f"🗣️ الكلام المستخرج: {user_text}")
             process_query_avatar(user_text, model)
-
 
 # ==========================================
 # 20. تبويب إدارة المنتجات
@@ -1076,26 +927,7 @@ with tab4:
             st.rerun()
 
 # ==========================================
-# 21. شريط الصوت الثابت (في أسفل الصفحة)
-# ==========================================
-# ==========================================
-# 21. شريط الصوت الثابت (في أسفل الصفحة) - معدل
-# ==========================================
-with tab3:
-    st.subheader("💬 المحادثة الذكية")
-    
-    # عرض سجل المحادثة
-    for msg in st.session_state.conversation:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-    
-    # حقل الإدخال الذكي والحديث (يمنع التكرار تماماً)
-    user_input = st.chat_input("اكتب سؤالك هنا...")
-    if user_input:
-        process_query_avatar(user_input, model)
-
-# ==========================================
-# 22. معالجة تبديل البث الصوتي عبر الـ query params
+# 21. معالجة معلمات الاستعلام (Query Params)
 # ==========================================
 params = st.query_params
 if "toggle_stream" in params:
