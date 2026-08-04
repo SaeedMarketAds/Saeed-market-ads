@@ -35,7 +35,7 @@ from streamlit_mic_recorder import mic_recorder
 
   gtag('config', 'G-QVFK3E60RZ');
 </script>
-"""
+
 st.components.v1.html(ga_code, height=0, width=0)
 
 
