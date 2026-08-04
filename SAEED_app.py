@@ -942,15 +942,17 @@ import edge_tts
 import streamlit as st
 
 # ====================================================================
-# توليد الصوت للريلز
+# توليد الصوت للريلز من خانة المحادثة
 # ====================================================================
 if st.button("توليد الصوت للريلز"):
-    if text_input:
+    # التحقق من النص الموجود في خانة المحادثة (المرتبط بمتغير prompt أو المدخل الحالي)
+    target_text = prompt if 'prompt' in locals() and prompt else ""
+    
+    if target_text:
         output_path = "temp_reels_audio.mp3"
-        
         with st.spinner("جاري معالجة وتوليد الصوت بالذكاء الاصطناعي..."):
             try:
-                asyncio.run(generate_audio(text_input, output_path))
+                asyncio.run(generate_audio(target_text, output_path))
                 success = True
             except Exception as e:
                 success = False
@@ -959,10 +961,10 @@ if st.button("توليد الصوت للريلز"):
         if success:
             st.success("تم توليد الصوت بنجاح!")
             
-            # عرض مشغل الصوت داخل التطبيق
+            # عرض مشغل الصوت واستعراض النتيجة للمشاهدين
             st.audio(output_path, format="audio/mp3")
             
-            # زر لتحميل الملف الصوتي الناتج
+            # زر التحميل الخاص بملف الـ MP3
             with open(output_path, "rb") as file:
                 st.download_button(
                     label="تحميل ملف الصوت MP3",
@@ -971,5 +973,5 @@ if st.button("توليد الصوت للريلز"):
                     mime="audio/mp3",
                 )
     else:
-        st.warning("الرجاء إدخال النص التسويقي أولاً.")
+        st.warning("الرجاء كتابة النص في خانة المحادثة بالأعلى أولاً قبل الضغط على توليد الصوت.")
 
