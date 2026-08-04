@@ -19,27 +19,24 @@ from streamlit_mic_recorder import mic_recorder
 # ==========================================
 # كود تتبع Google Analytics
 # ==========================================
-ga_code = """
+
+
+# ==========================================
+# للتحويل الصوتي محاولة استيراد pydub
+# ==========================================
+try:ga_code = """
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVFKB360RZ"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVFK3E60RZ"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-QVFKB360RZ');
+  gtag('config', 'G-QVFK3E60RZ');
 </script>
 """
 st.components.v1.html(ga_code, height=0, width=0)
 
-# ==========================================
-# للتحويل الصوتي محاولة استيراد pydub
-# ==========================================
-try:
-    from pydub import AudioSegment
-    PYDUB_AVAILABLE = True
-except ImportError:
-    PYDUB_AVAILABLE = False
 
 
 # ==========================================
