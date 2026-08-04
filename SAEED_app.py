@@ -932,3 +932,52 @@ if "toggle_stream" in params:
     st.session_state.audio_streaming = not st.session_state.audio_streaming
     st.query_params.clear()
     st.rerun()
+import asyncio
+import os
+import edge_tts
+import streamlit as st
+
+# ==========================================
+# قسم سوق سعيد: مولد محتوى الريلز والصوت التسويقي
+# ==========================================
+
+st.subheader("🎬 سوق سعيد | مولد محتوى الريلز (الصوت والنص)")
+
+# حقل إدخال النص التسويقي
+text_input = st.text_area(
+    "أدخل النص المراد تحويله إلى صوت للريلز:",
+    "اكتشف أحدث العروض والمنتجات الحصرية لدينا الآن عبر سوق سعيد!",
+)
+
+
+# دالة توليد الصوت باستخدام edge-tts
+async def generate_audio(text, output_file):
+  # استخدام صوت عربي احترافي
+  communicate = edge_tts.Communicate(text, "ar-SA-ZariqNeural")
+  await communicate.save(output_file)
+
+
+# زر بدء التوليد
+if st.button("توليد الصوت للريلز"):
+  if text_input:
+    with st.spinner("جاري معالجة وتوليد الصوت بالذكاء الاصطناعي..."):
+      output_path = "temp_reels_audio.mp3"
+
+      # تشغيل الدالة المتزامنة داخل Streamlit
+      asyncio.run(generate_audio(text_input, output_path))
+
+      st.success("تم توليد الصوت بنجاح!")
+
+      # عرض مشغل الصوت داخل التطبيق
+      st.audio(output_path, format="audio/mp3")
+
+      # زر لتحميل الملف الصوتي الناتج
+      with open(output_path, "rb") as file:
+        st.download_button(
+            label="تحميل ملف الصوت MP3",
+            data=file,
+            file_name="saeed_market_reels_voice.mp3",
+            mime="audio/mp3",
+        )
+  else:
+    st.warning("الرجاء إدخال النص التسويقي أولاً.")
