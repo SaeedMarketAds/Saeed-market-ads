@@ -11,10 +11,12 @@ import cloudscraper
 import edge_tts
 import google.generativeai as genai
 import pandas as pd
+import pydub
 import requests
 import speech_recognition as sr
 import streamlit as st
 from streamlit_mic_recorder import mic_recorder
+
 
 
 # ==========================================
