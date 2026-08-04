@@ -1,4 +1,6 @@
+# ==========================================
 # المكتبات القياسية المدمجة في بايثون
+# ==========================================
 import asyncio
 import base64
 import os
@@ -7,28 +9,33 @@ import tempfile
 import time
 from io import BytesIO, StringIO
 
+# ==========================================
 # المكتبات الخارجية والطرف الثالث
+# ==========================================
 from bs4 import BeautifulSoup
 import cloudscraper
 import edge_tts
 import google.generativeai as genai
 import pandas as pd
-import pydub
+from pydub import AudioSegment
 import requests
 import speech_recognition as sr
 import streamlit as st
 from streamlit_mic_recorder import mic_recorder
 
+# ==========================================
+# إعدادات الصفحة
+# ==========================================
+st.set_page_config(
+    page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس",
+    page_icon="🛍️",
+    layout="wide"
+)
 
+st.success("مرحباً بكم في منصة SaeedMarketAds الذكية المدعومة بالذكاء الاصطناعي")
 
 # ==========================================
 # كود تتبع Google Analytics
-# ==========================================
-
-
-# ==========================================
-# للتحويل الصوتي محاولة استيراد pydub
-# ==========================================
 # ==========================================
 ga_code = """
 <!-- Google tag (gtag.js) -->
@@ -41,10 +48,7 @@ ga_code = """
   gtag('config', 'G-QVFK3E60RZ');
 </script>
 """
-
 st.components.v1.html(ga_code, height=0, width=0)
-
-
 
 # ==========================================
 # 1. إعدادات الموديل الصحيحة
@@ -96,16 +100,7 @@ def init_gemini(model_name):
     )
 
 # ==========================================
-# 4. إعدادات الصفحة
-# ==========================================
-st.set_page_config(
-    page_title="سوق سعيد | متاجر SHEIN - نون - علي اكسبرس",
-    page_icon="🛍️",
-    layout="wide"
-)
-
-# ==========================================
-# 5. حالة الجلسة
+# 4. حالة الجلسة (Session State)
 # ==========================================
 if 'conversation' not in st.session_state:
     st.session_state.conversation = []
@@ -131,11 +126,10 @@ if 'audio_streaming' not in st.session_state:
     st.session_state.audio_streaming = False
 
 # ==========================================
-# 6. CSS والتصميم العام
+# 5. CSS والتصميم العام
 # ==========================================
 page_bg = """
 <style>
-/* ===== التصميم الأساسي ===== */
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
     background-attachment: fixed;
@@ -214,12 +208,6 @@ page_bg = """
     font-weight: bold;
     margin-bottom: 5px;
 }
-.old-price {
-    color: #999;
-    font-size: 14px;
-    text-decoration: line-through;
-    margin-right: 10px;
-}
 .product-sales {
     color: #2ecc71;
     font-weight: bold;
@@ -247,12 +235,6 @@ page_bg = """
     margin-top: 15px;
     border: none;
 }
-.product-btn:hover {
-    background: linear-gradient(90deg, #764ba2, #667eea);
-    transform: scale(1.02);
-}
-hr { border-color: rgba(255,255,255,0.1); }
-
 .hero-section {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
     background-size: 300% 300%;
@@ -291,25 +273,35 @@ hr { border-color: rgba(255,255,255,0.1); }
     font-size: 45px;
     font-weight: bold;
 }
-
 [data-testid="stAudio"] { display: none; }
 </style>
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ==========================================
-# 7. دوال الصوت (TTS)
+# 6. دوال التنظيف والصوت المتقدمة (TTS)
 # ==========================================
-async def generate_audio(text, voice="ar-SA-HamedNeural"):
+def clean_text_for_tts(text):
+    text = re.sub(r'[\*\#_`~]', '', text)
+    text = re.sub(r'^\s*[\*\-\•\d+[\.\)]]\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+async def generate_audio(text, output_file=None, voice="ar-SA-ZariqNeural"):
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
-            output = tmp.name
-        communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(output)
-        with open(output, 'rb') as f:
-            audio_bytes = f.read()
-        os.unlink(output)
-        return audio_bytes
+        cleaned_text = clean_text_for_tts(text)
+        communicate = edge_tts.Communicate(cleaned_text, voice)
+        if output_file:
+            await communicate.save(output_file)
+            return output_file
+        else:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
+                output = tmp.name
+            await communicate.save(output)
+            with open(output, 'rb') as f:
+                audio_bytes = f.read()
+            os.unlink(output)
+            return audio_bytes
     except Exception as e:
         st.warning(f"⚠️ خطأ في توليد الصوت: {e}")
         return None
@@ -334,7 +326,7 @@ def play_voice(text):
     return False
 
 # ==========================================
-# 8. دوال جلب المنتجات
+# 7. دوال جلب المنتجات والبيانات الثابتة
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_products_from_csv():
@@ -353,9 +345,6 @@ def get_golden_deals_from_csv():
         return df[df['discount'] >= 50].to_dict('records')
     return []
 
-# ==========================================
-# 9. بيانات المنتجات
-# ==========================================
 SHEIN_PRODUCTS = [
     {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
     {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
@@ -383,7 +372,7 @@ GOLDEN_DEALS = [
 ]
 
 # ==========================================
-# 10. دوال تحليل الرابط
+# 8. دوال الروابط والتحليل والردود
 # ==========================================
 def check_link_status(url):
     try:
@@ -432,9 +421,6 @@ def get_currency(country):
     }
     return mapping.get(country, "ريال سعودي")
 
-# ==========================================
-# 11. الردود السريعة
-# ==========================================
 def quick_response(question):
     q = question.lower()
     if "السلام" in q or "مرحبا" in q or "هلا" in q:
@@ -449,13 +435,7 @@ def quick_response(question):
         return "العفو، أنا في خدمتك."
     return None
 
-# ==========================================
-# 12. دوال تحويل الصوت ومعالجة الاستعلامات
-# ==========================================
 def convert_audio_to_wav(audio_bytes):
-    if not PYDUB_AVAILABLE:
-        st.error("⚠️ مكتبة pydub غير مثبتة.")
-        return None
     try:
         audio = AudioSegment.from_file(BytesIO(audio_bytes))
         wav_io = BytesIO()
@@ -483,20 +463,6 @@ def transcribe_audio(audio_bytes):
         st.error(f"⚠️ حدث خطأ: {e}")
     return None
 
-def display_and_speak(text):
-    if not text:
-        return
-    st.markdown(f"""
-    <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-        <h4 style='color: #feca57;'>🤖 الرد:</h4>
-        <p style='color: #e2e8f0;'>{text}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    play_voice(text[:500])
-
-# ==========================================
-# 13. دوال الأفاتار والمحادثة
-# ==========================================
 def animate_avatar(image_path, duration=1.5):
     if not os.path.exists(image_path):
         return
@@ -540,7 +506,7 @@ def process_query_avatar(query, model):
     st.rerun()
 
 # ==========================================
-# 14. الغلاف العلوي
+# 9. الغلاف العلوي (Hero Section)
 # ==========================================
 st.markdown("""
 <div class='hero-section'>
@@ -562,7 +528,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 15. القائمة الجانبية (Sidebar)
+# 10. القائمة الجانبية (Sidebar)
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -658,12 +624,12 @@ with st.sidebar:
     st.caption("© 2026 سوق سعيد")
 
 # ==========================================
-# 16. التبويبات الرئيسية (Tabs)
+# 11. التبويبات الرئيسية (Tabs)
 # ==========================================
 tab1, tab2, tab3, tab4 = st.tabs(["متجر المنتجات", "أداة الفحص المتقدم", "المحادثة الذكية", "إدارة المنتجات"])
 
 # ==========================================
-# 17. تبويب المنتجات
+# تبويب 1: متجر المنتجات
 # ==========================================
 with tab1:
     st.subheader("اختر المتجر للتصفح:")
@@ -789,7 +755,7 @@ with tab1:
             st.info("تم تحميل منتجات AliExpress بنجاح...")
 
 # ==========================================
-# 18. تبويب تحليل الرابط
+# تبويب 2: أداة الفحص المتقدم للروابط
 # ==========================================
 with tab2:
     st.subheader("أداة فحص الروابط المتقدمة")
@@ -829,7 +795,7 @@ with tab2:
                     st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# 19. تبويب المحادثة الذكية (مُعالج ومحمي بالكامل)
+# تبويب 3: المحادثة الذكية وأدوات الريلز الصوتية
 # ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية")
@@ -844,9 +810,9 @@ with tab3:
     if user_input:
         process_query_avatar(user_input, model)
 
-    # 3. أدوات الصوت والتفاعل
+    # 3. أدوات الصوت والتفاعل المتقدمة والريلز
     st.markdown("---")
-    st.markdown("### 🎙️ أدوات الصوت والتفاعل")
+    st.markdown("### 🎙️ أدوات الصوت والتفاعل وتوليد الريلز")
     
     col3, col4, col5 = st.columns(3)
     
@@ -867,6 +833,40 @@ with tab3:
         if st.button("🗑️ مسح المحادثة", use_container_width=True):
             st.session_state.conversation = []
             st.rerun()
+
+    st.markdown("---")
+    st.markdown("### 🎬 توليد الصوت للريلز والتسويق")
+    
+    # زر توليد الصوت للريلز المتصل بآخر رسالة أو مدخل نشط
+    if st.button("توليد الصوت للريلز", use_container_width=True):
+        target_text = ""
+        if st.session_state.conversation:
+            target_text = st.session_state.conversation[-1]["content"]
+        elif user_input:
+            target_text = user_input
+            
+        if target_text:
+            output_path = "temp_reels_audio.mp3"
+            with st.spinner("جاري معالجة وتوليد الصوت بالذكاء الاصطناعي للريلز..."):
+                try:
+                    asyncio.run(generate_audio(target_text, output_path, voice="ar-SA-ZariqNeural"))
+                    success = True
+                except Exception as e:
+                    success = False
+                    st.error(f"حدث خطأ أثناء التوليد: {e}")
+                    
+            if success:
+                st.success("تم توليد الصوت بنجاح!")
+                st.audio(output_path, format="audio/mp3")
+                with open(output_path, "rb") as file:
+                    st.download_button(
+                        label="تحميل ملف الصوت MP3 للريلز",
+                        data=file,
+                        file_name="saeed_market_reels_voice.mp3",
+                        mime="audio/mp3",
+                    )
+        else:
+            st.warning("الرجاء كتابة أو توليد محادثة في الأسفل أولاً قبل الضغط على توليد الصوت للريلز.")
             
     # 4. رفع الملفات الصوتية لتحويلها لنص
     audio_file = st.file_uploader("ارفع تسجيل صوتي للإرسال (mp3, wav)", type=["mp3", "wav", "ogg"], key="chat_audio_upload")
@@ -879,7 +879,7 @@ with tab3:
             process_query_avatar(user_text, model)
 
 # ==========================================
-# 20. تبويب إدارة المنتجات
+# تبويب 4: إدارة المنتجات
 # ==========================================
 with tab4:
     st.subheader("إدارة المنتجات المخصصة")
@@ -931,49 +931,10 @@ with tab4:
             st.rerun()
 
 # ==========================================
-# 21. معالجة معلمات الاستعلام (Query Params)
+# معالجة معلمات الاستعلام (Query Params)
 # ==========================================
 params = st.query_params
 if "toggle_stream" in params:
     st.session_state.audio_streaming = not st.session_state.audio_streaming
     st.query_params.clear()
     st.rerun()
-import asyncio
-import os
-import edge_tts
-import streamlit as st
-
-# ====================================================================
-# توليد الصوت للريلز من خانة المحادثة
-# ====================================================================
-if st.button("توليد الصوت للريلز"):
-    # التحقق من النص الموجود في خانة المحادثة (المرتبط بمتغير prompt أو المدخل الحالي)
-    target_text = prompt if 'prompt' in locals() and prompt else ""
-    
-    if target_text:
-        output_path = "temp_reels_audio.mp3"
-        with st.spinner("جاري معالجة وتوليد الصوت بالذكاء الاصطناعي..."):
-            try:
-                asyncio.run(generate_audio(target_text, output_path))
-                success = True
-            except Exception as e:
-                success = False
-                st.error(f"حدث خطأ أثناء التوليد: {e}")
-                
-        if success:
-            st.success("تم توليد الصوت بنجاح!")
-            
-            # عرض مشغل الصوت واستعراض النتيجة للمشاهدين
-            st.audio(output_path, format="audio/mp3")
-            
-            # زر التحميل الخاص بملف الـ MP3
-            with open(output_path, "rb") as file:
-                st.download_button(
-                    label="تحميل ملف الصوت MP3",
-                    data=file,
-                    file_name="saeed_market_reels_voice.mp3",
-                    mime="audio/mp3",
-                )
-    else:
-        st.warning("الرجاء كتابة النص في خانة المحادثة بالأعلى أولاً قبل الضغط على توليد الصوت.")
-
