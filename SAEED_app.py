@@ -25,7 +25,7 @@ from streamlit_mic_recorder import mic_recorder
 # للتحويل الصوتي محاولة استيراد pydub
 # ==========================================
 # ==========================================
-ga_code = ""
+ga_code = """
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-QVFK3E60RZ"></script>
 <script>
@@ -35,6 +35,7 @@ ga_code = ""
 
   gtag('config', 'G-QVFK3E60RZ');
 </script>
+"""
 
 st.components.v1.html(ga_code, height=0, width=0)
 
