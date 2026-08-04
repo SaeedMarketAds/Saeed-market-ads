@@ -1,3 +1,4 @@
+# المكتبات القياسية المدمجة في بايثون
 import asyncio
 import base64
 import os
@@ -6,6 +7,7 @@ import tempfile
 import time
 from io import BytesIO, StringIO
 
+# المكتبات الخارجية والطرف الثالث
 from bs4 import BeautifulSoup
 import cloudscraper
 import edge_tts
