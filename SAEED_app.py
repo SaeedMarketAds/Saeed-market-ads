@@ -23,6 +23,13 @@ import speech_recognition as sr
 import streamlit as st
 from streamlit_mic_recorder import mic_recorder
 
+# استيراد مكتبة MoviePy لمعالجة وفيديو الريلز سحابياً
+try:
+    from moviepy.editor import AudioFileClip, ImageClip
+    MOVIEPY_AVAILABLE = True
+except ImportError:
+    MOVIEPY_AVAILABLE = False
+
 # ==========================================
 # إعدادات الصفحة
 # ==========================================
@@ -32,7 +39,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.success("مرحباً بكم في منصة SaeedMarketAds الذكية المدعومة بالذكاء الاصطناعي")
+st.success("مرحباً بكم في منصة SaeedMarketAds الذكية المدعومة بالذكاء الاصطناعي ومعالجة الريلز السحابية")
 
 # ==========================================
 # كود تتبع Google Analytics
@@ -279,7 +286,7 @@ page_bg = """
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ==========================================
-# 6. دوال التنظيف والصوت المتقدمة (TTS)
+# 6. دوال التنظيف، الصوت المتقدم (TTS)، ومعالجة الفيديو (MoviePy)
 # ==========================================
 def clean_text_for_tts(text):
     text = re.sub(r'[\*\#_`~]', '', text)
@@ -324,6 +331,33 @@ def play_voice(text):
     except Exception as e:
         st.warning(f"⚠️ خطأ في تشغيل الصوت: {e}")
     return False
+
+def generate_reel_video_cloud(audio_path, image_path, output_video_path):
+    """دمج الصوت مع الصورة لإنتاج فيديو ريلز MP4 سحابياً باستخدام MoviePy"""
+    if not MOVIEPY_AVAILABLE:
+        st.error("مكتبة MoviePy غير مثبتة في البيئة.")
+        return False
+    try:
+        audio_clip = AudioFileClip(audio_path)
+        image_clip = ImageClip(image_path).set_duration(audio_clip.duration)
+        video = image_clip.set_audio(audio_clip)
+        
+        # تصدير الفيديو بمواصفات متوافقة مع تيك توك وإنستغرام
+        video.write_videofile(
+            output_video_path,
+            fps=24,
+            codec='libx264',
+            audio_codec='aac',
+            logger=None
+        )
+        
+        audio_clip.close()
+        image_clip.close()
+        video.close()
+        return True
+    except Exception as e:
+        st.error(f"⚠️ خطأ أثناء معالجة فيديو الريلز سحابياً: {e}")
+        return False
 
 # ==========================================
 # 7. دوال جلب المنتجات والبيانات الثابتة
@@ -585,7 +619,7 @@ with st.sidebar:
     st.markdown("- تحليل الروابط المتقدم")
     st.markdown("- عروض SHEIN")
     st.markdown("- عروض نون")
-    st.markdown("- محادثة ذكية (نص + صوت)")
+    st.markdown("- محادثة ذكية (نص + صوت + ريلز سحابي)")
     st.markdown("---")
     
     st.markdown("### الافاتار والصوت")
@@ -795,10 +829,10 @@ with tab2:
                     st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# تبويب 3: المحادثة الذكية وأدوات الريلز الصوتية
+# تبويب 3: المحادثة الذكية وأدوات الريلز السحابية
 # ==========================================
 with tab3:
-    st.subheader("💬 المحادثة الذكية")
+    st.subheader("💬 المحادثة الذكية وتوليد الريلز السحابي")
     
     # 1. عرض سجل المحادثة
     for msg in st.session_state.conversation:
@@ -812,7 +846,7 @@ with tab3:
 
     # 3. أدوات الصوت والتفاعل المتقدمة والريلز
     st.markdown("---")
-    st.markdown("### 🎙️ أدوات الصوت والتفاعل وتوليد الريلز")
+    st.markdown("### 🎙️ أدوات الصوت والتفاعل وتوليد الريلز (سحابياً دون استهلاك ذاكرة الهاتف)")
     
     col3, col4, col5 = st.columns(3)
     
@@ -835,38 +869,80 @@ with tab3:
             st.rerun()
 
     st.markdown("---")
-    st.markdown("### 🎬 توليد الصوت للريلز والتسويق")
+    st.markdown("### 🎬 توليد الريلز الآلي (صوت + فيديو MP4)")
     
-    # زر توليد الصوت للريلز المتصل بآخر رسالة أو مدخل نشط
-    if st.button("توليد الصوت للريلز", use_container_width=True):
-        target_text = ""
-        if st.session_state.conversation:
-            target_text = st.session_state.conversation[-1]["content"]
-        elif user_input:
-            target_text = user_input
-            
-        if target_text:
-            output_path = "temp_reels_audio.mp3"
-            with st.spinner("جاري معالجة وتوليد الصوت بالذكاء الاصطناعي للريلز..."):
-                try:
-                    asyncio.run(generate_audio(target_text, output_path, voice="ar-SA-ZariqNeural"))
-                    success = True
-                except Exception as e:
-                    success = False
-                    st.error(f"حدث خطأ أثناء التوليد: {e}")
-                    
-            if success:
-                st.success("تم توليد الصوت بنجاح!")
-                st.audio(output_path, format="audio/mp3")
-                with open(output_path, "rb") as file:
-                    st.download_button(
-                        label="تحميل ملف الصوت MP3 للريلز",
-                        data=file,
-                        file_name="saeed_market_reels_voice.mp3",
-                        mime="audio/mp3",
-                    )
-        else:
-            st.warning("الرجاء كتابة أو توليد محادثة في الأسفل أولاً قبل الضغط على توليد الصوت للريلز.")
+    # زر توليد الصوت والريلز المتصل بآخر رسالة أو مدخل نشط
+    col_r1, col_r2 = st.columns(2)
+    
+    with col_r1:
+        if st.button("توليد ملف الصوت فقط (MP3)", use_container_width=True):
+            target_text = ""
+            if st.session_state.conversation:
+                target_text = st.session_state.conversation[-1]["content"]
+            elif user_input:
+                target_text = user_input
+                
+            if target_text:
+                output_path = "temp_reels_audio.mp3"
+                with st.spinner("جاري توليد الصوت..."):
+                    try:
+                        asyncio.run(generate_audio(target_text, output_path, voice="ar-SA-ZariqNeural"))
+                        st.success("تم توليد الصوت بنجاح!")
+                        st.audio(output_path, format="audio/mp3")
+                        with open(output_path, "rb") as file:
+                            st.download_button(
+                                label="تحميل ملف الصوت MP3",
+                                data=file,
+                                file_name="saeed_market_audio.mp3",
+                                mime="audio/mp3",
+                            )
+                    except Exception as e:
+                        st.error(f"خطأ أثناء توليد الصوت: {e}")
+            else:
+                st.warning("الرجاء إدخال أو توليد محتوى أولاً.")
+
+    with col_r2:
+        if st.button("🎬 توليد فيديو ريلز متكامل (MP4 سحابياً)", use_container_width=True):
+            target_text = ""
+            if st.session_state.conversation:
+                target_text = st.session_state.conversation[-1]["content"]
+            elif user_input:
+                target_text = user_input
+                
+            if target_text:
+                with st.spinner("⏳ جاري دمج الصوت والصورة سحابياً لإنتاج فيديو الريلز..."):
+                    try:
+                        # إنشاء ملف الصوت المؤقت
+                        temp_audio = "temp_reel_audio.mp3"
+                        asyncio.run(generate_audio(target_text, temp_audio, voice="ar-SA-ZariqNeural"))
+                        
+                        # تحديد الصورة المستخدمة (الصورة الحالية للافاتار)
+                        img_path = st.session_state.current_avatar
+                        if not os.path.exists(img_path):
+                            img_path = "ROBOT.jpg" if os.path.exists("ROBOT.jpg") else None
+                            
+                        if img_path and os.path.exists(img_path):
+                            temp_video = "temp_reel_output.mp4"
+                            success_vid = generate_reel_video_cloud(temp_audio, img_path, temp_video)
+                            
+                            if success_vid and os.path.exists(temp_video):
+                                st.success("✅ تم إنتاج فيديو الريلز سحابياً بنجاح دون التأثير على ذاكرة هاتفك!")
+                                st.video(temp_video)
+                                with open(temp_video, "rb") as v_file:
+                                    st.download_button(
+                                        label="تحميل فيديو الريلز النهائي (MP4)",
+                                        data=v_file,
+                                        file_name="SaeedMarketAds_Reel.mp4",
+                                        mime="video/mp4",
+                                    )
+                            else:
+                                st.error("فشل دمج الفيديو. تأكد من وجود مكتبة MoviePy و FFmpeg.")
+                        else:
+                            st.warning("لم يتم العثور على صورة صالحة للدمج.")
+                    except Exception as e:
+                        st.error(f"حدث خطأ أثناء معالجة الريلز: {e}")
+            else:
+                st.warning("الرجاء كتابة محتوى أو إجراء محادثة أولاً.")
             
     # 4. رفع الملفات الصوتية لتحويلها لنص
     audio_file = st.file_uploader("ارفع تسجيل صوتي للإرسال (mp3, wav)", type=["mp3", "wav", "ogg"], key="chat_audio_upload")
@@ -938,3 +1014,4 @@ if "toggle_stream" in params:
     st.session_state.audio_streaming = not st.session_state.audio_streaming
     st.query_params.clear()
     st.rerun()
+طططط
