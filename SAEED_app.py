@@ -961,41 +961,46 @@ with tab3:
             st.info(f"🗣️ الكلام المستخرج: {user_text}")
             process_query_avatar(user_text, model)
 
-    # ==========================================
-    # 🎙️ استوديو التوليد الصوتي الاحترافي المضاف حديثاً (Hamed Neural)
-    # ==========================================
-    st.markdown("---")
-    st.markdown("### 🎙️ استوديو التوليد الصوتي المتقدم (SaeedMarketAds - Hamed Neural)")
-    st.markdown("**مستشارك التسويقي:** قم بتحويل العروض والترويجات إلى رسائل صوتية طبيعية وعالية الجودة.")
+#==================================
+# استوديو التوليد الصوتي - Hamed Neural (مع تحكم بالسرعة)
+#==================================
+import asyncio
+import io
+import streamlit as st
+import edge_tts
 
-    marketing_text = st.text_area(
-        "أدخل النص التسويقي أو عرض المنتج:", 
-        "حياكم الله في سعيد ماركت، أفضل العروض والخصومات الحقيقية من علي إكسبريس ونون وشي إن مع البدائل المتاحة في السوق اليمني.",
-        key="hamed_neural_marketing_text"
-    )
+#==================================
+# دالة توليد الصوت الآمنة مع دعم التحكم بالسرعة (rate)
+#==================================
+def generate_speech_bytes(text, voice="ar-SA-HamedNeural", rate="+0%"):
+    async def _main():
+        try:
+            # إضافة معامل السرعة rate (مثل "+10%" للتسريع أو "-10%" للتبطيء)
+            communicate = edge_tts.Communicate(text, voice, rate=rate)
+            audio_buffer = io.BytesIO()
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_buffer.write(chunk["data"])
+            audio_buffer.seek(0)
+            return audio_buffer.read()
+        except Exception as e:
+            return None
 
-    if st.button("🚀 توليد وتشغيل الصوت التسويقي (Hamed Neural)", key="btn_hamed_neural"):
-        if marketing_text.strip():
-            with st.spinner("جاري معالجة وتوليد الصوت لصالح SaeedMarketAds..."):
-                try:
-                    # معالجة آمنة لحلقة الأحداث المتزامنة داخل Streamlit
-                    try:
-                        loop = asyncio.get_event_loop()
-                        if loop.is_running():
-                            with concurrent.futures.ThreadPoolExecutor() as pool:
-                                pool.submit(asyncio.run, generate_saeed_voice(marketing_text)).result()
-                        else:
-                            asyncio.run(generate_saeed_voice(marketing_text))
-                    except RuntimeError:
-                        asyncio.run(generate_saeed_voice(marketing_text))
-                    
-                    # مشغل الصوت داخل الواجهة
-                    st.audio("saeed_market_voice.mp3", format="audio/mp3")
-                    st.success("تم تجهيز الملف الصوتي بنجاح وأصبح جاهزاً للنشر!")
-                except Exception as e:
-                    st.error(f"حدث خطأ أثناء التوليد: {e}")
+    # تشغيل الدالة المتزامنة داخل بيئة Streamlit بلوب آمن
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            audio_bytes = new_loop.run_until_complete(_main())
+            new_loop.close()
         else:
-            st.warning("الرجاء كتابة النص التسويقي أولاً.")
+            audio_bytes = loop.run_until_complete(_main())
+    except Exception:
+        audio_bytes = asyncio.run(_main())
+        
+    return audio_bytes
+
 
 # ==========================================
 # تبويب 4: إدارة المنتجات
