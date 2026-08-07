@@ -7,6 +7,7 @@ import os
 import re
 import tempfile
 import time
+import concurrent.futures
 from io import BytesIO, StringIO
 
 # ==========================================
@@ -312,6 +313,14 @@ async def generate_audio(text, output_file=None, voice="ar-SA-ZariqNeural"):
     except Exception as e:
         st.warning(f"⚠️ خطأ في توليد الصوت: {e}")
         return None
+
+# دالة توليد الصوت المخصصة لهوية المنصة (من الكود المطلوب إضافته بدقة)
+async def generate_saeed_voice(text, output_file="saeed_market_voice.mp3"):
+    # استخدام صوت عربي نقي وواضح
+    voice = "ar-SA-HamedNeural"
+    cleaned_text = clean_text_for_tts(text)
+    communicate = edge_tts.Communicate(cleaned_text, voice)
+    await communicate.save(output_file)
 
 def play_voice(text):
     if not text:
@@ -829,7 +838,7 @@ with tab2:
                     st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# تبويب 3: المحادثة الذكية وأدوات الريلز السحابية
+# تبويب 3: المحادثة الذكية وأدوات الريلز السحابية واستوديو Hamed Neural المدمج
 # ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية وتوليد الريلز السحابي")
@@ -912,11 +921,9 @@ with tab3:
             if target_text:
                 with st.spinner("⏳ جاري دمج الصوت والصورة سحابياً لإنتاج فيديو الريلز..."):
                     try:
-                        # إنشاء ملف الصوت المؤقت
                         temp_audio = "temp_reel_audio.mp3"
                         asyncio.run(generate_audio(target_text, temp_audio, voice="ar-SA-ZariqNeural"))
                         
-                        # تحديد الصورة المستخدمة (الصورة الحالية للافاتار)
                         img_path = st.session_state.current_avatar
                         if not os.path.exists(img_path):
                             img_path = "ROBOT.jpg" if os.path.exists("ROBOT.jpg") else None
@@ -953,6 +960,42 @@ with tab3:
         if user_text:
             st.info(f"🗣️ الكلام المستخرج: {user_text}")
             process_query_avatar(user_text, model)
+
+    # ==========================================
+    # 🎙️ استوديو التوليد الصوتي الاحترافي المضاف حديثاً (Hamed Neural)
+    # ==========================================
+    st.markdown("---")
+    st.markdown("### 🎙️ استوديو التوليد الصوتي المتقدم (SaeedMarketAds - Hamed Neural)")
+    st.markdown("**مستشارك التسويقي:** قم بتحويل العروض والترويجات إلى رسائل صوتية طبيعية وعالية الجودة.")
+
+    marketing_text = st.text_area(
+        "أدخل النص التسويقي أو عرض المنتج:", 
+        "حياكم الله في سعيد ماركت، أفضل العروض والخصومات الحقيقية من علي إكسبريس ونون وشي إن مع البدائل المتاحة في السوق اليمني.",
+        key="hamed_neural_marketing_text"
+    )
+
+    if st.button("🚀 توليد وتشغيل الصوت التسويقي (Hamed Neural)", key="btn_hamed_neural"):
+        if marketing_text.strip():
+            with st.spinner("جاري معالجة وتوليد الصوت لصالح SaeedMarketAds..."):
+                try:
+                    # معالجة آمنة لحلقة الأحداث المتزامنة داخل Streamlit
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            with concurrent.futures.ThreadPoolExecutor() as pool:
+                                pool.submit(asyncio.run, generate_saeed_voice(marketing_text)).result()
+                        else:
+                            asyncio.run(generate_saeed_voice(marketing_text))
+                    except RuntimeError:
+                        asyncio.run(generate_saeed_voice(marketing_text))
+                    
+                    # مشغل الصوت داخل الواجهة
+                    st.audio("saeed_market_voice.mp3", format="audio/mp3")
+                    st.success("تم تجهيز الملف الصوتي بنجاح وأصبح جاهزاً للنشر!")
+                except Exception as e:
+                    st.error(f"حدث خطأ أثناء التوليد: {e}")
+        else:
+            st.warning("الرجاء كتابة النص التسويقي أولاً.")
 
 # ==========================================
 # تبويب 4: إدارة المنتجات
@@ -1014,4 +1057,3 @@ if "toggle_stream" in params:
     st.session_state.audio_streaming = not st.session_state.audio_streaming
     st.query_params.clear()
     st.rerun()
-طططط
