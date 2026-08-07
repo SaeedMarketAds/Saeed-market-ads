@@ -24,7 +24,6 @@ import speech_recognition as sr
 import streamlit as st
 from streamlit_mic_recorder import mic_recorder
 
-# استيراد مكتبة MoviePy لمعالجة وفيديو الريلز سحابياً
 try:
     from moviepy.editor import AudioFileClip, ImageClip
     MOVIEPY_AVAILABLE = True
@@ -40,8 +39,6 @@ st.set_page_config(
     layout="wide"
 )
 
-st.success("مرحباً بكم في منصة SaeedMarketAds الذكية المدعومة بالذكاء الاصطناعي ومعالجة الريلز السحابية")
-
 # ==========================================
 # كود تتبع Google Analytics
 # ==========================================
@@ -52,7 +49,6 @@ ga_code = """
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-QVFK3E60RZ');
 </script>
 """
@@ -134,19 +130,23 @@ if 'audio_streaming' not in st.session_state:
     st.session_state.audio_streaming = False
 
 # ==========================================
-# 5. CSS والتصميم العام
+# 5. CSS والتصميم العام (ألوان جديدة)
 # ==========================================
 page_bg = """
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+* {
+    font-family: 'Cairo', sans-serif;
+}
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #24243e 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
     background-attachment: fixed;
 }
-[data-testid="stHeader"] { background: rgba(0,0,0,0.2); }
-.stMarkdown { color: #fff; }
+[data-testid="stHeader"] { background: rgba(0,0,0,0.3); }
+.stMarkdown { color: #f8fafc; }
 .stButton > button {
-    background: linear-gradient(90deg, #ff6b6b, #feca57);
-    color: white;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    color: #0f172a;
     border: none;
     border-radius: 30px;
     padding: 12px 28px;
@@ -157,28 +157,24 @@ page_bg = """
 }
 .stButton > button:hover {
     transform: scale(1.02);
-    background: linear-gradient(90deg, #feca57, #ff6b6b);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(90deg, #fcd34d, #fbbf24);
+    box-shadow: 0 5px 20px rgba(251,191,36,0.3);
 }
-.stTextInput > div > div > input {
-    background: rgba(255,255,255,0.1);
-    color: white;
-    border-radius: 30px;
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 12px 20px;
-}
+.stTextInput > div > div > input,
 .stTextArea > div > div > textarea {
-    background: rgba(255,255,255,0.1);
-    color: white;
+    background: rgba(255,255,255,0.08);
+    color: #f8fafc;
     border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(251,191,36,0.3);
 }
 .product-card {
     border-radius: 20px;
     padding: 20px;
     margin-bottom: 20px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(250,250,255,0.95));
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(251,191,36,0.2);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     transition: all 0.3s ease;
     height: 100%;
     display: flex;
@@ -188,14 +184,15 @@ page_bg = """
 }
 .product-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+    border-color: #fbbf24;
+    box-shadow: 0 15px 35px rgba(251,191,36,0.15);
 }
 .product-code {
     position: absolute;
     top: 10px;
     right: 15px;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    color: white;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    color: #0f172a;
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 11px;
@@ -205,25 +202,25 @@ page_bg = """
 .product-name {
     font-size: 16px;
     font-weight: bold;
-    color: #1e293b;
+    color: #f8fafc;
     margin-bottom: 12px;
     min-height: 50px;
     padding-right: 60px;
 }
 .product-price {
-    color: #ff4757;
+    color: #fbbf24;
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 5px;
 }
 .product-sales {
-    color: #2ecc71;
+    color: #34d399;
     font-weight: bold;
     font-size: 13px;
     margin-bottom: 10px;
 }
 .product-discount {
-    background: #ff6b6b;
+    background: #ef4444;
     color: white;
     padding: 3px 10px;
     border-radius: 20px;
@@ -232,54 +229,51 @@ page_bg = """
     display: inline-block;
 }
 .product-btn {
-    background: linear-gradient(90deg, #667eea, #764ba2);
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
     border-radius: 40px;
     padding: 12px;
     text-align: center;
     cursor: pointer;
     font-weight: bold;
-    color: white;
+    color: #0f172a;
     transition: all 0.3s ease;
     margin-top: 15px;
     border: none;
 }
-.hero-section {
-    background: linear-gradient(135deg, #ff6b6b, #feca57, #ff6b6b);
-    background-size: 300% 300%;
-    animation: gradientShift 5s ease infinite;
-    padding: 40px;
+.welcome-section {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #fbbf24;
     border-radius: 30px;
-    text-align: center;
+    padding: 30px 20px;
     margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(251,191,36,0.1);
 }
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+.welcome-title {
+    color: #fbbf24;
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(251,191,36,0.2);
 }
-.hero-title {
-    color: #fff;
-    font-size: 48px;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+.welcome-sub {
+    color: #e2e8f0;
+    font-size: 1.2rem;
+    margin-top: 10px;
 }
-.hero-subtitle {
-    color: #fff;
-    font-size: 22px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+.audio-container {
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 15px;
+    margin: 20px 0;
+    border: 1px solid #fbbf24;
 }
-.hero-code {
-    background: white;
-    display: inline-block;
-    padding: 15px 50px;
-    border-radius: 80px;
-    margin: 10px 0;
-}
-.hero-code-text {
-    color: #ff0844;
-    margin: 0;
-    font-size: 45px;
-    font-weight: bold;
+.footer {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 40px;
+    border-top: 1px solid #334155;
+    padding-top: 20px;
 }
 [data-testid="stAudio"] { display: none; }
 </style>
@@ -287,7 +281,7 @@ page_bg = """
 st.markdown(page_bg, unsafe_allow_html=True)
 
 # ==========================================
-# 6. دوال التنظيف، الصوت المتقدم (TTS)، ومعالجة الفيديو (MoviePy)
+# 6. دوال التنظيف، الصوت المتقدم (TTS) مع دعم السرعة، ومعالجة الفيديو
 # ==========================================
 def clean_text_for_tts(text):
     text = re.sub(r'[\*\#_`~]', '', text)
@@ -295,41 +289,42 @@ def clean_text_for_tts(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-async def generate_audio(text, output_file=None, voice="ar-SA-ZariqNeural"):
+async def generate_audio_with_rate(text, voice="ar-SA-HamedNeural", rate="+0%"):
+    """
+    توليد صوت باستخدام edge-tts مع دعم تحكم بالسرعة (rate).
+    """
     try:
-        cleaned_text = clean_text_for_tts(text)
-        communicate = edge_tts.Communicate(cleaned_text, voice)
-        if output_file:
-            await communicate.save(output_file)
-            return output_file
-        else:
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
-                output = tmp.name
-            await communicate.save(output)
-            with open(output, 'rb') as f:
-                audio_bytes = f.read()
-            os.unlink(output)
-            return audio_bytes
+        cleaned = clean_text_for_tts(text)
+        communicate = edge_tts.Communicate(cleaned, voice, rate=rate)
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp:
+            output = tmp.name
+        await communicate.save(output)
+        with open(output, 'rb') as f:
+            audio_bytes = f.read()
+        os.unlink(output)
+        return audio_bytes
     except Exception as e:
         st.warning(f"⚠️ خطأ في توليد الصوت: {e}")
         return None
 
-# دالة توليد الصوت المخصصة لهوية المنصة (من الكود المطلوب إضافته بدقة)
-async def generate_saeed_voice(text, output_file="saeed_market_voice.mp3"):
-    # استخدام صوت عربي نقي وواضح
-    voice = "ar-SA-HamedNeural"
-    cleaned_text = clean_text_for_tts(text)
-    communicate = edge_tts.Communicate(cleaned_text, voice)
-    await communicate.save(output_file)
+def generate_speech_bytes(text, voice="ar-SA-HamedNeural", rate="+0%"):
+    """واجهة متزامنة لتوليد الصوت مع السرعة."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, generate_audio_with_rate(text, voice, rate))
+                return future.result()
+        else:
+            return asyncio.run(generate_audio_with_rate(text, voice, rate))
+    except RuntimeError:
+        return asyncio.run(generate_audio_with_rate(text, voice, rate))
 
-def play_voice(text):
+def play_voice(text, voice="ar-SA-HamedNeural", rate="+0%"):
     if not text:
         return False
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        audio_bytes = loop.run_until_complete(generate_audio(text))
-        loop.close()
+        audio_bytes = generate_speech_bytes(text, voice, rate)
         if audio_bytes:
             b64 = base64.b64encode(audio_bytes).decode()
             st.markdown(
@@ -342,16 +337,13 @@ def play_voice(text):
     return False
 
 def generate_reel_video_cloud(audio_path, image_path, output_video_path):
-    """دمج الصوت مع الصورة لإنتاج فيديو ريلز MP4 سحابياً باستخدام MoviePy"""
     if not MOVIEPY_AVAILABLE:
-        st.error("مكتبة MoviePy غير مثبتة في البيئة.")
+        st.error("مكتبة MoviePy غير مثبتة.")
         return False
     try:
         audio_clip = AudioFileClip(audio_path)
         image_clip = ImageClip(image_path).set_duration(audio_clip.duration)
         video = image_clip.set_audio(audio_clip)
-        
-        # تصدير الفيديو بمواصفات متوافقة مع تيك توك وإنستغرام
         video.write_videofile(
             output_video_path,
             fps=24,
@@ -359,23 +351,22 @@ def generate_reel_video_cloud(audio_path, image_path, output_video_path):
             audio_codec='aac',
             logger=None
         )
-        
         audio_clip.close()
         image_clip.close()
         video.close()
         return True
     except Exception as e:
-        st.error(f"⚠️ خطأ أثناء معالجة فيديو الريلز سحابياً: {e}")
+        st.error(f"⚠️ خطأ في معالجة الريلز: {e}")
         return False
 
 # ==========================================
-# 7. دوال جلب المنتجات والبيانات الثابتة
+# 7. دوال جلب المنتجات والبيانات الثابتة (مع التعامل مع غياب الملف)
 # ==========================================
 @st.cache_data(ttl=3600)
 def load_products_from_csv():
     try:
         url = 'https://raw.githubusercontent.com/SaeedMarketAds/Saeed-market-ads/main/products.csv'
-        r = requests.get(url)
+        r = requests.get(url, timeout=10)
         if r.status_code == 200:
             return pd.read_csv(StringIO(r.text))
     except:
@@ -388,6 +379,7 @@ def get_golden_deals_from_csv():
         return df[df['discount'] >= 50].to_dict('records')
     return []
 
+# منتجات ثابتة في حال عدم وجود CSV
 SHEIN_PRODUCTS = [
     {"code": "SH001", "name": "معطف مبطن بغطاء رأس للفتيات", "price": 19.39, "discount": 43, "link": "https://onelink.shein.com/38/5shrzfcizjmg", "sales": "150+"},
     {"code": "SH002", "name": "قميص أنيق بتصميم هونج كونج", "price": 14.18, "discount": 37, "link": "https://onelink.shein.com/38/5shune7n90yf", "sales": "200+"},
@@ -395,7 +387,6 @@ SHEIN_PRODUCTS = [
     {"code": "SH004", "name": "حقيبة مستلزمات سفر مقاومة للماء", "price": 3.90, "discount": 17, "link": "https://onelink.shein.com/38/5shuimjyfjt7", "sales": "100+"},
     {"code": "SH005", "name": "معطف رجالي كاجوال سادة", "price": 25.67, "discount": 24, "link": "https://onelink.shein.com/38/5shui8qqn60h", "sales": "200+"},
 ]
-
 ALIEXPRESS_PRODUCTS = [
     {"code": "AE001", "name": "ساعة ذكية رياضية مقاومة للماء", "price": 25.99, "discount": 40, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,300+"},
     {"code": "AE002", "name": "سماعات لاسلكية TWS Bass", "price": 15.50, "discount": 55, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "5,100+"},
@@ -406,7 +397,6 @@ ALIEXPRESS_PRODUCTS = [
     {"code": "AE007", "name": "مصباح LED متعدد الألوان للغرفة", "price": 9.99, "discount": 30, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "2,900+"},
     {"code": "AE008", "name": "كاميرا مراقبة منزلية لاسلكية", "price": 32.50, "discount": 25, "link": "https://s.click.aliexpress.com/e/_DeXBKQH", "sales": "1,200+"},
 ]
-
 GOLDEN_DEALS = [
     {"name": "Men Ice Silk Polo Shirt", "price": 4.71, "discount": 60, "link": "#", "sales": "500+"},
     {"name": "Pajama Set Button Front", "price": 6.91, "discount": 69, "link": "#", "sales": "300+"},
@@ -549,35 +539,33 @@ def process_query_avatar(query, model):
     st.rerun()
 
 # ==========================================
-# 9. الغلاف العلوي (Hero Section)
+# 9. الترحيب الجديد (أول ما يظهر)
 # ==========================================
-st.markdown("""
-<div class='hero-section'>
-    <h1 class='hero-title'>سوق سعيد</h1>
-    <p class='hero-subtitle'>متجر SHEIN | نون | علي اكسبرس</p>
-    <div style='margin: 20px 0;'>
-        <span style='background: #ff6b6b; color: white; padding: 10px 30px; border-radius: 30px; font-size: 18px;'>
-            مساعد ذكي للتسوق
-        </span>
-    </div>
-    <div style='background: rgba(255,255,255,0.2); border-radius: 20px; padding: 20px; margin-top: 15px;'>
-        <p style='color: #fff; font-size: 20px; margin: 0;'>كود الخصم الحصري</p>
-        <div class='hero-code'>
-            <h1 class='hero-code-text'>N73QS</h1>
-        </div>
-        <p style='color: #fff; font-size: 18px; margin: 5px 0 0 0;'>خصم يصل إلى 60% على أول طلب</p>
-    </div>
-</div>
+welcome_text = "مرحبا بكم في منصة SaeedMarketAds الرقمية المدعومة بالذكاء الاصطناعي"
+st.markdown(f"""
+<div class='welcome-section'>
+    <h1 class='welcome-title'>🎙️ {welcome_text}</h1>
+    <p class='welcome-sub'>استمتعوا بتجربة تسوق ذكية مع عروض حصرية وتحليل فوري للمنتجات</p>
+    <div style='margin-top: 20px;'>
 """, unsafe_allow_html=True)
 
+# زر تشغيل الصوت الترحيبي (بجانب النص)
+col_wel1, col_wel2 = st.columns([1, 4])
+with col_wel1:
+    if st.button("🔊 استمع", key="welcome_play"):
+        with st.spinner("جاري تشغيل الصوت الترحيبي..."):
+            play_voice(welcome_text, rate="+0%")
+with col_wel2:
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
 # ==========================================
-# 10. القائمة الجانبية (Sidebar)
+# 10. القائمة الجانبية (Sidebar) - معدلة
 # ==========================================
 with st.sidebar:
     st.markdown("""
-    <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 30px; margin-bottom: 20px;'>
-        <h2 style='color: #feca57;'>المساعد الذكي</h2>
-        <p style='color: #aaa;'>للتسوق والاستشارات</p>
+    <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 30px; margin-bottom: 20px; border: 1px solid #fbbf24;'>
+        <h2 style='color: #fbbf24;'>المساعد الذكي</h2>
+        <p style='color: #94a3b8;'>للتسوق والاستشارات</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -588,13 +576,11 @@ with st.sidebar:
         AVAILABLE_MODELS,
         index=AVAILABLE_MODELS.index(st.session_state.model_name) if st.session_state.model_name in AVAILABLE_MODELS else 0
     )
-
     if model_choice != st.session_state.model_name:
         st.session_state.model_name = model_choice
         st.session_state.model = init_gemini(model_choice)
 
     model = st.session_state.model
-
     if model:
         st.success(f"يعمل على {st.session_state.model_name}")
     else:
@@ -602,33 +588,13 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### العروض المميزة")
-    if st.button("عرض الغلات الآن", use_container_width=True):
-        st.session_state.show_golden = True
-        st.session_state.store = None
-
-    if st.session_state.get('show_golden', False):
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 20px; padding: 15px; text-align: center; margin: 10px 0;'>
-            <h4 style='color: #fff;'>العروض الذهبية</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        golden = get_golden_deals_from_csv() or GOLDEN_DEALS
-        for prod in golden[:5]:
-            final = prod['price'] * (1 - prod['discount']/100)
-            st.markdown(f"""
-            <div style='background: rgba(255,255,255,0.1); border-radius: 15px; padding: 12px; margin-bottom: 10px; border-right: 4px solid #feca57;'>
-                <p style='color: #e2e8f0; margin: 0;'><b>{prod['name'][:30]}...</b></p>
-                <p style='color: #feca57; margin: 0;'>${final:.2f} <span style='color: #ff6b6b; text-decoration: line-through;'>${prod['price']:.2f}</span></p>
-                <p style='color: #2ecc71; margin: 0;'>خصم {prod['discount']}%</p>
-            </div>
-            """, unsafe_allow_html=True)
+    # تم إزالة زر "عرض الغلات الآن" واستبداله بعرض تلقائي في التبويب
 
     st.markdown("---")
     st.markdown("### خدماتي:")
     st.markdown("- تحليل الروابط المتقدم")
-    st.markdown("- عروض SHEIN")
-    st.markdown("- عروض نون")
-    st.markdown("- محادثة ذكية (نص + صوت + ريلز سحابي)")
+    st.markdown("- عروض المتاجر")
+    st.markdown("- محادثة ذكية (نص + صوت + ريلز)")
     st.markdown("---")
     
     st.markdown("### الافاتار والصوت")
@@ -667,39 +633,37 @@ with st.sidebar:
     st.caption("© 2026 سوق سعيد")
 
 # ==========================================
-# 11. التبويبات الرئيسية (Tabs)
+# 11. التبويبات الرئيسية (Tabs) - معدلة
 # ==========================================
-tab1, tab2, tab3, tab4 = st.tabs(["متجر المنتجات", "أداة الفحص المتقدم", "المحادثة الذكية", "إدارة المنتجات"])
+tab1, tab2, tab3, tab4 = st.tabs(["🛍️ المتجر", "🔍 فحص الروابط", "💬 المحادثة والريلز", "📦 إدارة المنتجات"])
 
 # ==========================================
-# تبويب 1: متجر المنتجات
+# تبويب 1: متجر المنتجات (تم إزالة أزرار التصفح)
 # ==========================================
 with tab1:
-    st.subheader("اختر المتجر للتصفح:")
-    col1, col2, col3, col4 = st.columns(4)
-    if col1.button("تصفح SHEIN"):
-        st.session_state.store = "SHEIN"
-        st.session_state.show_golden = False
-    if col2.button("تصفح Noon"):
-        st.session_state.store = "Noon"
-        st.session_state.show_golden = False
-    if col3.button("تصفح AliExpress"):
-        st.session_state.store = "AliExpress"
-        st.session_state.show_golden = False
-    if col4.button("الغلات"):
+    st.subheader("اختر المتجر من القائمة الجانبية")
+    # تم نقل اختيار المتجر إلى شريط جانبي عبر st.session_state.store
+    # نعرض هنا منتجات المتجر المحدد
+    store = st.session_state.get('store', 'SHEIN')  # افتراضي SHEIN
+    # أضف قائمة منسدلة داخل التبويب لسهولة الاختيار
+    store_choice = st.selectbox("اختر المتجر:", ["SHEIN", "Noon", "AliExpress", "الغلات"], index=0)
+    if store_choice == "الغلات":
         st.session_state.show_golden = True
         st.session_state.store = None
+    else:
+        st.session_state.show_golden = False
+        st.session_state.store = store_choice
 
     if st.session_state.get('show_golden', False):
         st.markdown("""
-        <div style='background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
-            <h2 style='color: #fff;'>عروض الغلات الحصرية</h2>
-            <p style='color: #fff; font-size: 18px;'>خصومات تصل إلى 70%</p>
-            <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
+        <div style='background: linear-gradient(135deg, #fbbf24, #f59e0b); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
+            <h2 style='color: #0f172a;'>🏆 عروض الغلات الحصرية</h2>
+            <p style='color: #0f172a; font-size: 18px;'>خصومات تصل إلى 70%</p>
+            <p style='color: #0f172a; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("استمع لعروض الغلات"):
+        if st.button("🔊 استمع لعروض الغلات"):
             play_voice("مرحباً بك في عروض الغلات الحصرية. خصومات تصل إلى سبعين بالمئة على منتجات مختارة.")
 
         golden = get_golden_deals_from_csv() or GOLDEN_DEALS
@@ -708,8 +672,8 @@ with tab1:
             with cols[i % 4]:
                 final = prod['price'] * (1 - prod['discount']/100)
                 st.markdown(f"""
-                <div class='product-card' style='border: 3px solid #feca57;'>
-                    <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>غلة</div>
+                <div class='product-card' style='border: 2px solid #fbbf24;'>
+                    <div class='product-code' style='background: linear-gradient(90deg, #fbbf24, #f59e0b);'>غلة</div>
                     <div class='product-name'>{prod['name']}</div>
                     <div class='product-price'>${final:.2f}</div>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
@@ -717,7 +681,7 @@ with tab1:
                         <span class='product-sales'>{prod.get('sales', 'N/A')}</span>
                     </div>
                     <a href='{prod.get('link', '#')}' target='_blank' style='text-decoration: none;'>
-                        <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #feca57);'>احصل على العرض</div>
+                        <div class='product-btn'>احصل على العرض</div>
                     </a>
                 </div>
                 """, unsafe_allow_html=True)
@@ -764,41 +728,36 @@ with tab1:
                     """, unsafe_allow_html=True)
         elif store == "AliExpress":
             st.markdown("""
-            <div style='background: linear-gradient(135deg, #ff6b6b, #ff4757); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
-                <h2 style='color: #fff;'>متجر AliExpress</h2>
-                <p style='color: #fff; font-size: 18px;'>أفضل العروض والمنتجات بأسعار تنافسية</p>
-                <p style='color: #fff; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
+            <div style='background: linear-gradient(135deg, #fbbf24, #f59e0b); border-radius: 30px; padding: 20px; text-align: center; margin: 20px 0;'>
+                <h2 style='color: #0f172a;'>متجر AliExpress</h2>
+                <p style='color: #0f172a; font-size: 18px;'>أفضل العروض والمنتجات بأسعار تنافسية</p>
+                <p style='color: #0f172a; font-size: 16px;'>استخدم كود الخصم: N73QS</p>
             </div>
             """, unsafe_allow_html=True)
-
             cols = st.columns(4)
             for i, prod in enumerate(ALIEXPRESS_PRODUCTS):
                 with cols[i % 4]:
                     final_price = prod['price'] * (1 - prod['discount']/100)
-                    price_str = f"${final_price:.2f}"
                     st.markdown(f"""
-                    <div class='product-card' style='border: 2px solid #ff4757;'>
-                        <div class='product-code' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
+                    <div class='product-card' style='border: 2px solid #fbbf24;'>
+                        <div class='product-code' style='background: linear-gradient(90deg, #fbbf24, #f59e0b);'>
                             {prod['code']}
                         </div>
                         <div class='product-name'>{prod['name']}</div>
-                        <div class='product-price'>{price_str}</div>
+                        <div class='product-price'>${final_price:.2f}</div>
                         <div style='display: flex; justify-content: space-between; align-items: center; margin: 5px 0;'>
                             <span class='product-discount'>-{prod['discount']}%</span>
                             <span class='product-sales'>{prod['sales']}</span>
                         </div>
                         <a href='{prod['link']}' target='_blank' style='text-decoration: none;'>
-                            <div class='product-btn' style='background: linear-gradient(90deg, #ff6b6b, #ff4757);'>
-                                تسوق الآن
-                            </div>
+                            <div class='product-btn'>تسوق الآن</div>
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
-
             st.info("تم تحميل منتجات AliExpress بنجاح...")
 
 # ==========================================
-# تبويب 2: أداة الفحص المتقدم للروابط
+# تبويب 2: أداة الفحص المتقدم للروابط (بدون تغيير)
 # ==========================================
 with tab2:
     st.subheader("أداة فحص الروابط المتقدمة")
@@ -826,8 +785,8 @@ with tab2:
                         clean = re.sub(r'Saeed\s*DaTaBoT|SaeedMarketAds', '', clean, flags=re.IGNORECASE)
                         clean = re.sub(r'\s+', ' ', clean).strip()
                         st.markdown(f"""
-                        <div style='background: linear-gradient(135deg, #1e2a3e, #0f172a); border-radius: 25px; padding: 25px; border-right: 5px solid #2ecc71;'>
-                            <h4 style='color: #feca57;'>نتيجة التحليل:</h4>
+                        <div style='background: #1e293b; border-radius: 25px; padding: 25px; border-right: 5px solid #fbbf24;'>
+                            <h4 style='color: #fbbf24;'>نتيجة التحليل:</h4>
                             <p style='color: #e2e8f0; white-space: pre-wrap;'>{clean}</p>
                         </div>
                         """, unsafe_allow_html=True)
@@ -838,40 +797,37 @@ with tab2:
                     st.warning("الرابط غير متاح أو لا يحتوي على محتوى.")
 
 # ==========================================
-# تبويب 3: المحادثة الذكية وأدوات الريلز السحابية واستوديو Hamed Neural المدمج
+# تبويب 3: المحادثة الذكية وتوليد الريلز واستوديو الصوت (مع تحكم بالسرعة)
 # ==========================================
 with tab3:
     st.subheader("💬 المحادثة الذكية وتوليد الريلز السحابي")
     
-    # 1. عرض سجل المحادثة
+    # عرض سجل المحادثة
     for msg in st.session_state.conversation:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
     
-    # 2. حقل الإدخال المفرد والمحمي بمفتاح فريد
+    # حقل الإدخال
     user_input = st.chat_input("اكتب سؤالك هنا...", key="saeed_smart_chat_input")
     if user_input:
         process_query_avatar(user_input, model)
 
-    # 3. أدوات الصوت والتفاعل المتقدمة والريلز
+    # أدوات الصوت والتفاعل
     st.markdown("---")
-    st.markdown("### 🎙️ أدوات الصوت والتفاعل وتوليد الريلز (سحابياً دون استهلاك ذاكرة الهاتف)")
+    st.markdown("### 🎙️ أدوات الصوت والتفاعل وتوليد الريلز")
     
     col3, col4, col5 = st.columns(3)
-    
     with col3:
         if st.button("🔊 إعطاء الرد صوتياً", use_container_width=True):
             if st.session_state.conversation and st.session_state.conversation[-1]["role"] == "assistant":
                 play_voice(st.session_state.conversation[-1]["content"][:500])
             else:
                 st.warning("لا يوجد رد حالي لتشغيله")
-    
     with col4:
         if st.button("🔊 اختبار الصوت", use_container_width=True):
             with st.spinner("جاري تشغيل الصوت..."):
                 play_voice("مرحباً بك، اختبار الصوت يعمل بنجاح")
                 st.success("✅ يعمل!")
-
     with col5:
         if st.button("🗑️ مسح المحادثة", use_container_width=True):
             st.session_state.conversation = []
@@ -880,9 +836,7 @@ with tab3:
     st.markdown("---")
     st.markdown("### 🎬 توليد الريلز الآلي (صوت + فيديو MP4)")
     
-    # زر توليد الصوت والريلز المتصل بآخر رسالة أو مدخل نشط
     col_r1, col_r2 = st.columns(2)
-    
     with col_r1:
         if st.button("توليد ملف الصوت فقط (MP3)", use_container_width=True):
             target_text = ""
@@ -890,68 +844,65 @@ with tab3:
                 target_text = st.session_state.conversation[-1]["content"]
             elif user_input:
                 target_text = user_input
-                
             if target_text:
                 output_path = "temp_reels_audio.mp3"
                 with st.spinner("جاري توليد الصوت..."):
                     try:
-                        asyncio.run(generate_audio(target_text, output_path, voice="ar-SA-ZariqNeural"))
-                        st.success("تم توليد الصوت بنجاح!")
-                        st.audio(output_path, format="audio/mp3")
-                        with open(output_path, "rb") as file:
+                        audio_bytes = generate_speech_bytes(target_text, rate="+0%")
+                        if audio_bytes:
+                            st.audio(audio_bytes, format="audio/mp3")
                             st.download_button(
-                                label="تحميل ملف الصوت MP3",
-                                data=file,
+                                label="تحميل MP3",
+                                data=audio_bytes,
                                 file_name="saeed_market_audio.mp3",
                                 mime="audio/mp3",
                             )
                     except Exception as e:
-                        st.error(f"خطأ أثناء توليد الصوت: {e}")
+                        st.error(f"خطأ: {e}")
             else:
                 st.warning("الرجاء إدخال أو توليد محتوى أولاً.")
 
     with col_r2:
-        if st.button("🎬 توليد فيديو ريلز متكامل (MP4 سحابياً)", use_container_width=True):
+        if st.button("🎬 توليد فيديو ريلز متكامل (MP4)", use_container_width=True):
             target_text = ""
             if st.session_state.conversation:
                 target_text = st.session_state.conversation[-1]["content"]
             elif user_input:
                 target_text = user_input
-                
             if target_text:
-                with st.spinner("⏳ جاري دمج الصوت والصورة سحابياً لإنتاج فيديو الريلز..."):
+                with st.spinner("⏳ جاري دمج الصوت والصورة..."):
                     try:
                         temp_audio = "temp_reel_audio.mp3"
-                        asyncio.run(generate_audio(target_text, temp_audio, voice="ar-SA-ZariqNeural"))
-                        
-                        img_path = st.session_state.current_avatar
-                        if not os.path.exists(img_path):
-                            img_path = "ROBOT.jpg" if os.path.exists("ROBOT.jpg") else None
-                            
-                        if img_path and os.path.exists(img_path):
-                            temp_video = "temp_reel_output.mp4"
-                            success_vid = generate_reel_video_cloud(temp_audio, img_path, temp_video)
-                            
-                            if success_vid and os.path.exists(temp_video):
-                                st.success("✅ تم إنتاج فيديو الريلز سحابياً بنجاح دون التأثير على ذاكرة هاتفك!")
-                                st.video(temp_video)
-                                with open(temp_video, "rb") as v_file:
-                                    st.download_button(
-                                        label="تحميل فيديو الريلز النهائي (MP4)",
-                                        data=v_file,
-                                        file_name="SaeedMarketAds_Reel.mp4",
-                                        mime="video/mp4",
-                                    )
+                        audio_bytes = generate_speech_bytes(target_text, rate="+0%")
+                        if audio_bytes:
+                            with open(temp_audio, "wb") as f:
+                                f.write(audio_bytes)
+                            img_path = st.session_state.current_avatar
+                            if not os.path.exists(img_path):
+                                img_path = "ROBOT.jpg" if os.path.exists("ROBOT.jpg") else None
+                            if img_path and os.path.exists(img_path):
+                                temp_video = "temp_reel_output.mp4"
+                                success_vid = generate_reel_video_cloud(temp_audio, img_path, temp_video)
+                                if success_vid and os.path.exists(temp_video):
+                                    st.success("✅ تم إنتاج فيديو الريلز سحابياً!")
+                                    st.video(temp_video)
+                                    with open(temp_video, "rb") as v_file:
+                                        st.download_button(
+                                            label="تحميل الفيديو (MP4)",
+                                            data=v_file,
+                                            file_name="SaeedMarketAds_Reel.mp4",
+                                            mime="video/mp4",
+                                        )
+                                else:
+                                    st.error("فشل دمج الفيديو.")
                             else:
-                                st.error("فشل دمج الفيديو. تأكد من وجود مكتبة MoviePy و FFmpeg.")
-                        else:
-                            st.warning("لم يتم العثور على صورة صالحة للدمج.")
+                                st.warning("لم يتم العثور على صورة صالحة.")
                     except Exception as e:
-                        st.error(f"حدث خطأ أثناء معالجة الريلز: {e}")
+                        st.error(f"خطأ: {e}")
             else:
                 st.warning("الرجاء كتابة محتوى أو إجراء محادثة أولاً.")
-            
-    # 4. رفع الملفات الصوتية لتحويلها لنص
+    
+    # رفع الملفات الصوتية للتفريغ
     audio_file = st.file_uploader("ارفع تسجيل صوتي للإرسال (mp3, wav)", type=["mp3", "wav", "ogg"], key="chat_audio_upload")
     if audio_file is not None:
         st.audio(audio_file, format="audio/wav")
@@ -961,49 +912,48 @@ with tab3:
             st.info(f"🗣️ الكلام المستخرج: {user_text}")
             process_query_avatar(user_text, model)
 
-#==================================
-# استوديو التوليد الصوتي - Hamed Neural (مع تحكم بالسرعة)
-#==================================
-import asyncio
-import io
-import streamlit as st
-import edge_tts
+    # ==========================================
+    # استوديو التوليد الصوتي المتقدم (مع تحكم بالسرعة)
+    # ==========================================
+    st.markdown("---")
+    st.markdown("### 🎙️ استوديو التوليد الصوتي المتقدم (Hamed Neural)")
+    st.markdown("**مستشارك التسويقي:** قم بتحويل العروض والترويجات إلى رسائل صوتية طبيعية.")
 
-#==================================
-# دالة توليد الصوت الآمنة مع دعم التحكم بالسرعة (rate)
-#==================================
-def generate_speech_bytes(text, voice="ar-SA-HamedNeural", rate="+0%"):
-    async def _main():
-        try:
-            # إضافة معامل السرعة rate (مثل "+10%" للتسريع أو "-10%" للتبطيء)
-            communicate = edge_tts.Communicate(text, voice, rate=rate)
-            audio_buffer = io.BytesIO()
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    audio_buffer.write(chunk["data"])
-            audio_buffer.seek(0)
-            return audio_buffer.read()
-        except Exception as e:
-            return None
+    marketing_text = st.text_area(
+        "أدخل النص التسويقي أو عرض المنتج:", 
+        "حياكم الله في سعيد ماركت، أفضل العروض والخصومات الحقيقية من علي إكسبريس ونون وشي إن مع البدائل المتاحة في السوق اليمني.",
+        key="hamed_neural_marketing_text"
+    )
 
-    # تشغيل الدالة المتزامنة داخل بيئة Streamlit بلوب آمن
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            new_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(new_loop)
-            audio_bytes = new_loop.run_until_complete(_main())
-            new_loop.close()
+    # إضافة تحكم بالسرعة
+    rate_percent = st.slider(
+        "⚡ سرعة النطق (بالمئة):",
+        min_value=-50, max_value=50, value=0, step=5,
+        help="القيمة الموجبة تسرع الصوت، والسالبة تبطئه."
+    )
+    rate_str = f"{rate_percent:+d}%"
+
+    if st.button("🚀 توليد وتشغيل الصوت التسويقي (Hamed Neural)", key="btn_hamed_neural"):
+        if marketing_text.strip():
+            with st.spinner("جاري معالجة وتوليد الصوت..."):
+                try:
+                    audio_bytes = generate_speech_bytes(marketing_text, voice="ar-SA-HamedNeural", rate=rate_str)
+                    if audio_bytes:
+                        st.audio(audio_bytes, format="audio/mp3")
+                        st.success("تم تجهيز الملف الصوتي بنجاح!")
+                        st.download_button(
+                            label="تحميل الصوت (MP3)",
+                            data=audio_bytes,
+                            file_name="saeed_market_voice.mp3",
+                            mime="audio/mp3",
+                        )
+                except Exception as e:
+                    st.error(f"حدث خطأ أثناء التوليد: {e}")
         else:
-            audio_bytes = loop.run_until_complete(_main())
-    except Exception:
-        audio_bytes = asyncio.run(_main())
-        
-    return audio_bytes
-
+            st.warning("الرجاء كتابة النص التسويقي أولاً.")
 
 # ==========================================
-# تبويب 4: إدارة المنتجات
+# تبويب 4: إدارة المنتجات (بدون تغيير)
 # ==========================================
 with tab4:
     st.subheader("إدارة المنتجات المخصصة")
@@ -1055,7 +1005,7 @@ with tab4:
             st.rerun()
 
 # ==========================================
-# معالجة معلمات الاستعلام (Query Params)
+# معالجة معلمات الاستعلام
 # ==========================================
 params = st.query_params
 if "toggle_stream" in params:
